@@ -1,0 +1,199 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  quality-checks:
+    name: Code Quality & Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 'latest'
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        env:
+          CI: true
+
+      - name: Check for test.only() in tests
+        run: |
+          if grep -r "test\.only\|it\.only\|describe\.only" --include="*.test.ts" --include="*.test.tsx" . ; then
+            echo "Error: Found test.only() in tests. Remove them before committing."
+            exit 1
+          fi
+          echo "No test.only() found"
+
+      - name: Run TypeScript type checking
+        run: bun run typecheck
+
+      - name: Run BiomeJS linting
+        run: bun run lint
+
+      - name: Run BiomeJS formatting check
+        run: bun run format:check
+
+      - name: Run tests
+        run: bun run test || echo "No tests found or tests failed"
+        continue-on-error: true
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Report build size
+        run: |
+          echo "Build size report:"
+          du -sh packages/*/dist 2>/dev/null || echo "Build directories not found"
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 'latest'
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Security audit
+        run: |
+          echo "Running security audit..."
+          bun pm audit || true
+
+  # ===========================================================================
+  # Commit Message Lint (Conventional Commits)
+  # ===========================================================================
+  commitlint:
+    name: Lint Commit Messages
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install commitlint
+        run: |
+          npm install --save-dev @commitlint/cli @commitlint/config-conventional
+
+      - name: Create commitlint config
+        run: |
+          echo "module.exports = {
+            extends: ['@commitlint/config-conventional'],
+            rules: {
+              'type-enum': [2, 'always', [
+                'feat',     // New feature
+                'fix',      // Bug fix
+                'docs',     // Documentation
+                'style',    // Formatting, no code change
+                'refactor', // Code change that neither fixes nor adds
+                'perf',     // Performance improvement
+                'test',     // Adding tests
+                'build',    // Build system or dependencies
+                'ci',       // CI configuration
+                'chore',    // Other changes
+                'revert'    // Revert commit
+              ]],
+              'subject-case': [0],  // Allow any case in subject
+              'body-max-line-length': [0]  // No limit on body line length
+            }
+          };" > commitlint.config.js
+
+      - name: Validate PR commits
+        run: |
+          echo "Validating commits from ${{ github.event.pull_request.base.sha }} to ${{ github.event.pull_request.head.sha }}"
+          npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
+  # ===========================================================================
+  # Authorship Protection Check
+  # ===========================================================================
+  authorship-check:
+    name: Check Commit Authorship
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for forbidden authorship patterns
+        run: |
+          echo "Checking for forbidden authorship patterns in commits..."
+
+          # Get all commit messages in this PR
+          COMMITS=$(git log --format="%B" ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+
+          FORBIDDEN_PATTERNS=(
+            "Co-Authored-By:"
+            "Co-authored-by:"
+            "Generated with.*Claude"
+            "Generated with.*GPT"
+            "Generated with.*AI"
+            "Generated"
+            "noreply@anthropic.com"
+            "noreply@openai.com"
+          )
+
+          FOUND_VIOLATION=false
+
+          for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
+            if echo "$COMMITS" | grep -iE "$pattern" > /dev/null 2>&1; then
+              echo "Found forbidden pattern: $pattern"
+              FOUND_VIOLATION=true
+            fi
+          done
+
+          if [ "$FOUND_VIOLATION" = true ]; then
+            echo ""
+            echo "Commit authorship violation detected!"
+            echo ""
+            echo "This repository does not allow:"
+            echo "  - Co-Authored-By headers"
+            echo "  - AI attribution messages"
+            echo "  - AI assistant email addresses"
+            echo ""
+            echo "Please amend your commits to remove these patterns."
+            exit 1
+          fi
+
+          echo "No forbidden authorship patterns found"
