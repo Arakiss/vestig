@@ -1,8 +1,11 @@
 {
 	"name": "sigil-monorepo",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"private": true,
-	"workspaces": ["packages/*", "apps/*"],
+	"workspaces": [
+		"packages/*",
+		"apps/*"
+	],
 	"catalog": {
 		"// TypeScript": "",
 		"typescript": "^5.7.0",

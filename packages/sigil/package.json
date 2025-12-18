@@ -15,7 +15,9 @@
 			"import": "./dist/context/index.js"
 		}
 	},
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"sideEffects": false,
 	"scripts": {
 		"build": "tsc",
