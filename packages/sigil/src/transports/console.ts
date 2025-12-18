@@ -1,5 +1,5 @@
 import { IS_BROWSER } from '../runtime'
-import type { LogEntry, LogLevel, Transport } from '../types'
+import type { LogEntry, LogLevel, Transport, TransportConfig } from '../types'
 
 /**
  * ANSI color codes for terminal output
@@ -58,7 +58,7 @@ function formatPretty(entry: LogEntry, useColors: boolean): string {
 /**
  * Console transport configuration
  */
-export interface ConsoleTransportConfig {
+export interface ConsoleTransportConfig extends Omit<TransportConfig, 'name'> {
 	/** Use structured JSON output */
 	structured?: boolean
 	/** Use colors in output (only for non-structured) */
@@ -70,10 +70,17 @@ export interface ConsoleTransportConfig {
  */
 export class ConsoleTransport implements Transport {
 	readonly name = 'console'
+	readonly config: TransportConfig
 	private structured: boolean
 	private colors: boolean
 
 	constructor(config: ConsoleTransportConfig = {}) {
+		this.config = {
+			name: 'console',
+			enabled: config.enabled ?? true,
+			level: config.level,
+			filter: config.filter,
+		}
 		this.structured = config.structured ?? false
 		this.colors = config.colors ?? !IS_BROWSER
 	}

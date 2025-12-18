@@ -27,12 +27,16 @@
 		"format": "biome format --write .",
 		"format:check": "biome format .",
 		"typecheck": "bun run --filter '*' typecheck",
-		"release": "release-it"
+		"release": "release-it",
+		"bench": "bun run packages/sigil/bench/index.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.0",
 		"@release-it/conventional-changelog": "^10.0.4",
+		"mitata": "^1.0.34",
+		"pino": "^10.1.0",
 		"release-it": "^18.1.2",
-		"typescript": "catalog:"
+		"typescript": "catalog:",
+		"winston": "^3.19.0"
 	}
 }

@@ -28,7 +28,7 @@
 	"hooks": {
 		"before:init": ["bun run typecheck", "bun run test", "bun run build"],
 		"after:bump": "node -e \"const fs=require('fs');const p='packages/sigil/package.json';const pkg=JSON.parse(fs.readFileSync(p));pkg.version='${version}';fs.writeFileSync(p,JSON.stringify(pkg,null,'\\t')+'\\n');\" && git add packages/sigil/package.json",
-		"after:release": "echo 'Successfully released sigil v${version}'"
+		"after:release": "cd packages/sigil && npm publish --access public && echo 'Successfully released and published sigil v${version} to npm'"
 	},
 	"plugins": {
 		"@release-it/conventional-changelog": {

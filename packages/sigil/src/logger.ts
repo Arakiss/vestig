@@ -1,6 +1,6 @@
 import { mergeConfig } from './config'
 import { getContext } from './context'
-import { shouldLog } from './levels'
+import { LOG_LEVELS, shouldLog } from './levels'
 import { RUNTIME } from './runtime'
 import { ConsoleTransport } from './transports/console'
 import type {
@@ -70,15 +70,20 @@ function formatArgs(args: unknown[]): { message: string; metadata: LogMetadata }
  */
 export class LoggerImpl implements Logger {
 	private config: Required<LoggerConfig>
-	private transport: Transport
+	private transports: Transport[] = []
 	private children: Map<string, LoggerImpl> = new Map()
+	private initialized = false
 
 	constructor(config?: LoggerConfig) {
 		this.config = mergeConfig(config)
-		this.transport = new ConsoleTransport({
-			structured: this.config.structured,
-			colors: !this.config.structured,
-		})
+
+		// Add default console transport
+		this.transports.push(
+			new ConsoleTransport({
+				structured: this.config.structured,
+				colors: !this.config.structured,
+			}),
+		)
 	}
 
 	/**
@@ -118,8 +123,20 @@ export class LoggerImpl implements Logger {
 			entry.metadata = Object.keys(rest).length > 0 ? rest : undefined
 		}
 
-		// Send to transport
-		this.transport.log(entry)
+		// Send to all enabled transports
+		for (const transport of this.transports) {
+			// Check if transport is enabled
+			if (transport.config.enabled === false) continue
+
+			// Check transport-level log level filter
+			if (transport.config.level && !shouldLog(level, transport.config.level)) continue
+
+			// Check transport-level custom filter
+			if (transport.config.filter && !transport.config.filter(entry)) continue
+
+			// Send to transport
+			transport.log(entry)
+		}
 	}
 
 	/**
@@ -231,10 +248,73 @@ export class LoggerImpl implements Logger {
 	}
 
 	/**
-	 * Flush any buffered logs
+	 * Flush any buffered logs from all transports
 	 */
 	async flush(): Promise<void> {
-		await this.transport.flush?.()
+		await Promise.all(this.transports.map((t) => t.flush?.()))
+	}
+
+	/**
+	 * Add a transport to the logger
+	 */
+	addTransport(transport: Transport): void {
+		// Check for duplicate names
+		if (this.transports.some((t) => t.name === transport.name)) {
+			throw new Error(`Transport with name "${transport.name}" already exists`)
+		}
+
+		this.transports.push(transport)
+
+		// Initialize if logger is already initialized
+		if (this.initialized) {
+			transport.init?.().catch((err) => {
+				console.error(`Failed to initialize transport "${transport.name}":`, err)
+			})
+		}
+	}
+
+	/**
+	 * Remove a transport by name
+	 */
+	removeTransport(name: string): boolean {
+		const index = this.transports.findIndex((t) => t.name === name)
+		if (index === -1) return false
+
+		const removed = this.transports.splice(index, 1)
+		const transport = removed[0]
+		if (transport) {
+			transport.destroy?.().catch((err) => {
+				console.error(`Failed to destroy transport "${name}":`, err)
+			})
+		}
+
+		return true
+	}
+
+	/**
+	 * Get all registered transports
+	 */
+	getTransports(): readonly Transport[] {
+		return this.transports
+	}
+
+	/**
+	 * Initialize all transports
+	 */
+	async init(): Promise<void> {
+		if (this.initialized) return
+
+		await Promise.all(this.transports.map((t) => t.init?.()))
+		this.initialized = true
+	}
+
+	/**
+	 * Destroy all transports (call on shutdown)
+	 */
+	async destroy(): Promise<void> {
+		await Promise.all(this.transports.map((t) => t.destroy?.()))
+		this.transports = []
+		this.initialized = false
 	}
 }
 

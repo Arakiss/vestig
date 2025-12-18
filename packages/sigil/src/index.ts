@@ -8,8 +8,18 @@ export type {
 	LogMetadata,
 	LogContext,
 	Transport,
+	TransportConfig,
+	BatchTransportConfig,
+	HTTPTransportConfig,
+	FileTransportConfig,
+	DatadogTransportConfig,
 	SerializedError,
 	Runtime,
+	// Sanitization types
+	FieldMatcher,
+	SanitizePattern,
+	SanitizeConfig,
+	SanitizePreset,
 } from './types'
 
 // Runtime detection
@@ -46,13 +56,25 @@ export {
 
 // Utilities
 export { serializeError, isError, getErrorMessage } from './utils/error'
-export { sanitize, createSanitizer } from './utils/sanitize'
+export {
+	Sanitizer,
+	sanitize,
+	createSanitizer,
+	getPreset,
+	mergeConfigs,
+	COMMON_PATTERNS,
+	PRESETS,
+} from './utils/sanitize'
 export { CircularBuffer } from './utils/buffer'
 export type { CircularBufferConfig } from './utils/buffer'
 
 // Transports
 export { ConsoleTransport } from './transports/console'
 export type { ConsoleTransportConfig } from './transports/console'
+export { BatchTransport } from './transports/batch'
+export { HTTPTransport, HTTPTransportError } from './transports/http'
+export { FileTransport } from './transports/file'
+export { DatadogTransport, DatadogTransportError } from './transports/datadog'
 
 // Default logger instance (convenience)
 import { createLogger } from './logger'

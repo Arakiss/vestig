@@ -52,6 +52,51 @@ export interface SerializedError {
 }
 
 /**
+ * Field matcher for flexible field matching in sanitization
+ */
+export interface FieldMatcher {
+	/** Match type */
+	type: 'exact' | 'prefix' | 'suffix' | 'contains' | 'regex'
+	/** Pattern or field name to match */
+	value: string
+	/** Case sensitive matching (default: false) */
+	caseSensitive?: boolean
+}
+
+/**
+ * Pattern definition for sanitizing string content
+ */
+export interface SanitizePattern {
+	/** Pattern identifier */
+	name: string
+	/** Regular expression to match */
+	pattern: RegExp
+	/** Replacement string or function (default: '[REDACTED]') */
+	replacement?: string | ((match: string) => string)
+}
+
+/**
+ * Sanitization configuration
+ */
+export interface SanitizeConfig {
+	/** Enable/disable sanitization (default: true) */
+	enabled?: boolean
+	/** Fields to sanitize (can be strings or FieldMatchers) */
+	fields?: (string | FieldMatcher)[]
+	/** Patterns to apply to string values */
+	patterns?: SanitizePattern[]
+	/** Default replacement string (default: '[REDACTED]') */
+	replacement?: string
+	/** Maximum recursion depth (default: 10) */
+	depth?: number
+}
+
+/**
+ * Available sanitization presets
+ */
+export type SanitizePreset = 'none' | 'minimal' | 'default' | 'gdpr' | 'hipaa' | 'pci-dss'
+
+/**
  * Logger configuration options
  */
 export interface LoggerConfig {
@@ -61,9 +106,9 @@ export interface LoggerConfig {
 	enabled?: boolean
 	/** Output as JSON (production) or formatted (development) */
 	structured?: boolean
-	/** Enable data sanitization (default: true) */
-	sanitize?: boolean
-	/** Additional fields to sanitize */
+	/** Sanitization configuration: boolean, preset name, or full config */
+	sanitize?: boolean | SanitizePreset | SanitizeConfig
+	/** @deprecated Use sanitize config instead */
 	sanitizeFields?: string[]
 	/** Static context added to all logs */
 	context?: LogContext
@@ -72,12 +117,95 @@ export interface LoggerConfig {
 }
 
 /**
+ * Base transport configuration
+ */
+export interface TransportConfig {
+	/** Transport name for identification */
+	name: string
+	/** Enable/disable this transport (default: true) */
+	enabled?: boolean
+	/** Minimum log level for this transport */
+	level?: LogLevel
+	/** Filter function for entries */
+	filter?: (entry: LogEntry) => boolean
+}
+
+/**
  * Transport interface for log output
  */
 export interface Transport {
-	name: string
+	/** Transport identifier */
+	readonly name: string
+	/** Transport configuration */
+	readonly config: TransportConfig
+	/** Initialize transport (called once on startup) */
+	init?(): Promise<void>
+	/** Log a single entry */
 	log(entry: LogEntry): void | Promise<void>
-	flush?(): void | Promise<void>
+	/** Flush any buffered entries */
+	flush?(): Promise<void>
+	/** Cleanup resources (called on shutdown) */
+	destroy?(): Promise<void>
+}
+
+/**
+ * Configuration for batch transports
+ */
+export interface BatchTransportConfig extends TransportConfig {
+	/** Maximum entries before auto-flush (default: 100) */
+	batchSize?: number
+	/** Interval in ms between auto-flushes (default: 5000) */
+	flushInterval?: number
+	/** Maximum retry attempts on failure (default: 3) */
+	maxRetries?: number
+	/** Delay between retries in ms (default: 1000) */
+	retryDelay?: number
+}
+
+/**
+ * HTTP transport configuration
+ */
+export interface HTTPTransportConfig extends BatchTransportConfig {
+	/** Destination URL for log entries */
+	url: string
+	/** HTTP method (default: POST) */
+	method?: 'POST' | 'PUT'
+	/** Custom headers */
+	headers?: Record<string, string>
+	/** Request timeout in ms (default: 30000) */
+	timeout?: number
+	/** Transform entries before sending */
+	transform?: (entries: LogEntry[]) => unknown
+}
+
+/**
+ * File transport configuration
+ */
+export interface FileTransportConfig extends BatchTransportConfig {
+	/** Log file path */
+	path: string
+	/** Maximum file size in bytes before rotation (default: 10MB) */
+	maxSize?: number
+	/** Maximum number of rotated files to keep (default: 5) */
+	maxFiles?: number
+	/** Compress rotated files with gzip (default: false) */
+	compress?: boolean
+}
+
+/**
+ * Datadog transport configuration
+ */
+export interface DatadogTransportConfig extends BatchTransportConfig {
+	/** Datadog API key */
+	apiKey: string
+	/** Datadog site (default: datadoghq.com) */
+	site?: 'datadoghq.com' | 'datadoghq.eu' | 'us3.datadoghq.com' | 'us5.datadoghq.com'
+	/** Service name for logs */
+	service?: string
+	/** Log source identifier */
+	source?: string
+	/** Additional tags */
+	tags?: string[]
 }
 
 /**
@@ -102,4 +230,13 @@ export interface Logger {
 	disable(): void
 	isEnabled(): boolean
 	flush(): Promise<void>
+
+	/** Add a transport to the logger */
+	addTransport(transport: Transport): void
+	/** Remove a transport by name */
+	removeTransport(name: string): boolean
+	/** Get all registered transports */
+	getTransports(): readonly Transport[]
+	/** Destroy all transports (call on shutdown) */
+	destroy(): Promise<void>
 }
