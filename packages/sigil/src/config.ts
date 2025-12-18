@@ -5,10 +5,10 @@ import type { LogContext, LogLevel, LoggerConfig } from './types'
  * Environment variable names
  */
 export const ENV_VARS = {
-	LEVEL: 'LOGPULSE_LEVEL',
-	ENABLED: 'LOGPULSE_ENABLED',
-	STRUCTURED: 'LOGPULSE_STRUCTURED',
-	SANITIZE: 'LOGPULSE_SANITIZE',
+	LEVEL: 'SIGIL_LEVEL',
+	ENABLED: 'SIGIL_ENABLED',
+	STRUCTURED: 'SIGIL_STRUCTURED',
+	SANITIZE: 'SIGIL_SANITIZE',
 } as const
 
 /**
@@ -38,17 +38,15 @@ function parseBool(value: string | undefined, fallback: boolean): boolean {
 }
 
 /**
- * Get context from LOGPULSE_CONTEXT_* environment variables
+ * Get context from SIGIL_CONTEXT_* environment variables
  */
 function getEnvContext(): LogContext {
 	const context: LogContext = {}
 	if (typeof process === 'undefined' || !process.env) return context
 
 	for (const [key, value] of Object.entries(process.env)) {
-		if (key.startsWith('LOGPULSE_CONTEXT_') && value) {
-			const contextKey = key
-				.replace('LOGPULSE_CONTEXT_', '')
-				.toLowerCase()
+		if (key.startsWith('SIGIL_CONTEXT_') && value) {
+			const contextKey = key.replace('SIGIL_CONTEXT_', '').toLowerCase()
 			context[contextKey] = value
 		}
 	}
@@ -75,9 +73,7 @@ export function getDefaultConfig(): Required<LoggerConfig> {
 /**
  * Merge user config with defaults
  */
-export function mergeConfig(
-	userConfig?: LoggerConfig,
-): Required<LoggerConfig> {
+export function mergeConfig(userConfig?: LoggerConfig): Required<LoggerConfig> {
 	const defaults = getDefaultConfig()
 
 	return {
@@ -85,10 +81,7 @@ export function mergeConfig(
 		enabled: userConfig?.enabled ?? defaults.enabled,
 		structured: userConfig?.structured ?? defaults.structured,
 		sanitize: userConfig?.sanitize ?? defaults.sanitize,
-		sanitizeFields: [
-			...defaults.sanitizeFields,
-			...(userConfig?.sanitizeFields ?? []),
-		],
+		sanitizeFields: [...defaults.sanitizeFields, ...(userConfig?.sanitizeFields ?? [])],
 		context: { ...defaults.context, ...userConfig?.context },
 		namespace: userConfig?.namespace ?? defaults.namespace,
 	}

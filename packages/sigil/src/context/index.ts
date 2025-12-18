@@ -138,19 +138,14 @@ export function withContext<T>(context: LogContext, fn: () => T): T {
 /**
  * Run an async function with the given context
  */
-export function withContextAsync<T>(
-	context: LogContext,
-	fn: () => Promise<T>,
-): Promise<T> {
+export function withContextAsync<T>(context: LogContext, fn: () => Promise<T>): Promise<T> {
 	return contextManager.runAsync(context, fn)
 }
 
 /**
  * Create a new context with correlation IDs
  */
-export function createCorrelationContext(
-	existing?: Partial<LogContext>,
-): LogContext {
+export function createCorrelationContext(existing?: Partial<LogContext>): LogContext {
 	return {
 		requestId: existing?.requestId ?? generateRequestId(),
 		traceId: existing?.traceId ?? generateTraceId(),

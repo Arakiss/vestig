@@ -1,7 +1,7 @@
 {
-	"name": "logpulse",
+	"name": "sigil",
 	"version": "0.1.0",
-	"description": "A modern, runtime-agnostic logging library for Next.js. Zero config, TypeScript-first, with automatic sanitization.",
+	"description": "Leave your mark. A modern, runtime-agnostic structured logging library with automatic PII sanitization and context propagation.",
 	"type": "module",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -20,32 +20,36 @@
 	"scripts": {
 		"build": "tsc",
 		"build:clean": "rm -rf dist && tsc",
-		"test": "bun test",
+		"test": "bun test --coverage",
+		"test:watch": "bun test --watch",
 		"typecheck": "tsc --noEmit"
 	},
 	"keywords": [
 		"logging",
 		"logger",
-		"nextjs",
+		"structured-logging",
 		"typescript",
 		"bun",
+		"node",
+		"deno",
 		"edge",
-		"vercel",
-		"structured-logging",
+		"browser",
 		"pii",
-		"sanitization"
+		"sanitization",
+		"context-propagation",
+		"tracing"
 	],
 	"author": "Arakiss",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/Arakiss/logpulse.git",
-		"directory": "packages/logpulse"
+		"url": "git+https://github.com/Arakiss/sigil.git",
+		"directory": "packages/sigil"
 	},
 	"bugs": {
-		"url": "https://github.com/Arakiss/logpulse/issues"
+		"url": "https://github.com/Arakiss/sigil/issues"
 	},
-	"homepage": "https://github.com/Arakiss/logpulse#readme",
+	"homepage": "https://github.com/Arakiss/sigil#readme",
 	"devDependencies": {
 		"typescript": "catalog:",
 		"@types/node": "catalog:"

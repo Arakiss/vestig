@@ -27,10 +27,7 @@ function detectRuntime(): Runtime {
 			return 'edge'
 		}
 		// Next.js Edge
-		if (
-			typeof process !== 'undefined' &&
-			process.env?.NEXT_RUNTIME === 'edge'
-		) {
+		if (typeof process !== 'undefined' && process.env?.NEXT_RUNTIME === 'edge') {
 			return 'edge'
 		}
 		// Cloudflare Workers (has caches but no window/process.versions)
@@ -46,11 +43,7 @@ function detectRuntime(): Runtime {
 	}
 
 	// Node.js detection
-	if (
-		typeof process !== 'undefined' &&
-		process.versions?.node &&
-		typeof window === 'undefined'
-	) {
+	if (typeof process !== 'undefined' && process.versions?.node && typeof window === 'undefined') {
 		return 'node'
 	}
 
@@ -76,8 +69,7 @@ function detectRuntime(): Runtime {
 function detectCapabilities(): RuntimeCapabilities {
 	return {
 		hasAsyncLocalStorage:
-			typeof process !== 'undefined' &&
-			(RUNTIME === 'node' || RUNTIME === 'bun'),
+			typeof process !== 'undefined' && (RUNTIME === 'node' || RUNTIME === 'bun'),
 		hasProcess: typeof process !== 'undefined',
 		hasPerformance: typeof performance !== 'undefined',
 		hasConsole: typeof console !== 'undefined',

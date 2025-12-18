@@ -1,15 +1,27 @@
 {
-	"name": "logpulse-monorepo",
+	"name": "sigil-monorepo",
 	"version": "0.0.0",
 	"private": true,
-	"workspaces": ["packages/*"],
+	"workspaces": ["packages/*", "apps/*"],
 	"catalog": {
+		"// TypeScript": "",
 		"typescript": "^5.7.0",
 		"@types/node": "^22.0.0",
-		"react": "^19.0.0",
-		"react-dom": "^19.0.0",
+
+		"// React 19.2": "",
+		"react": "^19.2.3",
+		"react-dom": "^19.2.3",
 		"@types/react": "^19.0.0",
-		"@types/react-dom": "^19.0.0"
+		"@types/react-dom": "^19.0.0",
+
+		"// Next.js 16": "",
+		"next": "^16.1.0",
+
+		"// MDX": "",
+		"@next/mdx": "^16.0.10",
+		"@mdx-js/loader": "^3.1.0",
+		"@mdx-js/react": "^3.1.1",
+		"@types/mdx": "^2.0.13"
 	},
 	"scripts": {
 		"build": "bun run --filter '*' build",

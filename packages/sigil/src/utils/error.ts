@@ -35,10 +35,7 @@ export function isError(value: unknown): value is Error {
 /**
  * Serialize an error object with cause chain support
  */
-export function serializeError(
-	error: unknown,
-	depth = 0,
-): SerializedError | undefined {
+export function serializeError(error: unknown, depth = 0): SerializedError | undefined {
 	if (depth > MAX_DEPTH) return undefined
 	if (!error) return undefined
 

@@ -42,7 +42,7 @@ const SENSITIVE_PATTERNS: Array<{
 		replacement: (match: string) => {
 			const [local, domain] = match.split('@')
 			if (!local || !domain) return '[EMAIL]'
-			const maskedLocal = local.slice(0, 2) + '***'
+			const maskedLocal = `${local.slice(0, 2)}***`
 			return `${maskedLocal}@${domain}`
 		},
 	},
@@ -74,10 +74,7 @@ const REDACTED = '[REDACTED]'
 /**
  * Check if a field name is sensitive
  */
-function isSensitiveField(
-	fieldName: string,
-	additionalFields: string[] = [],
-): boolean {
+function isSensitiveField(fieldName: string, additionalFields: string[] = []): boolean {
 	const lower = fieldName.toLowerCase()
 	if (SENSITIVE_FIELDS.has(lower)) return true
 	for (const field of additionalFields) {
@@ -104,11 +101,7 @@ function sanitizeString(value: string): string {
 /**
  * Sanitize a value recursively
  */
-export function sanitize(
-	value: unknown,
-	additionalFields: string[] = [],
-	depth = 0,
-): unknown {
+export function sanitize(value: unknown, additionalFields: string[] = [], depth = 0): unknown {
 	if (depth > MAX_DEPTH) return value
 
 	// Handle null/undefined
@@ -144,8 +137,6 @@ export function sanitize(
 /**
  * Create a sanitizer function with custom fields
  */
-export function createSanitizer(
-	additionalFields: string[] = [],
-): (value: unknown) => unknown {
+export function createSanitizer(additionalFields: string[] = []): (value: unknown) => unknown {
 	return (value: unknown) => sanitize(value, additionalFields)
 }

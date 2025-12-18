@@ -1,5 +1,5 @@
-import type { LogEntry, LogLevel, Transport } from '../types'
 import { IS_BROWSER } from '../runtime'
+import type { LogEntry, LogLevel, Transport } from '../types'
 
 /**
  * ANSI color codes for terminal output
@@ -80,9 +80,7 @@ export class ConsoleTransport implements Transport {
 
 	log(entry: LogEntry): void {
 		const method = CONSOLE_METHODS[entry.level]
-		const output = this.structured
-			? formatStructured(entry)
-			: formatPretty(entry, this.colors)
+		const output = this.structured ? formatStructured(entry) : formatPretty(entry, this.colors)
 
 		// Use appropriate console method
 		const consoleFn = console[method] as (...args: unknown[]) => void

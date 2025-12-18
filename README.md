@@ -1,15 +1,16 @@
-# logpulse
+# Sigil
 
-A modern, runtime-agnostic logging library for Next.js. Zero config, TypeScript-first, with automatic sanitization.
+*Leave your mark.*
 
-[![npm version](https://img.shields.io/npm/v/logpulse.svg)](https://www.npmjs.com/package/logpulse)
+A modern, runtime-agnostic structured logging library with automatic PII sanitization and context propagation.
+
+[![npm version](https://img.shields.io/npm/v/sigil.svg)](https://www.npmjs.com/package/sigil)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
 
 - **Zero Config** - Works out of the box with sensible defaults
-- **Runtime Agnostic** - Node.js, Bun, Edge Runtime, Browser
-- **Next.js Optimized** - First-class support for App Router, middleware, and Edge
+- **Runtime Agnostic** - Node.js, Bun, Deno, Edge Runtime, Browser
 - **TypeScript First** - Full type safety and IntelliSense
 - **Auto Sanitization** - PII protection enabled by default
 - **Context Propagation** - AsyncLocalStorage support for request tracing
@@ -18,20 +19,20 @@ A modern, runtime-agnostic logging library for Next.js. Zero config, TypeScript-
 ## Installation
 
 ```bash
-# npm
-npm install logpulse
-
 # bun
-bun add logpulse
+bun add sigil
+
+# npm
+npm install sigil
 
 # pnpm
-pnpm add logpulse
+pnpm add sigil
 ```
 
 ## Quick Start
 
 ```typescript
-import { log } from 'logpulse'
+import { log } from 'sigil'
 
 // Simple logging
 log.info('Hello world')
@@ -49,7 +50,7 @@ log.info('User action', {
 ## Custom Logger
 
 ```typescript
-import { createLogger } from 'logpulse'
+import { createLogger } from 'sigil'
 
 const log = createLogger({
   level: 'debug',
@@ -75,7 +76,7 @@ cacheLog.info('Cache hit')    // [app:cache] Cache hit
 ## Context & Correlation IDs
 
 ```typescript
-import { withContext, createCorrelationContext } from 'logpulse'
+import { withContext, createCorrelationContext } from 'sigil'
 
 // Next.js API Route
 export async function GET(req: Request) {
@@ -100,14 +101,14 @@ export async function GET(req: Request) {
 ### Environment Variables
 
 ```bash
-LOGPULSE_LEVEL=debug        # trace | debug | info | warn | error
-LOGPULSE_ENABLED=true       # Enable/disable logging
-LOGPULSE_STRUCTURED=true    # JSON output (auto-enabled in production)
-LOGPULSE_SANITIZE=true      # PII sanitization (default: true)
+SIGIL_LEVEL=debug        # trace | debug | info | warn | error
+SIGIL_ENABLED=true       # Enable/disable logging
+SIGIL_STRUCTURED=true    # JSON output (auto-enabled in production)
+SIGIL_SANITIZE=true      # PII sanitization (default: true)
 
 # Add to context
-LOGPULSE_CONTEXT_SERVICE=api
-LOGPULSE_CONTEXT_VERSION=1.0.0
+SIGIL_CONTEXT_SERVICE=api
+SIGIL_CONTEXT_VERSION=1.0.0
 ```
 
 ### Programmatic
@@ -135,23 +136,23 @@ const log = createLogger({
 
 ## Runtime Detection
 
-logpulse automatically detects and adapts to:
+Sigil automatically detects and adapts to:
 
 - **Node.js** - Full features with AsyncLocalStorage
 - **Bun** - Full features with AsyncLocalStorage
+- **Deno** - Full features with AsyncLocalStorage
 - **Edge Runtime** - Vercel Edge, Cloudflare Workers
 - **Browser** - Client-side logging with sanitization
-- **Web Workers** - Background processing
 
 ```typescript
-import { RUNTIME, IS_SERVER, IS_EDGE } from 'logpulse'
+import { RUNTIME, IS_SERVER, IS_EDGE } from 'sigil'
 
-console.log(RUNTIME) // 'node' | 'bun' | 'edge' | 'browser' | 'worker'
+console.log(RUNTIME) // 'node' | 'bun' | 'deno' | 'edge' | 'browser'
 ```
 
 ## Auto-Production Mode
 
-In production (`NODE_ENV=production`), logpulse automatically:
+In production (`NODE_ENV=production`), Sigil automatically:
 
 - Sets log level to `warn`
 - Enables structured (JSON) output
@@ -178,16 +179,6 @@ Run a function with the given context.
 ### `createCorrelationContext(existing?)`
 
 Generate correlation IDs (requestId, traceId, spanId).
-
-## Migration from nexlog
-
-```diff
-- import logger from 'nexlog'
-+ import { log } from 'logpulse'
-
-- import { Logger } from 'nexlog'
-+ import { createLogger } from 'logpulse'
-```
 
 ## License
 
