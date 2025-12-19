@@ -1,5 +1,5 @@
 {
-	"name": "sigil",
+	"name": "vestig",
 	"version": "0.2.0",
 	"description": "Leave your mark. A modern, runtime-agnostic structured logging library with automatic PII sanitization and context propagation.",
 	"type": "module",

@@ -1,7 +1,7 @@
 /**
- * Benchmark Suite for Sigil
+ * Benchmark Suite for Vestig
  *
- * Compares Sigil's performance against Pino and Winston
+ * Compares Vestig's performance against Pino and Winston
  *
  * Run with: bun run bench
  */
@@ -24,8 +24,8 @@ const nullStream = new Writable({
 const nullTransport = new winston.transports.Stream({ stream: nullStream })
 
 // Create logger instances
-const sigil = createLogger({ structured: true })
-sigil.disable() // Disable output for fair comparison
+const vestig = createLogger({ structured: true })
+vestig.disable() // Disable output for fair comparison
 
 const pinoLogger = pino({ level: 'info' }, nullDestination)
 
@@ -75,8 +75,8 @@ const sensitiveData = {
 
 // Benchmark: Simple string logging
 group('Simple string message', () => {
-	bench('Sigil', () => {
-		sigil.info(simpleMessage)
+	bench('Vestig', () => {
+		vestig.info(simpleMessage)
 	})
 
 	bench('Pino', () => {
@@ -90,8 +90,8 @@ group('Simple string message', () => {
 
 // Benchmark: Object logging
 group('Object with 5 fields', () => {
-	bench('Sigil', () => {
-		sigil.info('User action', objectWithFields)
+	bench('Vestig', () => {
+		vestig.info('User action', objectWithFields)
 	})
 
 	bench('Pino', () => {
@@ -105,8 +105,8 @@ group('Object with 5 fields', () => {
 
 // Benchmark: Nested object logging
 group('Nested object (3 levels)', () => {
-	bench('Sigil', () => {
-		sigil.info('Complex data', nestedObject)
+	bench('Vestig', () => {
+		vestig.info('Complex data', nestedObject)
 	})
 
 	bench('Pino', () => {
@@ -120,8 +120,8 @@ group('Nested object (3 levels)', () => {
 
 // Benchmark: Child logger creation
 group('Child logger creation', () => {
-	bench('Sigil', () => {
-		const child = sigil.child('database')
+	bench('Vestig', () => {
+		const child = vestig.child('database')
 		child.info('Query executed')
 	})
 
@@ -136,22 +136,22 @@ group('Child logger creation', () => {
 	})
 })
 
-// Benchmark: Sanitization (Sigil only - unique feature)
-group('Sanitization (Sigil-specific)', () => {
+// Benchmark: Sanitization (Vestig only - unique feature)
+group('Sanitization (Vestig-specific)', () => {
 	const sanitizer = Sanitizer.fromPreset('default')
 	const gdprSanitizer = Sanitizer.fromPreset('gdpr')
 
-	bench('Sigil (default preset)', () => {
+	bench('Vestig (default preset)', () => {
 		sanitizer.sanitize(sensitiveData)
 	})
 
-	bench('Sigil (GDPR preset)', () => {
+	bench('Vestig (GDPR preset)', () => {
 		gdprSanitizer.sanitize(sensitiveData)
 	})
 
-	bench('Sigil (no sanitization)', () => {
+	bench('Vestig (no sanitization)', () => {
 		// Raw logging without sanitization
-		sigil.info('Data', sensitiveData)
+		vestig.info('Data', sensitiveData)
 	})
 })
 
@@ -159,8 +159,8 @@ group('Sanitization (Sigil-specific)', () => {
 group('Error logging with stack trace', () => {
 	const error = new Error('Something went wrong')
 
-	bench('Sigil', () => {
-		sigil.error('Operation failed', { error })
+	bench('Vestig', () => {
+		vestig.error('Operation failed', { error })
 	})
 
 	bench('Pino', () => {
@@ -173,7 +173,7 @@ group('Error logging with stack trace', () => {
 })
 
 // Run all benchmarks
-console.log('\n📊 Sigil Performance Benchmark\n')
+console.log('\n📊 Vestig Performance Benchmark\n')
 console.log('Comparing against Pino and Winston\n')
 console.log('─'.repeat(60))
 

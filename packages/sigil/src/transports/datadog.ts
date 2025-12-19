@@ -63,7 +63,7 @@ export class DatadogTransport extends BatchTransport {
 		const defaultUrl = 'https://http-intake.logs.datadoghq.com/api/v2/logs'
 		this.url = DATADOG_URLS[site] ?? defaultUrl
 		this.service = config.service
-		this.source = config.source ?? 'sigil'
+		this.source = config.source ?? 'vestig'
 		this.tags = config.tags
 	}
 
@@ -96,7 +96,7 @@ export class DatadogTransport extends BatchTransport {
 	 */
 	private transformEntry(entry: LogEntry): DatadogLogEntry {
 		const ddEntry: DatadogLogEntry = {
-			ddsource: this.source ?? 'sigil',
+			ddsource: this.source ?? 'vestig',
 			ddtags: this.buildTags(entry),
 			hostname: this.getHostname(entry),
 			message: entry.message,
