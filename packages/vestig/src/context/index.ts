@@ -144,12 +144,27 @@ export function withContextAsync<T>(context: LogContext, fn: () => Promise<T>): 
 
 /**
  * Create a new context with correlation IDs
+ *
+ * Note: We explicitly generate IDs for undefined values and don't spread
+ * the original object to avoid overwriting generated values with undefined.
  */
 export function createCorrelationContext(existing?: Partial<LogContext>): LogContext {
-	return {
-		requestId: existing?.requestId ?? generateRequestId(),
-		traceId: existing?.traceId ?? generateTraceId(),
-		spanId: existing?.spanId ?? generateSpanId(),
-		...existing,
+	// Extract known correlation fields, generating if not provided
+	const requestId = existing?.requestId ?? generateRequestId()
+	const traceId = existing?.traceId ?? generateTraceId()
+	const spanId = existing?.spanId ?? generateSpanId()
+
+	// Build context with only defined extra properties
+	const context: LogContext = { requestId, traceId, spanId }
+
+	// Add any extra properties from existing, but filter out undefined values
+	if (existing) {
+		for (const [key, value] of Object.entries(existing)) {
+			if (value !== undefined && !(key in context)) {
+				;(context as Record<string, unknown>)[key] = value
+			}
+		}
 	}
+
+	return context
 }

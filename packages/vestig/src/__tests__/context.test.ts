@@ -194,4 +194,44 @@ describe('createCorrelationContext', () => {
 		expect(context.sessionId).toBe('session-456')
 		expect(context.requestId).toBeDefined()
 	})
+
+	test('should generate IDs when undefined values are explicitly passed', () => {
+		// This is a critical test for the middleware/proxy use case where
+		// headers may not be set and values are explicitly undefined
+		const context = createCorrelationContext({
+			requestId: undefined,
+			traceId: undefined,
+			spanId: undefined,
+		})
+
+		// Should generate IDs, not be 'undefined' strings or actual undefined
+		expect(context.requestId).toBeDefined()
+		expect(context.traceId).toBeDefined()
+		expect(context.spanId).toBeDefined()
+
+		// Verify they are actual generated IDs, not the string 'undefined'
+		expect(context.requestId).not.toBe('undefined')
+		expect(context.traceId).not.toBe('undefined')
+		expect(context.spanId).not.toBe('undefined')
+
+		// Verify correct formats
+		expect(
+			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+				context.requestId as string,
+			),
+		).toBe(true)
+		expect(/^[0-9a-f]{32}$/.test(context.traceId as string)).toBe(true)
+		expect(/^[0-9a-f]{16}$/.test(context.spanId as string)).toBe(true)
+	})
+
+	test('should not include undefined values from extra properties', () => {
+		const context = createCorrelationContext({
+			userId: 'user-123',
+			sessionId: undefined, // explicitly undefined
+		})
+
+		expect(context.userId).toBe('user-123')
+		// sessionId should not be in the context since it was undefined
+		expect('sessionId' in context).toBe(false)
+	})
 })
