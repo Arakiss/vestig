@@ -49,8 +49,8 @@ export const GET = withVestig(
 
 			return Response.json(data, {
 				headers: {
-					'X-Request-Id': ctx.requestId!,
-					'X-Trace-Id': ctx.traceId!,
+					'X-Request-Id': ctx.requestId ?? '',
+					'X-Trace-Id': ctx.traceId ?? '',
 				},
 			})
 		} catch (error) {
@@ -59,7 +59,10 @@ export const GET = withVestig(
 				duration: `${timing.elapsed().toFixed(2)}ms`,
 			})
 
-			return Response.json({ error: 'Internal server error', requestId: ctx.requestId }, { status: 500 })
+			return Response.json(
+				{ error: 'Internal server error', requestId: ctx.requestId },
+				{ status: 500 },
+			)
 		}
 	},
 	{ namespace: 'api:demo', level: 'trace' },
@@ -110,8 +113,8 @@ export const POST = withVestig(
 			return Response.json(result, {
 				status: 201,
 				headers: {
-					'X-Request-Id': ctx.requestId!,
-					'X-Trace-Id': ctx.traceId!,
+					'X-Request-Id': ctx.requestId ?? '',
+					'X-Trace-Id': ctx.traceId ?? '',
 				},
 			})
 		} catch (error) {

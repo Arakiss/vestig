@@ -1,12 +1,12 @@
 import { headers } from 'next/headers'
 import { cache } from 'react'
 import {
-	createLogger,
-	createCorrelationContext,
-	type Logger,
 	type LogContext,
 	type LogLevel,
+	type Logger,
 	type SanitizePreset,
+	createCorrelationContext,
+	createLogger,
 } from 'vestig'
 import { CORRELATION_HEADERS } from '../utils/headers'
 

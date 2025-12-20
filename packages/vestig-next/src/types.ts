@@ -3,15 +3,15 @@
  */
 
 import type {
+	LogContext,
+	LogEntry,
+	LogLevel,
+	LogMetadata,
 	Logger,
 	LoggerConfig,
-	LogLevel,
-	LogEntry,
-	LogMetadata,
-	LogContext,
-	Transport,
-	SanitizePreset,
 	SanitizeConfig,
+	SanitizePreset,
+	Transport,
 } from 'vestig'
 
 // Re-export core types for convenience

@@ -2,10 +2,7 @@
 	"name": "vestig-monorepo",
 	"version": "0.2.1",
 	"private": true,
-	"workspaces": [
-		"packages/*",
-		"apps/*"
-	],
+	"workspaces": ["packages/*", "apps/*"],
 	"catalog": {
 		"// TypeScript": "",
 		"typescript": "^5.7.0",

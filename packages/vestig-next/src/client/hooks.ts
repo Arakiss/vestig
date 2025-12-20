@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useEffect, useRef } from 'react'
-import type { Logger, LogContext } from 'vestig'
+import { useEffect, useMemo, useRef } from 'react'
+import type { LogContext, Logger } from 'vestig'
 import { useVestigContext } from './provider'
 
 /**

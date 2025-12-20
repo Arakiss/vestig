@@ -1,5 +1,5 @@
+import { type DemoLogEntry, logStore } from '@/lib/demo-transport'
 import { createVestigHandler } from '@vestig/next/route'
-import { logStore, type DemoLogEntry } from '@/lib/demo-transport'
 
 /**
  * Vestig API Route Handler

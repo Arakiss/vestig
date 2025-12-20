@@ -4,45 +4,46 @@
 
 /* Base styles */
 body {
-  @apply bg-gray-950 text-gray-100 antialiased;
+	@apply bg-gray-950 text-gray-100 antialiased;
 }
 
 /* Scrollbar styling for log viewer */
 .overflow-y-auto::-webkit-scrollbar {
-  width: 6px;
+	width: 6px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
-  @apply bg-transparent;
+	@apply bg-transparent;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  @apply bg-white/10 rounded-full;
+	@apply bg-white/10 rounded-full;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  @apply bg-white/20;
+	@apply bg-white/20;
 }
 
 /* Code block styling */
 pre {
-  @apply font-mono;
+	@apply font-mono;
 }
 
 code {
-  @apply font-mono;
+	@apply font-mono;
 }
 
 /* Animation for pulse effect */
 @keyframes pulse-subtle {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.7;
+	}
 }
 
 .animate-pulse-subtle {
-  animation: pulse-subtle 2s ease-in-out infinite;
+	animation: pulse-subtle 2s ease-in-out infinite;
 }

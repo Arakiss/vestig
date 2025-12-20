@@ -128,7 +128,7 @@ describe('HTTPTransport', () => {
 			await transport.flush()
 
 			const headers = fetchCalls[0].options.headers as Record<string, string>
-			expect(headers['Authorization']).toBe('Bearer my-token')
+			expect(headers.Authorization).toBe('Bearer my-token')
 			expect(headers['X-Custom-Header']).toBe('custom-value')
 		})
 

@@ -1,4 +1,4 @@
-import { createLogger, type LogEntry, type Logger } from 'vestig'
+import { type LogEntry, type Logger, createLogger } from 'vestig'
 import { loadConfig } from '../config/loader'
 
 /**

@@ -1,7 +1,7 @@
-import type { Metadata } from 'next'
 import { LogProvider } from '@/lib/log-context'
-import { VestigProvider } from '@vestig/next/client'
 import { getRequestContext } from '@vestig/next'
+import { VestigProvider } from '@vestig/next/client'
+import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {

@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import {
-	createLogger,
-	createCorrelationContext,
-	parseTraceparent,
-	createTraceparent,
-	type Logger,
 	type LogLevel,
+	type Logger,
 	type SanitizePreset,
+	createCorrelationContext,
+	createLogger,
+	createTraceparent,
+	parseTraceparent,
 } from 'vestig'
 import { CORRELATION_HEADERS } from '../utils/headers'
 import { createRequestTiming, formatDuration } from '../utils/timing'
@@ -120,7 +120,9 @@ export function createVestigMiddleware(options: MiddlewareOptions = {}) {
 			path: pathname,
 			search: request.nextUrl.search || undefined,
 			userAgent: request.headers.get('user-agent')?.slice(0, 100),
-			ip: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip'),
+			ip:
+				request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+				request.headers.get('x-real-ip'),
 			requestId: ctx.requestId,
 			traceId: ctx.traceId,
 		})

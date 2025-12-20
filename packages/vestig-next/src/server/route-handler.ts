@@ -1,15 +1,15 @@
 import {
+	type LogLevel,
+	type Logger,
+	type SanitizePreset,
+	createCorrelationContext,
 	createLogger,
 	withContext,
-	createCorrelationContext,
-	type Logger,
-	type LogLevel,
-	type SanitizePreset,
 } from 'vestig'
+import type { RouteHandler, RouteHandlerContext, WithVestigOptions } from '../types'
 import { extractCorrelationHeaders, setCorrelationHeaders } from '../utils/headers'
-import { createRequestTiming, formatDuration } from '../utils/timing'
 import { extractRequestMetadata } from '../utils/metadata'
-import type { RouteHandlerContext, RouteHandler, WithVestigOptions } from '../types'
+import { createRequestTiming, formatDuration } from '../utils/timing'
 
 type NextRequest = Request & { nextUrl?: URL }
 type RouteContext = { params: Promise<Record<string, string>> }

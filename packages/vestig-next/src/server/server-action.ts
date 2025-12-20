@@ -1,15 +1,15 @@
 import { headers } from 'next/headers'
 import {
+	type LogLevel,
+	type Logger,
+	type SanitizePreset,
+	createCorrelationContext,
 	createLogger,
 	withContext,
-	createCorrelationContext,
-	type Logger,
-	type LogLevel,
-	type SanitizePreset,
 } from 'vestig'
+import type { ActionContext, ServerAction, VestigActionOptions } from '../types'
 import { CORRELATION_HEADERS } from '../utils/headers'
 import { createRequestTiming, formatDuration } from '../utils/timing'
-import type { ActionContext, ServerAction, VestigActionOptions } from '../types'
 
 export interface ActionOptions extends VestigActionOptions {
 	/** Log level for the action logger */

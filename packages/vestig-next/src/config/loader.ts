@@ -1,5 +1,5 @@
+import { deepMerge, getDefaultConfig } from './defaults'
 import type { VestigNextConfig } from './index'
-import { getDefaultConfig, deepMerge } from './defaults'
 
 // Module-level cached config (set once during app initialization)
 let cachedConfig: VestigNextConfig | null = null

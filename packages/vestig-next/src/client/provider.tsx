@@ -1,15 +1,15 @@
 'use client'
 
 import {
+	type ReactNode,
 	createContext,
 	useContext,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
-	useMemo,
-	type ReactNode,
 } from 'react'
-import { createLogger, type Logger, type LogContext } from 'vestig'
+import { type LogContext, type Logger, createLogger } from 'vestig'
 import { ClientHTTPTransport } from './transport'
 
 /**

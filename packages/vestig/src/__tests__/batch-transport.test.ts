@@ -283,8 +283,8 @@ describe('BatchTransport', () => {
 			// Make it never flush by making send hang
 			smallTransport.shouldFail = false
 			let sendCalled = false
-			const originalSend = smallTransport['send'].bind(smallTransport)
-			smallTransport['send'] = async (entries: LogEntry[]) => {
+			const originalSend = smallTransport.send.bind(smallTransport)
+			smallTransport.send = async (entries: LogEntry[]) => {
 				sendCalled = true
 				// Hang forever
 				await new Promise(() => {})

@@ -1,6 +1,6 @@
 'use client'
 
-import type { Transport, TransportConfig, LogEntry } from 'vestig'
+import type { LogEntry, Transport, TransportConfig } from 'vestig'
 
 /**
  * Configuration for ClientHTTPTransport

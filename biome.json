@@ -23,7 +23,22 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"a11y": {
+				"useButtonType": "warn",
+				"useKeyWithClickEvents": "warn",
+				"useSemanticElements": "warn",
+				"noLabelWithoutControl": "warn"
+			},
+			"style": {
+				"noNonNullAssertion": "warn"
+			},
+			"complexity": {
+				"noForEach": "warn"
+			},
+			"correctness": {
+				"useExhaustiveDependencies": "warn"
+			}
 		}
 	},
 	"formatter": {

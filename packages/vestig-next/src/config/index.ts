@@ -1,4 +1,4 @@
-import type { LogLevel, SanitizePreset, SanitizeConfig, Transport } from 'vestig'
+import type { LogLevel, SanitizeConfig, SanitizePreset, Transport } from 'vestig'
 
 /**
  * Middleware configuration options
