@@ -78,14 +78,15 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Build first - required for typecheck to resolve workspace dependencies
+      - name: Build packages
+        run: bun run build
+
       - name: Run type checking
         run: bun run typecheck
 
       - name: Run tests
         run: bun run test
-
-      - name: Build packages
-        run: bun run build
 
       - name: Configure Git
         run: |
