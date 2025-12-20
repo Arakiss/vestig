@@ -365,4 +365,244 @@ describe('LoggerImpl', () => {
 			expect(output.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/)
 		})
 	})
+
+	describe('addTransport', () => {
+		test('should add a transport', () => {
+			const logger = new LoggerImpl()
+			const mockTransport = {
+				name: 'mock',
+				config: { name: 'mock', enabled: true },
+				log: () => {},
+			}
+
+			logger.addTransport(mockTransport)
+
+			const transports = logger.getTransports()
+			expect(transports.some((t) => t.name === 'mock')).toBe(true)
+		})
+
+		test('should throw on duplicate transport name', () => {
+			const logger = new LoggerImpl()
+			const mockTransport1 = {
+				name: 'mock',
+				config: { name: 'mock', enabled: true },
+				log: () => {},
+			}
+			const mockTransport2 = {
+				name: 'mock',
+				config: { name: 'mock', enabled: true },
+				log: () => {},
+			}
+
+			logger.addTransport(mockTransport1)
+			expect(() => logger.addTransport(mockTransport2)).toThrow(
+				'Transport with name "mock" already exists',
+			)
+		})
+
+		test('should initialize transport if logger is already initialized', async () => {
+			const logger = new LoggerImpl()
+			await logger.init()
+
+			let initCalled = false
+			const mockTransport = {
+				name: 'mock-init',
+				config: { name: 'mock-init', enabled: true },
+				log: () => {},
+				init: async () => {
+					initCalled = true
+				},
+			}
+
+			logger.addTransport(mockTransport)
+
+			// Wait for async init
+			await new Promise((r) => setTimeout(r, 10))
+			expect(initCalled).toBe(true)
+		})
+	})
+
+	describe('removeTransport', () => {
+		test('should remove a transport by name', () => {
+			const logger = new LoggerImpl()
+			const mockTransport = {
+				name: 'to-remove',
+				config: { name: 'to-remove', enabled: true },
+				log: () => {},
+			}
+
+			logger.addTransport(mockTransport)
+			expect(logger.getTransports().some((t) => t.name === 'to-remove')).toBe(true)
+
+			const result = logger.removeTransport('to-remove')
+			expect(result).toBe(true)
+			expect(logger.getTransports().some((t) => t.name === 'to-remove')).toBe(false)
+		})
+
+		test('should return false for non-existent transport', () => {
+			const logger = new LoggerImpl()
+			const result = logger.removeTransport('non-existent')
+			expect(result).toBe(false)
+		})
+
+		test('should call destroy on removed transport', async () => {
+			const logger = new LoggerImpl()
+			let destroyCalled = false
+			const mockTransport = {
+				name: 'destroy-test',
+				config: { name: 'destroy-test', enabled: true },
+				log: () => {},
+				destroy: async () => {
+					destroyCalled = true
+				},
+			}
+
+			logger.addTransport(mockTransport)
+			logger.removeTransport('destroy-test')
+
+			// Wait for async destroy
+			await new Promise((r) => setTimeout(r, 10))
+			expect(destroyCalled).toBe(true)
+		})
+	})
+
+	describe('getTransports', () => {
+		test('should return all transports', () => {
+			const logger = new LoggerImpl()
+			const initialCount = logger.getTransports().length
+
+			const mockTransport = {
+				name: 'get-test',
+				config: { name: 'get-test', enabled: true },
+				log: () => {},
+			}
+
+			logger.addTransport(mockTransport)
+			expect(logger.getTransports().length).toBe(initialCount + 1)
+		})
+
+		test('should return readonly array', () => {
+			const logger = new LoggerImpl()
+			const transports = logger.getTransports()
+			expect(Array.isArray(transports)).toBe(true)
+		})
+	})
+
+	describe('init', () => {
+		test('should initialize all transports', async () => {
+			const logger = new LoggerImpl()
+			let initCount = 0
+
+			const mockTransport1 = {
+				name: 'init-1',
+				config: { name: 'init-1', enabled: true },
+				log: () => {},
+				init: async () => {
+					initCount++
+				},
+			}
+			const mockTransport2 = {
+				name: 'init-2',
+				config: { name: 'init-2', enabled: true },
+				log: () => {},
+				init: async () => {
+					initCount++
+				},
+			}
+
+			logger.addTransport(mockTransport1)
+			logger.addTransport(mockTransport2)
+
+			await logger.init()
+			expect(initCount).toBe(2)
+		})
+
+		test('should only initialize once', async () => {
+			const logger = new LoggerImpl()
+			let initCount = 0
+
+			const mockTransport = {
+				name: 'init-once',
+				config: { name: 'init-once', enabled: true },
+				log: () => {},
+				init: async () => {
+					initCount++
+				},
+			}
+
+			logger.addTransport(mockTransport)
+			await logger.init()
+			await logger.init()
+			await logger.init()
+
+			expect(initCount).toBe(1)
+		})
+	})
+
+	describe('destroy', () => {
+		test('should destroy all transports', async () => {
+			const logger = new LoggerImpl()
+			let destroyCount = 0
+
+			const mockTransport1 = {
+				name: 'destroy-1',
+				config: { name: 'destroy-1', enabled: true },
+				log: () => {},
+				destroy: async () => {
+					destroyCount++
+				},
+			}
+			const mockTransport2 = {
+				name: 'destroy-2',
+				config: { name: 'destroy-2', enabled: true },
+				log: () => {},
+				destroy: async () => {
+					destroyCount++
+				},
+			}
+
+			logger.addTransport(mockTransport1)
+			logger.addTransport(mockTransport2)
+
+			await logger.destroy()
+			expect(destroyCount).toBe(2)
+		})
+
+		test('should clear transports list', async () => {
+			const logger = new LoggerImpl()
+			const mockTransport = {
+				name: 'clear-test',
+				config: { name: 'clear-test', enabled: true },
+				log: () => {},
+			}
+
+			logger.addTransport(mockTransport)
+			expect(logger.getTransports().length).toBeGreaterThan(0)
+
+			await logger.destroy()
+			// After destroy, only the default console transport remains (or none)
+			// Actually destroy clears ALL transports
+			expect(logger.getTransports().length).toBe(0)
+		})
+
+		test('should allow re-initialization after destroy', async () => {
+			const logger = new LoggerImpl()
+			await logger.init()
+			await logger.destroy()
+
+			let initCalled = false
+			const mockTransport = {
+				name: 're-init',
+				config: { name: 're-init', enabled: true },
+				log: () => {},
+				init: async () => {
+					initCalled = true
+				},
+			}
+
+			logger.addTransport(mockTransport)
+			await logger.init()
+			expect(initCalled).toBe(true)
+		})
+	})
 })
