@@ -189,6 +189,36 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # =========================================================================
+      # Publish to npm
+      # =========================================================================
+      - name: Setup Node.js for npm publish
+        if: steps.release.outputs.released == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish vestig to npm
+        id: npm_vestig
+        if: steps.release.outputs.released == 'true'
+        run: |
+          cd packages/vestig
+          npm publish --access public
+          echo "Published vestig@${{ steps.release.outputs.version }} to npm"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @vestig/next to npm
+        id: npm_vestig_next
+        if: steps.release.outputs.released == 'true'
+        run: |
+          cd packages/vestig-next
+          npm publish --access public
+          echo "Published @vestig/next@${{ steps.release.outputs.version }} to npm"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
     outputs:
       released: ${{ steps.release.outputs.released }}
       version: ${{ steps.release.outputs.version }}
@@ -207,17 +237,22 @@ jobs:
     steps:
       - name: Create Summary
         run: |
-          echo "## Release Published!" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Release Published!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ needs.release.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Tag:** ${{ needs.release.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
           echo "**Type:** ${{ needs.release.outputs.bump_type }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### What happened:" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ What happened:" >> $GITHUB_STEP_SUMMARY
           echo "- Version bumped in package.json" >> $GITHUB_STEP_SUMMARY
           echo "- CHANGELOG.md updated with conventional commits" >> $GITHUB_STEP_SUMMARY
           echo "- Git tag ${{ needs.release.outputs.tag }} created" >> $GITHUB_STEP_SUMMARY
           echo "- Changes pushed to main" >> $GITHUB_STEP_SUMMARY
           echo "- GitHub Release created" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 Published \`vestig@${{ needs.release.outputs.version }}\` to npm" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 Published \`@vestig/next@${{ needs.release.outputs.version }}\` to npm" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "[View Release](https://github.com/${{ github.repository }}/releases/tag/${{ needs.release.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
+          echo "### 📚 Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [GitHub Release](https://github.com/${{ github.repository }}/releases/tag/${{ needs.release.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [vestig on npm](https://www.npmjs.com/package/vestig)" >> $GITHUB_STEP_SUMMARY
+          echo "- [@vestig/next on npm](https://www.npmjs.com/package/@vestig/next)" >> $GITHUB_STEP_SUMMARY

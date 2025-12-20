@@ -38,7 +38,7 @@
 		"@release-it/conventional-changelog": "^10.0.4",
 		"mitata": "^1.0.34",
 		"pino": "^10.1.0",
-		"release-it": "^18.1.2",
+		"release-it": "^19.1.0",
 		"typescript": "catalog:",
 		"winston": "^3.19.0"
 	}

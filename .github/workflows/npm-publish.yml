@@ -1,0 +1,117 @@
+# =============================================================================
+# Manual npm Publish
+# =============================================================================
+# For publishing packages when the automatic release workflow fails
+# or to republish after fixing issues
+# =============================================================================
+
+name: npm Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to publish'
+        required: true
+        type: choice
+        options:
+          - 'both'
+          - 'vestig'
+          - '@vestig/next'
+      dry_run:
+        description: 'Dry run (show what would be published)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: 'latest'
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Get versions
+        id: versions
+        run: |
+          VESTIG_VERSION=$(node -p "require('./packages/vestig/package.json').version")
+          VESTIG_NEXT_VERSION=$(node -p "require('./packages/vestig-next/package.json').version")
+          echo "vestig_version=$VESTIG_VERSION" >> $GITHUB_OUTPUT
+          echo "vestig_next_version=$VESTIG_NEXT_VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing vestig@$VESTIG_VERSION and @vestig/next@$VESTIG_NEXT_VERSION"
+
+      - name: Publish vestig (dry run)
+        if: inputs.dry_run == true && (inputs.package == 'vestig' || inputs.package == 'both')
+        run: |
+          cd packages/vestig
+          npm publish --access public --dry-run
+          echo "Would publish vestig@${{ steps.versions.outputs.vestig_version }}"
+
+      - name: Publish @vestig/next (dry run)
+        if: inputs.dry_run == true && (inputs.package == '@vestig/next' || inputs.package == 'both')
+        run: |
+          cd packages/vestig-next
+          npm publish --access public --dry-run
+          echo "Would publish @vestig/next@${{ steps.versions.outputs.vestig_next_version }}"
+
+      - name: Publish vestig
+        if: inputs.dry_run != true && (inputs.package == 'vestig' || inputs.package == 'both')
+        run: |
+          cd packages/vestig
+          npm publish --access public
+          echo "✅ Published vestig@${{ steps.versions.outputs.vestig_version }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @vestig/next
+        if: inputs.dry_run != true && (inputs.package == '@vestig/next' || inputs.package == 'both')
+        run: |
+          cd packages/vestig-next
+          npm publish --access public
+          echo "✅ Published @vestig/next@${{ steps.versions.outputs.vestig_next_version }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## 📦 npm Publish" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.dry_run }}" == "true" ]; then
+            echo "**Mode:** Dry run (no changes)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Mode:** Published" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Version |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|---------|" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ inputs.package }}" == "vestig" ] || [ "${{ inputs.package }}" == "both" ]; then
+            echo "| vestig | ${{ steps.versions.outputs.vestig_version }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ inputs.package }}" == "@vestig/next" ] || [ "${{ inputs.package }}" == "both" ]; then
+            echo "| @vestig/next | ${{ steps.versions.outputs.vestig_next_version }} |" >> $GITHUB_STEP_SUMMARY
+          fi
