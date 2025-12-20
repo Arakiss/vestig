@@ -12,6 +12,19 @@ export interface RuntimeCapabilities {
 }
 
 /**
+ * Safe check for Node.js version (Edge-compatible)
+ */
+function hasNodeVersion(): boolean {
+	try {
+		// Use dynamic access to avoid static analysis
+		const p = globalThis.process as NodeJS.Process | undefined
+		return Boolean(p?.versions?.node)
+	} catch {
+		return false
+	}
+}
+
+/**
  * Detect the current runtime environment
  */
 function detectRuntime(): Runtime {
@@ -26,9 +39,14 @@ function detectRuntime(): Runtime {
 		if ('EdgeRuntime' in globalThis) {
 			return 'edge'
 		}
-		// Next.js Edge
-		if (typeof process !== 'undefined' && process.env?.NEXT_RUNTIME === 'edge') {
-			return 'edge'
+		// Next.js Edge - check environment variable safely
+		try {
+			const p = globalThis.process as NodeJS.Process | undefined
+			if (p?.env?.NEXT_RUNTIME === 'edge') {
+				return 'edge'
+			}
+		} catch {
+			// process not available, continue checking
 		}
 		// Cloudflare Workers (has caches but no window/process.versions)
 		if (
@@ -36,14 +54,14 @@ function detectRuntime(): Runtime {
 			typeof (globalThis as Record<string, unknown>).Request === 'function' &&
 			typeof (globalThis as Record<string, unknown>).Response === 'function' &&
 			typeof window === 'undefined' &&
-			(typeof process === 'undefined' || !process.versions?.node)
+			!hasNodeVersion()
 		) {
 			return 'edge'
 		}
 	}
 
 	// Node.js detection
-	if (typeof process !== 'undefined' && process.versions?.node && typeof window === 'undefined') {
+	if (hasNodeVersion() && typeof window === 'undefined') {
 		return 'node'
 	}
 
@@ -67,10 +85,10 @@ function detectRuntime(): Runtime {
  * Detect runtime capabilities
  */
 function detectCapabilities(): RuntimeCapabilities {
+	const hasProc = typeof globalThis.process !== 'undefined'
 	return {
-		hasAsyncLocalStorage:
-			typeof process !== 'undefined' && (RUNTIME === 'node' || RUNTIME === 'bun'),
-		hasProcess: typeof process !== 'undefined',
+		hasAsyncLocalStorage: hasProc && (RUNTIME === 'node' || RUNTIME === 'bun'),
+		hasProcess: hasProc,
 		hasPerformance: typeof performance !== 'undefined',
 		hasConsole: typeof console !== 'undefined',
 		hasCrypto: typeof crypto !== 'undefined',

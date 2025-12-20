@@ -27,8 +27,8 @@
 	},
 	"hooks": {
 		"before:init": ["bun run typecheck", "bun run test", "bun run build"],
-		"after:bump": "node -e \"const fs=require('fs');const p='packages/vestig/package.json';const pkg=JSON.parse(fs.readFileSync(p));pkg.version='${version}';fs.writeFileSync(p,JSON.stringify(pkg,null,'\\t')+'\\n');\" && git add packages/vestig/package.json",
-		"after:release": "cd packages/vestig && npm publish --access public && echo 'Successfully released and published vestig v${version} to npm'"
+		"after:bump": "node -e \"const fs=require('fs');['packages/vestig/package.json','packages/vestig-next/package.json'].forEach(p=>{const pkg=JSON.parse(fs.readFileSync(p));pkg.version='${version}';fs.writeFileSync(p,JSON.stringify(pkg,null,'\\t')+'\\n');});\" && git add packages/vestig/package.json packages/vestig-next/package.json",
+		"after:release": "cd packages/vestig && npm publish --access public && echo 'Published vestig v${version}' && cd ../vestig-next && npm publish --access public && echo 'Published @vestig/next v${version}'"
 	},
 	"plugins": {
 		"@release-it/conventional-changelog": {
