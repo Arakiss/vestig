@@ -1,153 +1,127 @@
-import { serverLogger } from '@/lib/logger'
-import {
-  withContext,
-  createCorrelationContext,
-  RUNTIME,
-} from 'vestig'
-
-// Create a child logger for this API route
-const log = serverLogger.child('api:demo')
+import { withVestig } from '@vestig/next'
+import { RUNTIME } from 'vestig'
 
 /**
  * Demo API endpoint that demonstrates logging in API Routes
+ * using @vestig/next's withVestig wrapper.
  *
  * GET /api/demo - Returns mock data with full logging
  * POST /api/demo - Accepts data and logs the processing
  */
 
-export async function GET(request: Request) {
-  const startTime = performance.now()
-  const ctx = createCorrelationContext()
+export const GET = withVestig(
+	async (request, { log, ctx, timing }) => {
+		log.info('API request received', {
+			method: 'GET',
+			url: request.url,
+			runtime: RUNTIME,
+		})
 
-  return withContext(ctx, async () => {
-    log.info('API request received', {
-      method: 'GET',
-      url: request.url,
-      requestId: ctx.requestId,
-      runtime: RUNTIME,
-    })
+		try {
+			// Simulate database fetch
+			log.debug('Fetching data from database')
+			await new Promise((r) => setTimeout(r, 100))
 
-    try {
-      // Simulate database fetch
-      log.debug('Fetching data from database')
-      await new Promise((r) => setTimeout(r, 100))
+			const data = {
+				users: [
+					{ id: 1, name: 'Alice', email: 'alice@example.com' },
+					{ id: 2, name: 'Bob', email: 'bob@example.com' },
+				],
+				meta: {
+					total: 2,
+					page: 1,
+					requestId: ctx.requestId,
+					traceId: ctx.traceId,
+				},
+			}
 
-      const data = {
-        users: [
-          { id: 1, name: 'Alice', email: 'alice@example.com' },
-          { id: 2, name: 'Bob', email: 'bob@example.com' },
-        ],
-        meta: {
-          total: 2,
-          page: 1,
-          requestId: ctx.requestId,
-          traceId: ctx.traceId,
-        },
-      }
+			log.debug('Data fetched successfully', { userCount: data.users.length })
 
-      log.debug('Data fetched successfully', { userCount: data.users.length })
+			// Simulate some processing
+			log.trace('Processing data')
+			await new Promise((r) => setTimeout(r, 50))
 
-      // Simulate some processing
-      log.trace('Processing data')
-      await new Promise((r) => setTimeout(r, 50))
+			log.info('API response sent', {
+				status: 200,
+				duration: `${timing.elapsed().toFixed(2)}ms`,
+				itemCount: data.users.length,
+			})
 
-      const duration = performance.now() - startTime
+			return Response.json(data, {
+				headers: {
+					'X-Request-Id': ctx.requestId!,
+					'X-Trace-Id': ctx.traceId!,
+				},
+			})
+		} catch (error) {
+			log.error('API request failed', {
+				error,
+				duration: `${timing.elapsed().toFixed(2)}ms`,
+			})
 
-      log.info('API response sent', {
-        status: 200,
-        duration: `${duration.toFixed(2)}ms`,
-        itemCount: data.users.length,
-      })
+			return Response.json({ error: 'Internal server error', requestId: ctx.requestId }, { status: 500 })
+		}
+	},
+	{ namespace: 'api:demo', level: 'trace' },
+)
 
-      return Response.json(data, {
-        headers: {
-          'X-Request-Id': ctx.requestId!,
-          'X-Trace-Id': ctx.traceId!,
-        },
-      })
-    } catch (error) {
-      const duration = performance.now() - startTime
+export const POST = withVestig(
+	async (request, { log, ctx, timing }) => {
+		log.info('API POST request received', {
+			method: 'POST',
+			url: request.url,
+		})
 
-      log.error('API request failed', {
-        error,
-        duration: `${duration.toFixed(2)}ms`,
-      })
+		try {
+			// Parse request body
+			log.debug('Parsing request body')
+			const body = await request.json()
 
-      return Response.json(
-        { error: 'Internal server error', requestId: ctx.requestId },
-        { status: 500 }
-      )
-    }
-  })
-}
+			log.info('Request body parsed', {
+				fieldCount: Object.keys(body).length,
+				fields: Object.keys(body),
+			})
 
-export async function POST(request: Request) {
-  const startTime = performance.now()
-  const ctx = createCorrelationContext()
+			// Simulate validation
+			log.trace('Validating input')
+			await new Promise((r) => setTimeout(r, 50))
 
-  return withContext(ctx, async () => {
-    log.info('API POST request received', {
-      method: 'POST',
-      url: request.url,
-      requestId: ctx.requestId,
-    })
+			// Log the data (will be sanitized if PII is present)
+			log.debug('Processing user data', {
+				data: body,
+			})
 
-    try {
-      // Parse request body
-      log.debug('Parsing request body')
-      const body = await request.json()
+			// Simulate database write
+			log.debug('Saving to database')
+			await new Promise((r) => setTimeout(r, 100))
 
-      log.info('Request body parsed', {
-        fieldCount: Object.keys(body).length,
-        fields: Object.keys(body),
-      })
+			const result = {
+				success: true,
+				id: Math.floor(Math.random() * 10000),
+				requestId: ctx.requestId,
+			}
 
-      // Simulate validation
-      log.trace('Validating input')
-      await new Promise((r) => setTimeout(r, 50))
+			log.info('POST request completed', {
+				status: 201,
+				duration: `${timing.elapsed().toFixed(2)}ms`,
+				createdId: result.id,
+			})
 
-      // Log the data (will be sanitized if PII is present)
-      log.debug('Processing user data', {
-        data: body,
-      })
+			return Response.json(result, {
+				status: 201,
+				headers: {
+					'X-Request-Id': ctx.requestId!,
+					'X-Trace-Id': ctx.traceId!,
+				},
+			})
+		} catch (error) {
+			log.error('POST request failed', {
+				error,
+				duration: `${timing.elapsed().toFixed(2)}ms`,
+			})
 
-      // Simulate database write
-      log.debug('Saving to database')
-      await new Promise((r) => setTimeout(r, 100))
-
-      const result = {
-        success: true,
-        id: Math.floor(Math.random() * 10000),
-        requestId: ctx.requestId,
-      }
-
-      const duration = performance.now() - startTime
-
-      log.info('POST request completed', {
-        status: 201,
-        duration: `${duration.toFixed(2)}ms`,
-        createdId: result.id,
-      })
-
-      return Response.json(result, {
-        status: 201,
-        headers: {
-          'X-Request-Id': ctx.requestId!,
-          'X-Trace-Id': ctx.traceId!,
-        },
-      })
-    } catch (error) {
-      const duration = performance.now() - startTime
-
-      log.error('POST request failed', {
-        error,
-        duration: `${duration.toFixed(2)}ms`,
-      })
-
-      return Response.json(
-        { error: 'Bad request', requestId: ctx.requestId },
-        { status: 400 }
-      )
-    }
-  })
-}
+			return Response.json({ error: 'Bad request', requestId: ctx.requestId }, { status: 400 })
+		}
+	},
+	{ namespace: 'api:demo', level: 'trace' },
+)

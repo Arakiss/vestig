@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { createClientLogger } from '@/lib/logger'
-import { RUNTIME, IS_SERVER } from 'vestig'
+import { useState, useEffect } from 'react'
+import { useLogger, useCorrelationContext } from '@vestig/next/client'
+import { RUNTIME, IS_SERVER, type Runtime } from 'vestig'
 import { FullRuntimeBadge } from '@/app/components/runtime-badge'
 import { DemoCard, DemoResult } from '@/app/components/demo-card'
 
@@ -13,8 +13,18 @@ import { DemoCard, DemoResult } from '@/app/components/demo-card'
  * All logs are generated in the browser and sent to the server for unified viewing.
  */
 export default function ClientDemoPage() {
-  // Create logger instance once
-  const log = useMemo(() => createClientLogger('client-demo'), [])
+  // Get logger from VestigProvider - no useMemo needed, hook handles stability
+  const log = useLogger('client-demo')
+
+  // Get correlation context from middleware (passed via VestigProvider)
+  const ctx = useCorrelationContext()
+
+  // Runtime detection - use client-side state to avoid hydration mismatch
+  // Server renders placeholder, client updates with actual values in useEffect
+  const [runtimeInfo, setRuntimeInfo] = useState<{
+    runtime: Runtime | 'unknown'
+    isServer: boolean
+  } | null>(null)
 
   // Form state for PII demo
   const [formData, setFormData] = useState({
@@ -25,18 +35,24 @@ export default function ClientDemoPage() {
   })
   const [logCount, setLogCount] = useState(0)
 
-  // Log on mount
+  // Set runtime info on mount (client-side only to avoid hydration mismatch)
+  useEffect(() => {
+    setRuntimeInfo({ runtime: RUNTIME, isServer: IS_SERVER })
+  }, [])
+
+  // Log on mount - include correlation context for tracing
   useEffect(() => {
     log.info('Client component mounted', {
       runtime: RUNTIME,
       isServer: IS_SERVER,
       userAgent: navigator.userAgent.slice(0, 50) + '...',
+      requestId: ctx.requestId,
     })
 
     return () => {
       log.debug('Client component unmounting')
     }
-  }, [log])
+  }, [log, ctx.requestId])
 
   // Handler for form changes with logging
   const handleInputChange = (field: string, value: string) => {
@@ -116,7 +132,11 @@ export default function ClientDemoPage() {
           Browser-side logging with PII sanitization. Logs are sent to the
           server for unified viewing.
         </p>
-        <FullRuntimeBadge runtime={RUNTIME} isServer={IS_SERVER} />
+        {runtimeInfo ? (
+          <FullRuntimeBadge runtime={runtimeInfo.runtime} isServer={runtimeInfo.isServer} />
+        ) : (
+          <span className="text-xs text-gray-500">Detecting runtime...</span>
+        )}
       </div>
 
       {/* Log level buttons */}
@@ -241,19 +261,21 @@ export default function ClientDemoPage() {
       <div className="mt-6">
         <DemoCard
           title="Code Example"
-          description="How to use vestig in Client Components"
+          description="How to use vestig in Client Components with @vestig/next"
           icon="📝"
           code={`'use client'
-import { useMemo, useEffect } from 'react'
-import { createClientLogger } from '@/lib/logger'
+import { useEffect } from 'react'
+import { useLogger, useCorrelationContext } from '@vestig/next/client'
 
 export default function MyClientComponent() {
-  const log = useMemo(() => createClientLogger('my-component'), [])
+  // Get logger from VestigProvider - stable reference, no useMemo needed!
+  const log = useLogger('my-component')
+  const ctx = useCorrelationContext()
 
   useEffect(() => {
-    log.info('Component mounted')
+    log.info('Component mounted', { requestId: ctx.requestId })
     return () => log.debug('Component unmounting')
-  }, [log])
+  }, [log, ctx.requestId])
 
   const handleClick = () => {
     log.info('Button clicked', {

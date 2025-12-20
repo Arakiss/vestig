@@ -1,15 +1,12 @@
-import { serverLogger } from '@/lib/logger'
-import { RUNTIME, IS_SERVER, withContext, createCorrelationContext } from 'vestig'
+import { getLogger, getRequestContext } from '@vestig/next'
+import { RUNTIME, IS_SERVER } from 'vestig'
 import { FullRuntimeBadge } from '@/app/components/runtime-badge'
 import { DemoCard, DemoResult } from '@/app/components/demo-card'
 
-// Create a child logger for this page
-const log = serverLogger.child('server-demo')
-
 /**
- * Simulated async data fetching
+ * Simulated async data fetching with logging
  */
-async function fetchUser(id: number) {
+async function fetchUser(id: number, log: Awaited<ReturnType<typeof getLogger>>) {
   log.debug('Fetching user', { userId: id })
   // Simulate network delay
   await new Promise((r) => setTimeout(r, 100))
@@ -23,7 +20,7 @@ async function fetchUser(id: number) {
   return user
 }
 
-async function fetchPosts(userId: number) {
+async function fetchPosts(userId: number, log: Awaited<ReturnType<typeof getLogger>>) {
   log.debug('Fetching posts for user', { userId })
   await new Promise((r) => setTimeout(r, 80))
   const posts = [
@@ -38,12 +35,13 @@ async function fetchPosts(userId: number) {
  * Nested async component with context propagation
  */
 async function UserProfile({ userId }: { userId: number }) {
-  const profileLog = log.child('profile')
+  // Get a namespaced logger for this component (uses React cache, shares context with parent)
+  const profileLog = await getLogger('server-demo:profile')
 
   profileLog.trace('UserProfile component rendering', { userId })
 
-  const user = await fetchUser(userId)
-  const posts = await fetchPosts(userId)
+  const user = await fetchUser(userId, profileLog)
+  const posts = await fetchPosts(userId, profileLog)
 
   profileLog.info('UserProfile complete', {
     userId: user.id,
@@ -75,28 +73,26 @@ async function UserProfile({ userId }: { userId: number }) {
  * All logs are generated on the server and streamed to the UI.
  */
 export default async function ServerDemoPage() {
+  // Get a logger for this page - automatically includes correlation context from middleware
+  const log = await getLogger('server-demo')
+
+  // Get the correlation context set by middleware (requestId, traceId, etc.)
+  const ctx = await getRequestContext()
+
   // Log page render start
   log.info('Server Component page rendering', {
     route: '/playground/server',
     runtime: RUNTIME,
     isServer: IS_SERVER,
+    requestId: ctx.requestId,
   })
 
-  // Use correlation context for request tracing
-  const ctx = createCorrelationContext()
+  // Simulate some async work
+  await new Promise((r) => setTimeout(r, 50))
 
-  return withContext(ctx, async () => {
-    log.debug('Rendering with correlation context', {
-      requestId: ctx.requestId,
-      traceId: ctx.traceId,
-    })
+  log.trace('Initial render complete, fetching data')
 
-    // Simulate some async work
-    await new Promise((r) => setTimeout(r, 50))
-
-    log.trace('Initial render complete, fetching data')
-
-    return (
+  return (
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -162,26 +158,23 @@ export default async function ServerDemoPage() {
         <div className="mt-6">
           <DemoCard
             title="Code Example"
-            description="How to use vestig in Server Components"
+            description="How to use vestig in Server Components with @vestig/next"
             icon="📝"
-            code={`import { serverLogger } from '@/lib/logger'
-import { withContext, createCorrelationContext } from 'vestig'
-
-const log = serverLogger.child('my-component')
+            code={`import { getLogger, getRequestContext } from '@vestig/next'
 
 export default async function MyServerComponent() {
-  const ctx = createCorrelationContext()
+  // Get logger with automatic request context from middleware
+  const log = await getLogger('my-component')
+  const ctx = await getRequestContext()
 
-  return withContext(ctx, async () => {
-    log.info('Component rendering', {
-      requestId: ctx.requestId
-    })
-
-    const data = await fetchData()
-    log.debug('Data fetched', { count: data.length })
-
-    return <div>...</div>
+  log.info('Component rendering', {
+    requestId: ctx.requestId
   })
+
+  const data = await fetchData()
+  log.debug('Data fetched', { count: data.length })
+
+  return <div>...</div>
 }`}
           />
         </div>
@@ -215,6 +208,5 @@ export default async function MyServerComponent() {
           </ul>
         </div>
       </div>
-    )
-  })
+  )
 }
