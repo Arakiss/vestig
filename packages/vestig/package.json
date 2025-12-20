@@ -1,6 +1,6 @@
 {
 	"name": "vestig",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "Leave a trace. A modern, runtime-agnostic structured logging library with automatic PII sanitization and context propagation.",
 	"type": "module",
 	"main": "./dist/index.js",

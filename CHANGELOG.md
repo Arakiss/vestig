@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.3.1](https://github.com/Arakiss/vestig/compare/v0.3.0...v0.3.1) (2025-12-20)
+
+### 🐛 Bug Fixes
+
+* **ci:** improve release workflow with robust npm publishing ([dfbed59](https://github.com/Arakiss/vestig/commit/dfbed594fce1bbce849291146d45b460b9da26eb))
+
 ## [0.3.0](https://github.com/Arakiss/vestig/compare/v0.2.1...v0.3.0) (2025-12-20)
 
 ### ✨ Features
