@@ -1,5 +1,5 @@
 {
 	"$schema": "https://openapi.vercel.sh/vercel.json",
 	"installCommand": "cd ../.. && bun install",
-	"buildCommand": "cd ../.. && bun run --filter vestig build && bun run --filter @vestig/next build && cd apps/demo && bun run build"
+	"buildCommand": "cd ../.. && bun run --filter vestig build && bun run --filter @vestig/next build && cd apps/web && bun run build"
 }
