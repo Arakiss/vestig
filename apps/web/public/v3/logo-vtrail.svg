@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- V con trail/estela -->
+  <path
+    d="M12 16 L32 52 L52 16"
+    stroke="#ffffff"
+    stroke-width="8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <!-- Trail dots -->
+  <circle cx="8" cy="12" r="3" fill="#ffffff" opacity="0.3"/>
+  <circle cx="56" cy="12" r="3" fill="#ffffff" opacity="0.3"/>
+  <circle cx="32" cy="58" r="4" fill="#ffffff"/>
+</svg>

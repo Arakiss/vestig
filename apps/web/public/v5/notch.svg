@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Muesca/notch - una incisión en una forma -->
+  <path
+    d="M 8 16 L 56 16 L 56 48 L 40 48 L 40 36 L 24 36 L 24 48 L 8 48 Z"
+    fill="#ffffff"
+  />
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Footprint: abstract geometric vestigium -->
+  <path
+    d="M 24 8
+       L 24 40
+       Q 24 52, 36 52
+       L 48 52
+       L 48 44
+       L 36 44
+       Q 32 44, 32 40
+       L 32 8
+       Z"
+    fill="#ffffff"
+  />
+  <circle cx="44" cy="20" r="6" fill="#ffffff"/>
+</svg>

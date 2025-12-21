@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Broadcast - señal de transmisión distintiva -->
+  <circle cx="32" cy="48" r="6" fill="#ffffff"/>
+  <path d="M 16 36 A 20 20 0 0 1 48 36" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <path d="M 8 24 A 32 32 0 0 1 56 24" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <path d="M 2 12 A 44 44 0 0 1 62 12" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.3"/>
+</svg>

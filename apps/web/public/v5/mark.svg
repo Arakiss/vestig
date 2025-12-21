@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Marca grabada - dos líneas que forman una incisión -->
+  <path d="M 16 16 L 40 40" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+  <path d="M 24 44 L 48 20" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+</svg>

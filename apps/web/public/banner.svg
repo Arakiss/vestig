@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" fill="none">
+  <!-- Vestig Banner for README -->
+
+  <!-- Google Fonts import for Outfit -->
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&amp;display=swap');
+    </style>
+  </defs>
+
+  <!-- Dark background -->
+  <rect width="1200" height="300" fill="#0a0a0a"/>
+
+  <!-- Subtle grid pattern -->
+  <g stroke="#ffffff" stroke-width="0.5" opacity="0.03">
+    <line x1="0" y1="75" x2="1200" y2="75"/>
+    <line x1="0" y1="150" x2="1200" y2="150"/>
+    <line x1="0" y1="225" x2="1200" y2="225"/>
+  </g>
+
+  <!-- Logo mark - Right variant (Ultra Elegant - thinner notch) -->
+  <g transform="translate(438, 110)">
+    <path
+      d="M 12 12 L 52 12 L 52 24 L 44 24 L 44 40 L 52 40 L 52 52 L 12 52 Z"
+      fill="#ffffff"
+    />
+  </g>
+
+  <!-- Wordmark "vestig" -->
+  <text
+    x="510"
+    y="152"
+    font-family="'Outfit', system-ui, sans-serif"
+    font-size="54"
+    font-weight="600"
+    letter-spacing="-1.5"
+    fill="#ffffff"
+  >vestig</text>
+
+  <!-- Tagline -->
+  <text
+    x="512"
+    y="182"
+    font-family="'Outfit', system-ui, sans-serif"
+    font-size="13"
+    font-weight="400"
+    letter-spacing="4"
+    fill="#555555"
+  >LEAVE A TRACE</text>
+
+  <!-- Feature pills -->
+  <g font-family="'Outfit', system-ui, sans-serif" font-size="10" font-weight="500">
+    <rect x="438" y="210" width="100" height="22" rx="11" fill="#ffffff" opacity="0.05"/>
+    <text x="488" y="225" text-anchor="middle" fill="#666666">Runtime Agnostic</text>
+
+    <rect x="548" y="210" width="95" height="22" rx="11" fill="#ffffff" opacity="0.05"/>
+    <text x="595" y="225" text-anchor="middle" fill="#666666">PII Sanitization</text>
+
+    <rect x="653" y="210" width="105" height="22" rx="11" fill="#ffffff" opacity="0.05"/>
+    <text x="705" y="225" text-anchor="middle" fill="#666666">Zero Dependencies</text>
+  </g>
+</svg>

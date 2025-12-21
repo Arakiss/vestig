@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Espiral - trace que va expandiéndose -->
+  <path
+    d="M 32 32
+       C 32 28, 36 28, 36 32
+       C 36 40, 24 40, 24 32
+       C 24 20, 44 20, 44 32
+       C 44 48, 16 48, 16 32
+       C 16 12, 52 12, 52 32
+       C 52 56, 8 56, 8 32"
+    stroke="#ffffff"
+    stroke-width="4"
+    stroke-linecap="round"
+    fill="none"
+  />
+</svg>

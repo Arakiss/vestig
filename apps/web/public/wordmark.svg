@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" fill="none">
+  <!-- Vestig Wordmark - Logo + Text (Ultra Elegant) -->
+
+  <!-- Google Fonts import for Outfit -->
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600&amp;display=swap');
+    </style>
+  </defs>
+
+  <!-- Logo mark (Ultra Elegant - thinner notch) -->
+  <path
+    d="M 8 10 L 32 10 L 32 19 L 26 19 L 26 29 L 32 29 L 32 38 L 8 38 Z"
+    fill="#ffffff"
+  />
+
+  <!-- Text "vestig" -->
+  <text
+    x="44"
+    y="32"
+    font-family="'Outfit', system-ui, sans-serif"
+    font-size="28"
+    font-weight="600"
+    letter-spacing="-0.5"
+    fill="#ffffff"
+  >vestig</text>
+</svg>

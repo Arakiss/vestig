@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Nodo con incisión - punto con corte -->
+  <circle cx="32" cy="32" r="20" stroke="#ffffff" stroke-width="4" fill="none"/>
+  <path d="M 32 12 L 32 24" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="32" cy="38" r="6" fill="#ffffff"/>
+</svg>

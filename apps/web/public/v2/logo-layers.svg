@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Layers: stacked log entries -->
+  <rect x="8" y="40" width="48" height="8" rx="2" fill="#ffffff" opacity="0.3"/>
+  <rect x="8" y="28" width="48" height="8" rx="2" fill="#ffffff" opacity="0.6"/>
+  <rect x="8" y="16" width="48" height="8" rx="2" fill="#ffffff"/>
+</svg>

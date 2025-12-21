@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Bifurcación - nodo donde la info se divide/registra -->
+  <path d="M 8 32 L 32 32" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 32 32 L 52 16" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 32 32 L 52 48" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="4" fill="#ffffff"/>
+</svg>

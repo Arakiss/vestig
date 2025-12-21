@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Muesca asimétrica (descentrada) -->
+  <path
+    d="M 8 12 L 56 12 L 56 52 L 44 52 L 44 36 L 28 36 L 28 52 L 8 52 Z"
+    fill="#ffffff"
+  />
+</svg>

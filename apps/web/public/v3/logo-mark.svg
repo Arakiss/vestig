@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Mark: Una marca/checkmark con personalidad -->
+  <path
+    d="M8 36 L24 52 L56 12"
+    stroke="#ffffff"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+</svg>

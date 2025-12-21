@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Muesca arriba -->
+  <path
+    d="M 8 12 L 24 12 L 24 24 L 40 24 L 40 12 L 56 12 L 56 52 L 8 52 Z"
+    fill="#ffffff"
+  />
+</svg>

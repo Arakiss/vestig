@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Echo emanando desde esquina inferior izquierda -->
+  <path d="M 0 64 A 20 20 0 0 1 20 44" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <path d="M 0 64 A 36 36 0 0 1 36 28" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <path d="M 0 64 A 52 52 0 0 1 52 12" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.3"/>
+  <circle cx="4" cy="60" r="4" fill="#ffffff"/>
+</svg>

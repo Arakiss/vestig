@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" fill="none">
+  <defs>
+    <linearGradient id="wordmarkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#a855f7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Logo mark (compact V) -->
+  <g transform="translate(10, 10)">
+    <path
+      d="M 15 15 L 50 90 L 85 15"
+      stroke="url(#wordmarkGradient)"
+      stroke-width="12"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      fill="none"
+    />
+
+    <!-- Trace dots -->
+    <circle cx="15" cy="15" r="5" fill="#6366f1"/>
+    <circle cx="35" cy="50" r="4" fill="#7c3aed" opacity="0.7"/>
+    <circle cx="50" cy="90" r="7" fill="#a855f7"/>
+    <circle cx="65" cy="50" r="4" fill="#7c3aed" opacity="0.7"/>
+    <circle cx="85" cy="15" r="5" fill="#6366f1"/>
+
+    <!-- Center highlight -->
+    <circle cx="50" cy="90" r="3" fill="white" opacity="0.5"/>
+  </g>
+
+  <!-- Wordmark "vestig" -->
+  <text
+    x="120"
+    y="75"
+    font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    font-size="52"
+    font-weight="600"
+    letter-spacing="-1"
+    fill="url(#wordmarkGradient)"
+  >vestig</text>
+
+  <!-- Tagline -->
+  <text
+    x="122"
+    y="100"
+    font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+    font-size="14"
+    font-weight="400"
+    letter-spacing="2"
+    fill="#6b7280"
+  >LEAVE A TRACE</text>
+</svg>

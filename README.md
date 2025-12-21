@@ -1,8 +1,6 @@
 <div align="center">
 
-# 👣 Vestig
-
-**Leave a trace.**
+<img src="assets/banner.svg" alt="Vestig - Leave a trace" width="100%" />
 
 A modern, runtime-agnostic structured logging library with automatic PII sanitization and context propagation.
 

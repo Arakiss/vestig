@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Drop: Gota/punto dejando rastro -->
+  <circle cx="32" cy="44" r="16" fill="#ffffff"/>
+  <path d="M32 8 L32 28" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Wave - onda que se propaga hacia arriba -->
+  <path d="M 8 56 Q 20 52, 32 56 Q 44 60, 56 56" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <path d="M 8 44 Q 20 40, 32 44 Q 44 48, 56 44" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <path d="M 8 32 Q 20 28, 32 32 Q 44 36, 56 32" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.4"/>
+  <path d="M 8 20 Q 20 16, 32 20 Q 44 24, 56 20" stroke="#ffffff" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.2"/>
+</svg>

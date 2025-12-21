@@ -1,0 +1,558 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@utility container {
+	margin-inline: auto;
+	padding-inline: 2rem;
+	@media (width >= --theme(--breakpoint-sm)) {
+		max-width: none;
+	}
+	@media (width >= 1400px) {
+		max-width: 1400px;
+	}
+}
+
+@theme {
+	/* Monochromatic theme - no brand colors */
+
+	--color-border: hsl(var(--border));
+	--color-input: hsl(var(--input));
+	--color-ring: hsl(var(--ring));
+	--color-background: hsl(var(--background));
+	--color-foreground: hsl(var(--foreground));
+
+	--color-primary: hsl(var(--primary));
+	--color-primary-foreground: hsl(var(--primary-foreground));
+
+	--color-secondary: hsl(var(--secondary));
+	--color-secondary-foreground: hsl(var(--secondary-foreground));
+
+	--color-destructive: hsl(var(--destructive));
+	--color-destructive-foreground: hsl(var(--destructive-foreground));
+
+	--color-muted: hsl(var(--muted));
+	--color-muted-foreground: hsl(var(--muted-foreground));
+
+	--color-accent: hsl(var(--accent));
+	--color-accent-foreground: hsl(var(--accent-foreground));
+
+	--color-popover: hsl(var(--popover));
+	--color-popover-foreground: hsl(var(--popover-foreground));
+
+	--color-card: hsl(var(--card));
+	--color-card-foreground: hsl(var(--card-foreground));
+
+	--color-surface: hsl(var(--surface));
+	--color-surface-elevated: hsl(var(--surface-elevated));
+	--color-surface-overlay: hsl(var(--surface-overlay));
+
+	--radius-lg: var(--radius);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-sm: calc(var(--radius) - 4px);
+
+	--font-sans: var(--font-sans), system-ui, sans-serif;
+	--font-display: var(--font-display), var(--font-sans), system-ui, sans-serif;
+	--font-mono: var(--font-mono), ui-monospace, monospace;
+
+	--text-2xs: 0.625rem;
+	--text-2xs--line-height: 0.875rem;
+	--text-xs: 0.75rem;
+	--text-xs--line-height: 1rem;
+	--text-sm: 0.875rem;
+	--text-sm--line-height: 1.25rem;
+	--text-base: 1rem;
+	--text-base--line-height: 1.5rem;
+	--text-lg: 1.125rem;
+	--text-lg--line-height: 1.75rem;
+	--text-xl: 1.25rem;
+	--text-xl--line-height: 1.75rem;
+	--text-2xl: 1.5rem;
+	--text-2xl--line-height: 2rem;
+	--text-3xl: 1.875rem;
+	--text-3xl--line-height: 2.25rem;
+	--text-4xl: 2.25rem;
+	--text-4xl--line-height: 2.5rem;
+	--text-5xl: 3rem;
+	--text-5xl--line-height: 1;
+	--text-6xl: 3.75rem;
+	--text-6xl--line-height: 1;
+	--text-7xl: 4.5rem;
+	--text-7xl--line-height: 1;
+
+	/* No glow shadows - minimalist design */
+	--shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+	--shadow-inner-lg: inset 0 4px 8px 0 rgb(0 0 0 / 0.1);
+
+	/* Basic gradients only */
+	--background-image-gradient-radial: radial-gradient(var(--tw-gradient-stops));
+	--background-image-gradient-conic: conic-gradient(
+		from 180deg at 50% 50%,
+		var(--tw-gradient-stops)
+	);
+	--background-image-gradient-surface: linear-gradient(
+		180deg,
+		hsl(var(--surface-elevated)) 0%,
+		hsl(var(--surface)) 100%
+	);
+
+	--animate-accordion-down: accordion-down 0.2s ease-out;
+	--animate-accordion-up: accordion-up 0.2s ease-out;
+	--animate-fade-in: fade-in 0.3s ease-out;
+	--animate-fade-out: fade-out 0.3s ease-out;
+	--animate-slide-in-from-top: slide-in-from-top 0.3s ease-out;
+	--animate-slide-in-from-bottom: slide-in-from-bottom 0.3s ease-out;
+	--animate-slide-in-from-left: slide-in-from-left 0.3s ease-out;
+	--animate-slide-in-from-right: slide-in-from-right 0.3s ease-out;
+	--animate-pulse-subtle: pulse-subtle 2s ease-in-out infinite;
+	--animate-shimmer: shimmer 2s linear infinite;
+	--animate-float: float 3s ease-in-out infinite;
+	--animate-typing-cursor: typing-cursor 1s ease-in-out infinite;
+
+	--backdrop-blur-xs: 2px;
+
+	--transition-duration-250: 250ms;
+	--transition-duration-350: 350ms;
+
+	@keyframes accordion-down {
+		from {
+			height: 0;
+		}
+		to {
+			height: var(--radix-accordion-content-height);
+		}
+	}
+	@keyframes accordion-up {
+		from {
+			height: var(--radix-accordion-content-height);
+		}
+		to {
+			height: 0;
+		}
+	}
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+	@keyframes fade-out {
+		from {
+			opacity: 1;
+		}
+		to {
+			opacity: 0;
+		}
+	}
+	@keyframes slide-in-from-top {
+		from {
+			transform: translateY(-10px);
+			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
+	}
+	@keyframes slide-in-from-bottom {
+		from {
+			transform: translateY(10px);
+			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
+	}
+	@keyframes slide-in-from-left {
+		from {
+			transform: translateX(-10px);
+			opacity: 0;
+		}
+		to {
+			transform: translateX(0);
+			opacity: 1;
+		}
+	}
+	@keyframes slide-in-from-right {
+		from {
+			transform: translateX(10px);
+			opacity: 0;
+		}
+		to {
+			transform: translateX(0);
+			opacity: 1;
+		}
+	}
+	@keyframes pulse-subtle {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.7;
+		}
+	}
+	@keyframes shimmer {
+		0% {
+			background-position: -200% 0;
+		}
+		100% {
+			background-position: 200% 0;
+		}
+	}
+	@keyframes float {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-5px);
+		}
+	}
+	@keyframes typing-cursor {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0;
+		}
+	}
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+	*,
+	::after,
+	::before,
+	::backdrop,
+	::file-selector-button {
+		border-color: var(--color-gray-200, currentcolor);
+	}
+}
+
+@utility scrollbar-thin {
+	/* ═══════════════════════════════════════════════════════════════
+	   Custom Scrollbars
+	   ═══════════════════════════════════════════════════════════════ */
+	scrollbar-width: thin;
+	scrollbar-color: hsl(var(--muted)) transparent;
+
+	&::-webkit-scrollbar {
+		width: 6px;
+		height: 6px;
+	}
+
+	&::-webkit-scrollbar-track {
+		@apply bg-transparent;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		@apply bg-white/10 rounded-full;
+	}
+
+	&::-webkit-scrollbar-thumb:hover {
+		@apply bg-white/20;
+	}
+}
+
+@utility glass {
+	/* ═══════════════════════════════════════════════════════════════
+	   Glass Effect
+	   ═══════════════════════════════════════════════════════════════ */
+	@apply bg-surface/80 backdrop-blur-md;
+	@apply border border-white/8;
+}
+
+@utility glass-elevated {
+	@apply bg-surface-elevated/90 backdrop-blur-lg;
+	@apply border border-white/10;
+}
+
+/* Removed: text-gradient-brand, glow-cyan, glow-purple, glow-pink, badge-new */
+/* Minimalist design uses only monochromatic colors */
+
+@utility badge-subtle {
+	/* ═══════════════════════════════════════════════════════════════
+	   Badge - Monochromatic
+	   ═══════════════════════════════════════════════════════════════ */
+	@apply bg-white/5 border border-white/10 text-white/70;
+}
+
+@utility section-divider {
+	/* ═══════════════════════════════════════════════════════════════
+	   Section Dividers
+	   ═══════════════════════════════════════════════════════════════ */
+	@apply h-px bg-linear-to-r from-transparent via-white/10 to-transparent;
+}
+
+@utility card-interactive {
+	/* ═══════════════════════════════════════════════════════════════
+	   Interactive Cards - Lyra preset (sharp corners)
+	   ═══════════════════════════════════════════════════════════════ */
+	@apply bg-card border border-white/10;
+	@apply transition-all duration-200;
+	@apply hover:border-white/20 hover:bg-white/5;
+}
+
+@utility container-narrow {
+	/* ═══════════════════════════════════════════════════════════════
+	   Container Variants
+	   ═══════════════════════════════════════════════════════════════ */
+	@apply max-w-3xl mx-auto px-4 sm:px-6;
+}
+
+@utility container-wide {
+	@apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+@utility animation-delay-100 {
+	/* ═══════════════════════════════════════════════════════════════
+	   Animation Delays
+	   ═══════════════════════════════════════════════════════════════ */
+	animation-delay: 100ms;
+}
+
+@utility animation-delay-200 {
+	animation-delay: 200ms;
+}
+
+@utility animation-delay-300 {
+	animation-delay: 300ms;
+}
+
+@utility animation-delay-500 {
+	animation-delay: 500ms;
+}
+
+@utility animation-delay-700 {
+	animation-delay: 700ms;
+}
+
+@utility animation-delay-1000 {
+	animation-delay: 1000ms;
+}
+
+@utility text-balance {
+	/* ═══════════════════════════════════════════════════════════════
+	   Text Balance
+	   ═══════════════════════════════════════════════════════════════ */
+	text-wrap: balance;
+}
+
+@utility text-pretty {
+	text-wrap: pretty;
+}
+
+@utility no-scrollbar {
+	/* ═══════════════════════════════════════════════════════════════
+	   Hide Scrollbar (keeps functionality)
+	   ═══════════════════════════════════════════════════════════════ */
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
+@utility line-clamp-1 {
+	/* ═══════════════════════════════════════════════════════════════
+	   Line Clamp Utilities
+	   ═══════════════════════════════════════════════════════════════ */
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 1;
+}
+
+@utility line-clamp-2 {
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+}
+
+@utility line-clamp-3 {
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 3;
+}
+
+@layer base {
+	:root {
+		/* ═══════════════════════════════════════════════════════════════
+		   Monochromatic Theme - Vercel/Lyra Style
+		   ═══════════════════════════════════════════════════════════════ */
+		--background: 0 0% 0%;
+		--foreground: 0 0% 100%;
+
+		--card: 0 0% 4%;
+		--card-foreground: 0 0% 100%;
+
+		--popover: 0 0% 4%;
+		--popover-foreground: 0 0% 100%;
+
+		--primary: 0 0% 100%;
+		--primary-foreground: 0 0% 0%;
+
+		--secondary: 0 0% 8%;
+		--secondary-foreground: 0 0% 100%;
+
+		--muted: 0 0% 12%;
+		--muted-foreground: 0 0% 60%;
+
+		--accent: 0 0% 15%;
+		--accent-foreground: 0 0% 100%;
+
+		--destructive: 0 0% 100%;
+		--destructive-foreground: 0 0% 0%;
+
+		--border: 0 0% 15%;
+		--input: 0 0% 15%;
+		--ring: 0 0% 100%;
+
+		/* ═══════════════════════════════════════════════════════════════
+		   Surface Layers
+		   ═══════════════════════════════════════════════════════════════ */
+		--surface: 0 0% 4%;
+		--surface-elevated: 0 0% 8%;
+		--surface-overlay: 0 0% 12%;
+
+		/* ═══════════════════════════════════════════════════════════════
+		   Border Opacity Levels
+		   ═══════════════════════════════════════════════════════════════ */
+		--border-opacity-subtle: 0.06;
+		--border-opacity-light: 0.08;
+		--border-opacity-medium: 0.1;
+		--border-opacity-strong: 0.15;
+
+		/* ═══════════════════════════════════════════════════════════════
+		   Radius - Lyra Preset (Sharp Corners)
+		   ═══════════════════════════════════════════════════════════════ */
+		--radius: 0;
+
+		/* ═══════════════════════════════════════════════════════════════
+		   Font Families (loaded via next/font/google in layout.tsx)
+		   ═══════════════════════════════════════════════════════════════ */
+		/* CSS variables --font-sans, --font-display, --font-mono are set by Next.js */
+	}
+}
+
+@layer base {
+	* {
+		@apply border-border;
+	}
+
+	body {
+		@apply bg-background text-foreground antialiased;
+		font-feature-settings: "rlig" 1, "calt" 1;
+	}
+
+	/* Smooth scroll behavior */
+	html {
+		scroll-behavior: smooth;
+	}
+
+	/* Selection styling */
+	::selection {
+		@apply bg-primary/30 text-foreground;
+	}
+
+	/* Focus visible styles */
+	:focus-visible {
+		@apply outline-hidden ring-2 ring-ring ring-offset-2 ring-offset-background;
+	}
+}
+
+@layer components {
+	/* ═══════════════════════════════════════════════════════════════
+	   Code Blocks - Lyra preset (sharp corners)
+	   ═══════════════════════════════════════════════════════════════ */
+	pre {
+		@apply font-mono bg-surface p-4 overflow-x-auto;
+		@apply border border-white/10;
+	}
+
+	code {
+		@apply font-mono text-sm;
+	}
+
+	/* Inline code */
+	:not(pre) > code {
+		@apply bg-surface-elevated px-1.5 py-0.5 text-white/90;
+	}
+}
+
+:root {
+	--sidebar: hsl(0 0% 98%);
+	--sidebar-foreground: hsl(240 5.3% 26.1%);
+	--sidebar-primary: hsl(240 5.9% 10%);
+	--sidebar-primary-foreground: hsl(0 0% 98%);
+	--sidebar-accent: hsl(240 4.8% 95.9%);
+	--sidebar-accent-foreground: hsl(240 5.9% 10%);
+	--sidebar-border: hsl(220 13% 91%);
+	--sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+.dark {
+	--sidebar: hsl(240 5.9% 10%);
+	--sidebar-foreground: hsl(240 4.8% 95.9%);
+	--sidebar-primary: hsl(224.3 76.3% 48%);
+	--sidebar-primary-foreground: hsl(0 0% 100%);
+	--sidebar-accent: hsl(240 3.7% 15.9%);
+	--sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+	--sidebar-border: hsl(240 3.7% 15.9%);
+	--sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+@theme inline {
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
+	--animate-accordion-down: accordion-down 0.2s ease-out;
+	--animate-accordion-up: accordion-up 0.2s ease-out;
+
+	@keyframes accordion-down {
+		from {
+			height: 0;
+		}
+		to {
+			height: var(--radix-accordion-content-height);
+		}
+	}
+
+	@keyframes accordion-up {
+		from {
+			height: var(--radix-accordion-content-height);
+		}
+		to {
+			height: 0;
+		}
+	}
+}
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-background text-foreground;
+	}
+}

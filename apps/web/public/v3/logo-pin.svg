@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Pin: Marcador de ubicación/punto en el tiempo -->
+  <path
+    d="M32 4
+       C18 4, 8 16, 8 28
+       C8 44, 32 60, 32 60
+       C32 60, 56 44, 56 28
+       C56 16, 46 4, 32 4Z"
+    fill="#ffffff"
+  />
+  <circle cx="32" cy="26" r="10" fill="#0a0a0a"/>
+</svg>
