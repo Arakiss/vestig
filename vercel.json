@@ -3,6 +3,5 @@
 	"version": 2,
 	"installCommand": "bun install",
 	"buildCommand": "bun run build --filter=@vestig/demo",
-	"outputDirectory": "apps/demo/.next",
-	"framework": "nextjs"
+	"outputDirectory": "apps/demo/.next"
 }
