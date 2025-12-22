@@ -4,6 +4,9 @@ import createMDX from '@next/mdx'
 const nextConfig = {
 	pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
 	transpilePackages: ['vestig'],
+	experimental: {
+		mdxRs: true,
+	},
 }
 
 const withMDX = createMDX({
