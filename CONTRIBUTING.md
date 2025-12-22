@@ -99,16 +99,20 @@ bun run format
 ```
 vestig/
 ├── packages/
-│   └── vestig/             # Main logging library
-│       ├── src/
-│       │   ├── index.ts    # Public API exports
-│       │   ├── logger.ts   # Core logger implementation
-│       │   ├── context/    # Context propagation
-│       │   ├── transports/ # Output transports
-│       │   └── utils/      # Utility functions
-│       └── src/__tests__/  # Test files
+│   ├── vestig/             # Core logging library (zero dependencies)
+│   │   ├── src/
+│   │   │   ├── index.ts    # Public API exports
+│   │   │   ├── logger.ts   # Core logger implementation
+│   │   │   ├── context/    # Context propagation
+│   │   │   ├── transports/ # Output transports (Console, HTTP, File, Datadog)
+│   │   │   ├── tracing/    # Native tracing with spans
+│   │   │   ├── sampling/   # Sampling strategies
+│   │   │   └── utils/      # Utility functions (sanitization, etc.)
+│   │   └── src/__tests__/  # Test files
+│   ├── @vestig/next/       # Next.js integration (App Router, RSC, middleware)
+│   └── @vestig/express/    # Express.js middleware
 ├── apps/
-│   └── demo/               # Documentation site
+│   └── web/                # Documentation website (Next.js)
 └── .github/
     └── workflows/          # CI/CD pipelines
 ```

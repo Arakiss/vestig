@@ -8,8 +8,8 @@ export const features: Feature[] = [
 		description:
 			'No external dependencies means tiny bundle sizes (<5KB gzipped) and no supply chain risks. Just pure TypeScript.',
 		link: {
-			text: 'See benchmarks',
-			href: '/docs/features/performance',
+			text: 'Learn more',
+			href: '/docs/features',
 		},
 	},
 	{
@@ -20,7 +20,7 @@ export const features: Feature[] = [
 			'Works seamlessly in Bun, Node.js, Deno, Edge runtimes (Vercel, Cloudflare), and browsers with automatic runtime detection.',
 		link: {
 			text: 'Runtime support',
-			href: '/docs/features/runtimes',
+			href: '/docs/features',
 		},
 	},
 	{
@@ -32,7 +32,7 @@ export const features: Feature[] = [
 		highlight: 'Popular',
 		link: {
 			text: 'Learn more',
-			href: '/docs/features/sanitization',
+			href: '/docs/security/sanitization',
 		},
 	},
 	{
@@ -44,7 +44,7 @@ export const features: Feature[] = [
 		highlight: 'New',
 		link: {
 			text: 'Tracing guide',
-			href: '/docs/features/tracing',
+			href: '/docs/tracing',
 		},
 	},
 	{
@@ -55,7 +55,7 @@ export const features: Feature[] = [
 			'AsyncLocalStorage-based context that flows through your entire request lifecycle. Correlation IDs, user context, and more.',
 		link: {
 			text: 'Context docs',
-			href: '/docs/features/context',
+			href: '/docs/tracing',
 		},
 	},
 	{
@@ -67,7 +67,7 @@ export const features: Feature[] = [
 		highlight: 'New',
 		link: {
 			text: 'Sampling strategies',
-			href: '/docs/features/sampling',
+			href: '/docs/sampling',
 		},
 	},
 	{
@@ -85,7 +85,7 @@ export const features: Feature[] = [
 			'Console, HTTP, File, Datadog, and more. Create custom transports with a simple interface. Batching and retry built-in.',
 		link: {
 			text: 'Transport docs',
-			href: '/docs/features/transports',
+			href: '/docs/transports',
 		},
 	},
 ]

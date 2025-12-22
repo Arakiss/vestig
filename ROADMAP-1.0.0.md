@@ -1,68 +1,68 @@
 # Vestig 1.0.0 Strategic Roadmap
 
-> **Objetivo**: Convertir Vestig en el estándar de observability para TypeScript/JavaScript moderno.
+> **Goal**: Make Vestig the observability standard for modern TypeScript/JavaScript.
 
 ---
 
-## 📊 Análisis del Estado Actual (v0.6.0)
+## 📊 Current State Analysis (v0.6.0)
 
-### Fortalezas Actuales
+### Current Strengths
 
-| Feature | Estado | Diferenciador |
+| Feature | Status | Differentiator |
 |---------|--------|---------------|
-| Zero Dependencies | ✅ Completo | 🏆 Único en el mercado |
-| Runtime Agnostic | ✅ Completo | 🏆 Node, Bun, Deno, Edge, Browser |
-| PII Sanitization | ✅ Completo | 🏆 6 presets (GDPR, HIPAA, PCI-DSS) |
-| TypeScript-First | ✅ Completo | 🏆 100% type-safe |
-| Context Propagation | ✅ Completo | AsyncLocalStorage + fallback |
-| Next.js Integration | ✅ Completo | Server Components, Route Handlers |
-| Express Integration | ✅ Completo | Middleware + handlers |
-| **Native Tracing API** | ✅ Completo | 🆕 `span()`, `spanSync()`, `startSpan()` |
-| **W3C Trace Context** | ✅ Completo | 🆕 traceparent header support |
-| **Client-Side Hooks** | ✅ Completo | 🆕 `useLogger()`, `VestigProvider` |
+| Zero Dependencies | ✅ Complete | 🏆 Unique in market |
+| Runtime Agnostic | ✅ Complete | 🏆 Node, Bun, Deno, Edge, Browser |
+| PII Sanitization | ✅ Complete | 🏆 6 presets (GDPR, HIPAA, PCI-DSS) |
+| TypeScript-First | ✅ Complete | 🏆 100% type-safe |
+| Context Propagation | ✅ Complete | AsyncLocalStorage + fallback |
+| Next.js Integration | ✅ Complete | Server Components, Route Handlers |
+| Express Integration | ✅ Complete | Middleware + handlers |
+| **Native Tracing API** | ✅ Complete | 🆕 `span()`, `spanSync()`, `startSpan()` |
+| **W3C Trace Context** | ✅ Complete | 🆕 traceparent header support |
+| **Client-Side Hooks** | ✅ Complete | 🆕 `useLogger()`, `VestigProvider` |
 
-### Métricas Actuales
+### Current Metrics
 
-- **Tests**: 300+ passing, ~90% coverage
-- **Paquetes**: 3 publicados (vestig, @vestig/next, @vestig/express)
-- **Dependencias de producción**: 0 (!!!)
-- **Tamaño**: ~8,500 LOC
+- **Tests**: 737+ passing (1,439 assertions), ~90% coverage
+- **Packages**: 3 published (vestig, @vestig/next, @vestig/express)
+- **Production dependencies**: 0 (!!!)
+- **Size**: ~8,500 LOC
 
 ---
 
-## 🔍 Análisis Competitivo
+## 🔍 Competitive Analysis
 
-### Pain Points del Mercado (Oportunidades)
+### Market Pain Points (Opportunities)
 
-| Pain Point | Afecta a | Oportunidad para Vestig |
-|------------|----------|-------------------------|
-| **Complejidad de setup** | OpenTelemetry (91% reportan) | Zero-config by default |
-| **Documentación confusa** | OTel, Zipkin, Sentry | Docs interactivos + ejemplos real-world |
-| **Context loss en async** | Todos | AsyncLocalStorage perfeccionado |
-| **No browser support** | Pino, Jaeger, dd-trace | Ya soportado ✅ |
-| **Bundle size grande** | Sentry, Winston | Zero deps = bundle mínimo |
+| Pain Point | Affects | Vestig Opportunity |
+|------------|---------|-------------------|
+| **Complex setup** | OpenTelemetry (91% report) | Zero-config by default |
+| **Confusing docs** | OTel, Zipkin, Sentry | Interactive docs + real-world examples |
+| **Context loss in async** | All | Perfected AsyncLocalStorage |
+| **No browser support** | Pino, Jaeger, dd-trace | Already supported ✅ |
+| **Large bundle size** | Sentry, Winston | Zero deps = minimal bundle |
 | **Vendor lock-in** | Datadog, Sentry | Vendor-agnostic + OTel export |
-| **No TypeScript-first** | Winston, Zipkin | Ya es TypeScript-first ✅ |
-| **Costos de observability** | Todos (74% preocupados) | Sampling + cardinality control |
-| **Tool sprawl** | 52% quieren consolidar | Unified logging + tracing |
+| **Not TypeScript-first** | Winston, Zipkin | Already TypeScript-first ✅ |
+| **Observability costs** | All (74% concerned) | Sampling + cardinality control |
+| **Tool sprawl** | 52% want to consolidate | Unified logging + tracing |
 
-### Gaps Críticos en el Ecosistema
+### Critical Ecosystem Gaps
 
-1. **No existe** librería que combine: logging + tracing + PII sanitization + zero-config
-2. **OpenTelemetry** es poderoso pero overwhelming para 90% de casos de uso
-3. **Pino** es rápido pero Node-only y sin sanitization
-4. **Winston** es flexible pero lento y sin type-safety real
-5. **Ninguna** librería tiene developer experience optimizada para local development
+1. **No library exists** that combines: logging + tracing + PII sanitization + zero-config
+2. **OpenTelemetry** is powerful but overwhelming for 90% of use cases
+3. **Pino** is fast but Node-only and no sanitization
+4. **Winston** is flexible but slow and no real type-safety
+5. **No library** has developer experience optimized for local development
 
 ---
 
-## 🎯 Visión 1.0.0: "Observability for Humans"
+## 🎯 Vision 1.0.0: "Observability for Humans"
 
-### Propuesta de Valor Única
+### Unique Value Proposition
 
-> **Vestig**: La única librería de observability que es zero-config, type-safe, runtime-agnostic, privacy-first, y developer-friendly — todo en un paquete sin dependencias.
+> **Vestig**: The only observability library that is zero-config, type-safe, runtime-agnostic, privacy-first, and developer-friendly — all in a dependency-free package.
 
-### Pilares Estratégicos
+### Strategic Pillars
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -91,8 +91,8 @@
 
 ## 🗺️ Feature Roadmap
 
-### Fase 1: Foundation (v0.4.0 - v0.5.0) ✅ COMPLETADA
-**Objetivo**: Solidificar la base y completar features parciales
+### Phase 1: Foundation (v0.4.0 - v0.5.0) ✅ COMPLETED
+**Goal**: Solidify the base and complete partial features
 
 #### 1.1 Complete Client-Side Logging
 - [x] `useLogger()` hook fully functional ✅
@@ -116,12 +116,12 @@
 
 ---
 
-### Fase 2: Tracing Revolution (v0.6.0 - v0.7.0) 🔄 EN PROGRESO
-**Objetivo**: Unificar logging y tracing en una API simple
+### Phase 2: Tracing Revolution (v0.6.0 - v0.7.0) 🔄 IN PROGRESS
+**Goal**: Unify logging and tracing in a simple API
 
-#### 2.1 🏆 Native Tracing (DIFERENCIADOR CLAVE) ✅ COMPLETADO
+#### 2.1 🏆 Native Tracing (KEY DIFFERENTIATOR) ✅ COMPLETED
 ```typescript
-// La API más simple de tracing que existe
+// The simplest tracing API that exists
 import { span, spanSync, startSpan } from 'vestig'
 
 // Async spans
@@ -156,7 +156,7 @@ Features:
 - [x] Span attributes type-safe ✅
 - [x] Span events support ✅
 
-#### 2.2 🏆 W3C Trace Context (Full Compliance) 🔄 PARCIAL
+#### 2.2 🏆 W3C Trace Context (Full Compliance) 🔄 PARTIAL
 - [x] `traceparent` header parsing/generation ✅
 - [ ] `tracestate` support (→ v0.7.0)
 - [x] Cross-service correlation ✅
@@ -169,8 +169,8 @@ Features:
 
 ---
 
-### Fase 3: OpenTelemetry Bridge (v0.8.0)
-**Objetivo**: Compatibilidad con el estándar de la industria
+### Phase 3: OpenTelemetry Bridge (v0.8.0)
+**Goal**: Compatibility with industry standard
 
 #### 3.1 🏆 OTel Exporter (GAME CHANGER)
 ```typescript
@@ -201,8 +201,8 @@ Features:
 
 ---
 
-### Fase 4: Enterprise Features (v0.9.0)
-**Objetivo**: Features para producción a escala
+### Phase 4: Enterprise Features (v0.9.0)
+**Goal**: Features for production at scale
 
 #### 4.1 🏆 Adaptive Sampling (COST SAVER)
 ```typescript
@@ -256,8 +256,8 @@ Features:
 
 ---
 
-### Fase 5: Developer Experience (v0.10.0)
-**Objetivo**: La mejor DX del ecosistema
+### Phase 5: Developer Experience (v0.10.0)
+**Goal**: Best DX in the ecosystem
 
 #### 5.1 🏆 Vestig DevTools
 ```typescript
@@ -299,8 +299,8 @@ vestig audit --pii-check ./src
 
 ---
 
-### Fase 6: Framework Integrations (v0.11.0 - v0.12.0)
-**Objetivo**: First-class support para todos los frameworks populares
+### Phase 6: Framework Integrations (v0.11.0 - v0.12.0)
+**Goal**: First-class support for all popular frameworks
 
 #### 6.1 Additional Framework Packages
 - [ ] `@vestig/fastify` - Fastify middleware
@@ -322,8 +322,8 @@ vestig audit --pii-check ./src
 
 ---
 
-### Fase 7: 1.0.0 Polish
-**Objetivo**: Production-ready release
+### Phase 7: 1.0.0 Polish
+**Goal**: Production-ready release
 
 #### 7.1 Documentation
 - [ ] Interactive documentation site
@@ -374,10 +374,10 @@ vestig audit --pii-check ./src
 
 ---
 
-## 📅 Timeline Estimado
+## 📅 Estimated Timeline
 
-| Fase | Versión | Features Clave | Semanas Est. |
-|------|---------|----------------|--------------|
+| Phase | Version | Key Features | Est. Weeks |
+|-------|---------|--------------|------------|
 | 1 | 0.4.0 - 0.5.0 | Client-side, Tests, Deno | 4-6 |
 | 2 | 0.6.0 - 0.7.0 | Native Tracing, W3C | 6-8 |
 | 3 | 0.8.0 | OpenTelemetry Bridge | 4-6 |
@@ -386,36 +386,36 @@ vestig audit --pii-check ./src
 | 6 | 0.11.0 - 0.12.0 | Framework Integrations | 8-10 |
 | 7 | 1.0.0 | Polish, Docs, Stability | 4-6 |
 
-**Total estimado**: 38-52 semanas (~9-12 meses)
+**Total estimated**: 38-52 weeks (~9-12 months)
 
 ---
 
-## 🎯 Próximos Pasos Inmediatos (v0.7.0)
+## 🎯 Immediate Next Steps (v0.7.0)
 
-### Sprint Actual: v0.7.0 Features
+### Current Sprint: v0.7.0 Features
 1. [ ] Sampling strategies (probability, rate-limit, namespace-based)
-2. [ ] Offline queue con localStorage persistence
+2. [ ] Offline queue with localStorage persistence
 3. [ ] VestigErrorBoundary component
 4. [ ] W3C tracestate support
 
-### Sprint Siguiente: v0.8.0 Prep
-1. [ ] Trace visualization en consola (ASCII waterfall)
+### Next Sprint: v0.8.0 Prep
+1. [ ] Trace visualization in console (ASCII waterfall)
 2. [ ] Browser performance marks integration
 3. [ ] Baggage propagation
 
-### Completados Recientemente (v0.4.0 - v0.6.0)
-- ✅ Tests comprehensivos para `@vestig/next` (232 tests)
-- ✅ Tests comprehensivos para `@vestig/express` (74 tests)
-- ✅ `useLogger()` hook funcional
-- ✅ `VestigProvider` completo
-- ✅ `ClientHTTPTransport` con batching
+### Recently Completed (v0.4.0 - v0.6.0)
+- ✅ Comprehensive tests for `@vestig/next` (232 tests)
+- ✅ Comprehensive tests for `@vestig/express` (74 tests)
+- ✅ `useLogger()` hook functional
+- ✅ `VestigProvider` complete
+- ✅ `ClientHTTPTransport` with batching
 - ✅ Native tracing API: `span()`, `spanSync()`, `startSpan()`
 - ✅ W3C traceparent parsing/generation
-- ✅ Span support en route handlers y server actions
+- ✅ Span support in route handlers and server actions
 
 ---
 
-## 💡 Ideas Innovadoras para Explorar
+## 💡 Innovative Ideas to Explore
 
 ### 1. AI-Powered Log Analysis
 ```typescript
@@ -448,9 +448,9 @@ await vestig.replay({
 
 ---
 
-*Este documento es un living document. Actualizar conforme avance el desarrollo.*
+*This is a living document. Update as development progresses.*
 
-**Última actualización**: 2025-12-21
-**Versión actual**: 0.6.0
+**Last updated**: 2025-12-22
+**Current version**: 0.6.0
 **Target**: 1.0.0
-**Próxima versión**: 0.7.0 (sampling, offline queue, error boundary)
+**Next version**: 0.7.0 (sampling, offline queue, error boundary)

@@ -1,6 +1,6 @@
 # @vestig/next
 
-First-class structured logging for Next.js applications. Built on top of [vestig](https://github.com/your-repo/vestig), this package provides automatic request correlation, middleware integration, and seamless client/server logging.
+First-class structured logging for Next.js 15+ applications. Built on top of [vestig](https://github.com/Arakiss/vestig), this package provides automatic request correlation, middleware integration, and seamless client/server logging.
 
 ## Features
 

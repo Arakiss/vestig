@@ -8,7 +8,7 @@ A modern, runtime-agnostic structured logging library with automatic PII sanitiz
 
 [![CI](https://github.com/Arakiss/vestig/actions/workflows/ci.yml/badge.svg)](https://github.com/Arakiss/vestig/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/vestig.svg)](https://www.npmjs.com/package/vestig)
-[![Tests](https://img.shields.io/badge/tests-286%20passing-brightgreen.svg)](https://github.com/Arakiss/vestig)
+[![Tests](https://img.shields.io/badge/tests-737%20passing-brightgreen.svg)](https://github.com/Arakiss/vestig)
 [![Coverage](https://img.shields.io/badge/coverage-81%25-brightgreen.svg)](https://github.com/Arakiss/vestig)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
