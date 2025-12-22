@@ -34,27 +34,36 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		{ path: '/docs/core/levels', priority: 0.8 },
 		{ path: '/docs/core/structured', priority: 0.8 },
 		{ path: '/docs/core/child-loggers', priority: 0.75 },
+		{ path: '/docs/runtime', priority: 0.85 },
 
 		// Tracing
 		{ path: '/docs/tracing', priority: 0.9 },
 		{ path: '/docs/tracing/spans', priority: 0.85 },
+		{ path: '/docs/tracing/context', priority: 0.85 },
+		{ path: '/docs/tracing/w3c', priority: 0.8 },
 
 		// Security
 		{ path: '/docs/security/sanitization', priority: 0.9 },
 
 		// Sampling
 		{ path: '/docs/sampling', priority: 0.85 },
+		{ path: '/docs/sampling/advanced', priority: 0.8 },
 
 		// Transports
 		{ path: '/docs/transports', priority: 0.85 },
 
-		// Next.js Integration
+		// Integrations
 		{ path: '/docs/nextjs', priority: 0.9 },
 		{ path: '/docs/nextjs/middleware', priority: 0.8 },
 		{ path: '/docs/nextjs/server-components', priority: 0.8 },
 		{ path: '/docs/nextjs/route-handlers', priority: 0.8 },
 		{ path: '/docs/nextjs/server-actions', priority: 0.8 },
 		{ path: '/docs/nextjs/client', priority: 0.8 },
+		{ path: '/docs/express', priority: 0.85 },
+
+		// Advanced
+		{ path: '/docs/advanced/error-handling', priority: 0.8 },
+		{ path: '/docs/advanced/custom-transports', priority: 0.8 },
 
 		// API Reference
 		{ path: '/docs/api/next', priority: 0.75 },

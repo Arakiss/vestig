@@ -1,0 +1,372 @@
+export const metadata = {
+  title: 'Runtime Detection',
+  description: 'Automatic runtime detection for Node.js, Bun, Deno, Edge, and Browser environments. Write universal JavaScript.',
+}
+
+# Runtime Detection
+
+Vestig automatically detects your JavaScript runtime environment, enabling you to write universal code that works everywhere.
+
+## Supported Runtimes
+
+| Runtime | Detection | AsyncLocalStorage | Full Support |
+|---------|-----------|-------------------|--------------|
+| **Node.js** | `process.versions.node` | ✅ Native | ✅ |
+| **Bun** | `globalThis.Bun` | ✅ Native | ✅ |
+| **Deno** | `globalThis.Deno` | ✅ via node:async_hooks | ✅ |
+| **Edge** | `EdgeRuntime` | ⚠️ Limited | ✅ |
+| **Browser** | `window` / `document` | ❌ Fallback | ✅ |
+| **Worker** | `WorkerGlobalScope` | ❌ Fallback | ✅ |
+
+## Basic Usage
+
+### Checking the Runtime
+
+```typescript
+import { RUNTIME } from 'vestig'
+
+console.log(RUNTIME)
+// 'node' | 'bun' | 'deno' | 'edge' | 'browser' | 'worker' | 'unknown'
+
+// Conditional logic based on runtime
+if (RUNTIME === 'browser') {
+  // Browser-specific code
+} else {
+  // Server-specific code
+}
+```
+
+### Runtime Flags
+
+For convenience, Vestig exports boolean flags:
+
+```typescript
+import {
+  IS_NODE,
+  IS_BUN,
+  IS_DENO,
+  IS_EDGE,
+  IS_BROWSER,
+  IS_WORKER,
+  IS_SERVER
+} from 'vestig'
+
+// IS_SERVER is true for Node, Bun, Deno, and Edge
+if (IS_SERVER) {
+  // Run server-side code
+}
+
+if (IS_BROWSER) {
+  // Run browser code
+}
+
+// Specific runtime checks
+if (IS_BUN) {
+  console.log('Running on Bun!')
+}
+
+if (IS_DENO) {
+  console.log('Running on Deno!')
+}
+```
+
+## Runtime Capabilities
+
+Not all features are available in all runtimes. Check capabilities:
+
+```typescript
+import { CAPABILITIES } from 'vestig'
+
+console.log(CAPABILITIES)
+// {
+//   hasAsyncLocalStorage: true,
+//   hasConsole: true,
+//   hasProcess: true,
+//   hasPerformance: true,
+//   hasCrypto: true
+// }
+
+if (CAPABILITIES.hasAsyncLocalStorage) {
+  // Context propagation will work across async boundaries
+}
+
+if (CAPABILITIES.hasPerformance) {
+  // High-resolution timing is available
+}
+```
+
+### Capability Matrix
+
+| Capability | Node | Bun | Deno | Edge | Browser | Worker |
+|------------|:----:|:---:|:----:|:----:|:-------:|:------:|
+| `hasAsyncLocalStorage` | ✅ | ✅ | ✅ | ⚠️ | ❌ | ❌ |
+| `hasConsole` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `hasProcess` | ✅ | ✅ | ✅* | ❌ | ❌ | ❌ |
+| `hasPerformance` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `hasCrypto` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+*Deno 2.0+ has `process` global for Node.js compatibility
+
+## Runtime-Specific Behavior
+
+### Logging Output
+
+Vestig adapts its console output based on runtime:
+
+```typescript
+import { log } from 'vestig'
+
+log.info('Hello World', { key: 'value' })
+
+// Node/Bun/Deno (TTY): Colorized, formatted output
+// Edge: Structured JSON
+// Browser: console.log with styled output
+// Worker: console.log plain text
+```
+
+### File Transport
+
+The FileTransport is only available in server runtimes:
+
+```typescript
+import { FileTransport, IS_SERVER } from 'vestig'
+
+// Only use FileTransport on server
+const transports = [
+  new ConsoleTransport(),
+  ...(IS_SERVER ? [new FileTransport({ path: './logs' })] : [])
+]
+```
+
+### Environment Variables
+
+Environment variable access differs by runtime:
+
+```typescript
+import { RUNTIME } from 'vestig'
+
+function getEnv(key: string): string | undefined {
+  switch (RUNTIME) {
+    case 'node':
+    case 'bun':
+      return process.env[key]
+    case 'deno':
+      return Deno.env.get(key)
+    default:
+      return undefined
+  }
+}
+
+// Vestig handles this internally for its own config:
+// VESTIG_LEVEL, VESTIG_ENABLED, etc.
+```
+
+## Writing Universal Code
+
+### Pattern: Feature Detection
+
+```typescript
+import { CAPABILITIES, IS_SERVER, IS_BROWSER } from 'vestig'
+
+// Universal logger setup
+function createUniversalLogger() {
+  const transports = []
+
+  // Always add console
+  transports.push(new ConsoleTransport({
+    colors: IS_SERVER // Only use colors on server
+  }))
+
+  // Add HTTP transport for browsers
+  if (IS_BROWSER) {
+    transports.push(new HTTPTransport({
+      endpoint: '/api/logs',
+      batchSize: 10
+    }))
+  }
+
+  // Add file transport on server
+  if (IS_SERVER && CAPABILITIES.hasProcess) {
+    transports.push(new FileTransport({
+      path: process.env.LOG_PATH || './logs'
+    }))
+  }
+
+  return createLogger({ transports })
+}
+```
+
+### Pattern: Conditional Imports
+
+```typescript
+// utils/storage.ts
+import { IS_BROWSER, IS_SERVER } from 'vestig'
+
+export async function persistData(key: string, data: unknown) {
+  if (IS_BROWSER) {
+    localStorage.setItem(key, JSON.stringify(data))
+  } else if (IS_SERVER) {
+    const fs = await import('fs/promises')
+    await fs.writeFile(`./data/${key}.json`, JSON.stringify(data))
+  }
+}
+```
+
+### Pattern: Runtime-Specific Spans
+
+```typescript
+import { span, RUNTIME, IS_BROWSER } from 'vestig'
+
+async function fetchData(url: string) {
+  return await span('fetch-data', async (s) => {
+    s.setAttribute('runtime', RUNTIME)
+    s.setAttribute('url', url)
+
+    if (IS_BROWSER) {
+      s.setAttribute('userAgent', navigator.userAgent)
+    }
+
+    const response = await fetch(url)
+    s.setAttribute('status', response.status)
+
+    return response.json()
+  })
+}
+```
+
+## Edge Runtime Considerations
+
+Edge runtimes (Vercel Edge, Cloudflare Workers) have specific limitations:
+
+```typescript
+import { IS_EDGE, CAPABILITIES } from 'vestig'
+
+if (IS_EDGE) {
+  // ⚠️ Limited AsyncLocalStorage support
+  // Context may not persist across some async boundaries
+
+  // ⚠️ No file system access
+  // FileTransport won't work
+
+  // ✅ HTTP transport works great
+  // ✅ Console transport works
+
+  // ✅ Crypto is available
+  // ✅ Performance timing works
+}
+```
+
+### Recommended Edge Setup
+
+```typescript
+import { createLogger, ConsoleTransport, HTTPTransport, IS_EDGE } from 'vestig'
+
+const logger = createLogger({
+  level: IS_EDGE ? 'info' : 'debug', // Less verbose on edge
+  structured: true, // Always JSON on edge
+  transports: [
+    new ConsoleTransport(),
+    new HTTPTransport({
+      endpoint: 'https://logs.example.com/ingest',
+      batchSize: IS_EDGE ? 5 : 50 // Smaller batches on edge
+    })
+  ]
+})
+```
+
+## Deno-Specific Features
+
+Vestig fully supports Deno 2.0+:
+
+```typescript
+// Works in Deno!
+import { log, RUNTIME, IS_DENO, withContext } from 'vestig'
+
+console.log(RUNTIME)  // 'deno'
+console.log(IS_DENO)  // true
+
+// AsyncLocalStorage works via node:async_hooks compatibility
+await withContext({ requestId: 'req-123' }, async () => {
+  log.info('Hello from Deno!')
+  // Context propagates correctly
+})
+```
+
+### Deno Permissions
+
+Vestig requires minimal permissions:
+
+```bash
+# Basic usage - no special permissions needed
+deno run app.ts
+
+# With file logging
+deno run --allow-write=./logs app.ts
+
+# With HTTP transport
+deno run --allow-net app.ts
+
+# With environment variables
+deno run --allow-env app.ts
+```
+
+## Browser Bundle Size
+
+Vestig is designed to be lightweight in browsers:
+
+```
+vestig (browser build):
+├── Core logger: ~3KB gzipped
+├── HTTP transport: ~1KB gzipped
+├── Sanitization: ~1KB gzipped
+└── Total: <5KB gzipped
+```
+
+Unused features are tree-shaken:
+- No FileTransport in browser builds
+- No DatadogTransport in browser builds
+- Minimal polyfills
+
+## API Reference
+
+### Constants
+
+| Export | Type | Description |
+|--------|------|-------------|
+| `RUNTIME` | `Runtime` | Current runtime: 'node', 'bun', 'deno', 'edge', 'browser', 'worker', 'unknown' |
+| `IS_NODE` | `boolean` | True if running in Node.js |
+| `IS_BUN` | `boolean` | True if running in Bun |
+| `IS_DENO` | `boolean` | True if running in Deno |
+| `IS_EDGE` | `boolean` | True if running in Edge Runtime |
+| `IS_BROWSER` | `boolean` | True if running in browser |
+| `IS_WORKER` | `boolean` | True if running in Web Worker |
+| `IS_SERVER` | `boolean` | True if Node, Bun, Deno, or Edge |
+| `CAPABILITIES` | `RuntimeCapabilities` | Available features in current runtime |
+
+### Types
+
+```typescript
+type Runtime = 'node' | 'bun' | 'deno' | 'edge' | 'browser' | 'worker' | 'unknown'
+
+interface RuntimeCapabilities {
+  hasAsyncLocalStorage: boolean
+  hasConsole: boolean
+  hasProcess: boolean
+  hasPerformance: boolean
+  hasCrypto: boolean
+}
+```
+
+## Detection Order
+
+Vestig detects runtimes in this order (first match wins):
+
+1. **Bun**: `'Bun' in globalThis`
+2. **Deno**: `'Deno' in globalThis`
+3. **Node.js**: `process.versions.node`
+4. **Edge**: `'EdgeRuntime' in globalThis`
+5. **Worker**: `typeof WorkerGlobalScope !== 'undefined'`
+6. **Browser**: `typeof window !== 'undefined'`
+7. **Unknown**: fallback
+
+This order ensures correct detection even when runtimes provide compatibility layers (e.g., Deno's Node.js compatibility).

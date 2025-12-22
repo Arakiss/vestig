@@ -129,6 +129,65 @@ export const docsMetadata: Record<string, DocPageMeta> = {
 		keywords: ['client logging', 'browser logging', 'useLogger hook'],
 	},
 
+	// Tracing - Context
+	'/docs/tracing/context': {
+		title: 'Context Propagation',
+		description:
+			'Automatic context propagation across async operations using AsyncLocalStorage. Correlation IDs, request context, and more.',
+		keywords: ['context propagation', 'asynclocalstorage', 'correlation id', 'request context'],
+	},
+	'/docs/tracing/w3c': {
+		title: 'W3C Trace Context',
+		description:
+			'Full W3C Trace Context compliance with traceparent and tracestate headers for distributed tracing across services.',
+		keywords: ['w3c trace context', 'traceparent', 'tracestate', 'distributed tracing'],
+	},
+
+	// Runtime
+	'/docs/runtime': {
+		title: 'Runtime Detection',
+		description:
+			'Automatic runtime detection for Node.js, Bun, Deno, Edge, and Browser environments. Write universal JavaScript.',
+		keywords: [
+			'runtime detection',
+			'bun',
+			'deno',
+			'node.js',
+			'edge runtime',
+			'universal javascript',
+		],
+	},
+
+	// Express.js
+	'/docs/express': {
+		title: 'Express.js Integration',
+		description:
+			'First-class Express.js support with middleware, route handlers, error handling, and automatic correlation ID propagation.',
+		keywords: ['express.js', 'express middleware', 'express logging', 'node.js logging'],
+	},
+
+	// Advanced
+	'/docs/advanced/error-handling': {
+		title: 'Error Handling',
+		description:
+			'Safe error serialization, cause chain support, and best practices for logging errors in production.',
+		keywords: ['error handling', 'error serialization', 'error logging', 'cause chain'],
+	},
+	'/docs/advanced/custom-transports': {
+		title: 'Custom Transports',
+		description:
+			'Build custom log transports to send logs anywhere. Simple interface with built-in batching, retry, and lifecycle management.',
+		keywords: ['custom transport', 'log transport', 'transport development', 'batching'],
+	},
+
+	// Sampling - Advanced
+	'/docs/sampling/advanced': {
+		title: 'Advanced Sampling',
+		description:
+			'Deep dive into Vestig sampling strategies: probability, rate limiting, namespace-based sampling, and custom samplers.',
+		keywords: ['log sampling', 'rate limiting', 'probability sampling', 'namespace sampling'],
+	},
+
 	// API Reference
 	'/docs/api': {
 		title: 'API Reference',

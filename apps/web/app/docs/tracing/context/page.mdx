@@ -1,0 +1,335 @@
+export const metadata = {
+  title: 'Context Propagation',
+  description: 'Automatic context propagation across async operations using AsyncLocalStorage. Correlation IDs, request context, and more.',
+}
+
+# Context Propagation
+
+Vestig provides powerful context propagation using AsyncLocalStorage, ensuring your logging context flows through your entire request lifecycle without manual passing.
+
+## Overview
+
+Context propagation solves a fundamental problem: how do you attach metadata (like request IDs, user info) to all logs within a request without passing context through every function?
+
+```typescript
+import { withContext, log } from 'vestig'
+
+// All logs inside this callback automatically include the context
+await withContext({ requestId: 'req-123', userId: 'user-456' }, async () => {
+  log.info('Starting request')          // Includes requestId, userId
+  await processOrder()                   // Any logs here too!
+  log.info('Request completed')          // And here!
+})
+```
+
+## How It Works
+
+Vestig uses **AsyncLocalStorage** (available in Node.js, Bun, and Deno) to maintain context across async boundaries:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Request Lifecycle                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  withContext({ requestId: 'req-123' }, async () => {        │
+│    │                                                         │
+│    ├── log.info('A')  ───────────────► { requestId: 'req-123' }
+│    │                                                         │
+│    ├── await asyncOperation()                                │
+│    │     │                                                   │
+│    │     └── log.info('B')  ─────────► { requestId: 'req-123' }
+│    │                                                         │
+│    └── log.info('C')  ───────────────► { requestId: 'req-123' }
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Basic Usage
+
+### Setting Context
+
+```typescript
+import { withContext, log } from 'vestig'
+
+// Synchronous callback
+withContext({ userId: 'user-123' }, () => {
+  log.info('User action')
+  // All logs include userId
+})
+
+// Async callback
+await withContext({ requestId: 'req-456' }, async () => {
+  const data = await fetchData()
+  log.info('Data fetched', { count: data.length })
+  // Logs include requestId
+})
+```
+
+### Reading Context
+
+```typescript
+import { getContext, log } from 'vestig'
+
+function logWithContext(message: string) {
+  const ctx = getContext()
+  console.log('Current context:', ctx)
+  // { requestId: 'req-123', userId: 'user-456', ... }
+
+  log.info(message) // Context automatically included
+}
+```
+
+### Nested Context
+
+Context can be nested, with inner contexts merging with outer:
+
+```typescript
+import { withContext, log } from 'vestig'
+
+await withContext({ requestId: 'req-123' }, async () => {
+  log.info('Outer context')
+  // { requestId: 'req-123' }
+
+  await withContext({ operation: 'checkout' }, async () => {
+    log.info('Inner context')
+    // { requestId: 'req-123', operation: 'checkout' }
+  })
+
+  log.info('Back to outer')
+  // { requestId: 'req-123' }
+})
+```
+
+## Correlation Context
+
+Vestig provides a specialized correlation context for request tracing:
+
+```typescript
+import { createCorrelationContext, withContext } from 'vestig'
+
+// Create correlation context with auto-generated IDs
+const correlationContext = createCorrelationContext({
+  service: 'api',
+  environment: 'production'
+})
+
+// correlationContext includes:
+// - correlationId: auto-generated UUID
+// - requestId: auto-generated UUID
+// - timestamp: ISO string
+// - service: 'api'
+// - environment: 'production'
+
+await withContext(correlationContext, async () => {
+  // All logs include correlation IDs
+})
+```
+
+### Custom Correlation IDs
+
+```typescript
+import { createCorrelationContext } from 'vestig'
+
+// Use existing correlation ID from upstream service
+const ctx = createCorrelationContext({
+  correlationId: req.headers['x-correlation-id'],
+  requestId: req.headers['x-request-id'],
+  service: 'payment-service'
+})
+```
+
+## Context with Child Loggers
+
+Child loggers inherit context from the current scope:
+
+```typescript
+import { log, withContext } from 'vestig'
+
+const orderLogger = log.child('orders')
+
+await withContext({ orderId: 'order-789' }, async () => {
+  orderLogger.info('Processing order')
+  // namespace: 'orders'
+  // orderId: 'order-789'
+
+  const paymentLogger = orderLogger.child('payment')
+  paymentLogger.info('Charging card')
+  // namespace: 'orders.payment'
+  // orderId: 'order-789'
+})
+```
+
+## Context with Spans
+
+Spans automatically include the current context:
+
+```typescript
+import { span, withContext, log } from 'vestig'
+
+await withContext({ userId: 'user-123' }, async () => {
+  await span('process-order', async (s) => {
+    // Span has access to context
+    s.setAttribute('userId', 'user-123') // Explicit
+
+    log.info('Processing')
+    // Log includes: userId, traceId, spanId
+  })
+})
+```
+
+## HTTP Request Context
+
+### Express.js
+
+```typescript
+import express from 'express'
+import { withContext, createCorrelationContext } from 'vestig'
+
+const app = express()
+
+app.use((req, res, next) => {
+  const ctx = createCorrelationContext({
+    correlationId: req.headers['x-correlation-id'] as string,
+    method: req.method,
+    path: req.path,
+    userAgent: req.headers['user-agent']
+  })
+
+  withContext(ctx, () => {
+    next()
+  })
+})
+
+app.get('/api/orders', async (req, res) => {
+  // All logs automatically include request context
+  log.info('Fetching orders')
+  const orders = await getOrders()
+  res.json(orders)
+})
+```
+
+### Next.js
+
+With `@vestig/next`, context is automatically set up:
+
+```typescript
+// middleware.ts
+import { withVestig } from '@vestig/next/middleware'
+
+export const middleware = withVestig((request) => {
+  // Context automatically includes:
+  // - correlationId
+  // - requestId
+  // - method, path, userAgent
+})
+
+// In route handlers, context is available
+import { getRequestContext } from '@vestig/next'
+
+export async function GET() {
+  const ctx = await getRequestContext()
+  // { correlationId, requestId, method, path, ... }
+}
+```
+
+## Browser Context
+
+In browsers (where AsyncLocalStorage isn't available), Vestig uses a fallback:
+
+```typescript
+import { withContext, log } from 'vestig'
+
+// Works the same way in browsers
+withContext({ sessionId: 'sess-123' }, () => {
+  log.info('User clicked button')
+  // Includes sessionId
+})
+```
+
+**Note**: Browser context doesn't persist across async operations the same way. For full async context in browsers, explicitly pass context or use the VestigProvider.
+
+### With VestigProvider (React)
+
+```tsx
+import { VestigProvider, useLogger } from '@vestig/next/client'
+
+function App() {
+  return (
+    <VestigProvider
+      initialContext={{ sessionId: getSessionId() }}
+      endpoint="/api/logs"
+    >
+      <MyComponent />
+    </VestigProvider>
+  )
+}
+
+function MyComponent() {
+  const log = useLogger()
+  // All logs include sessionId from provider
+  log.info('Component rendered')
+}
+```
+
+## Context Cleanup
+
+Context is automatically cleaned up when the callback completes:
+
+```typescript
+await withContext({ temp: 'value' }, async () => {
+  // temp is available
+})
+// temp is no longer in context
+
+const ctx = getContext()
+console.log(ctx.temp) // undefined
+```
+
+## Performance Considerations
+
+AsyncLocalStorage has minimal overhead:
+- ~0.01ms per context access
+- No memory leaks (context cleaned up automatically)
+- Works with thousands of concurrent requests
+
+However, avoid storing large objects in context:
+
+```typescript
+// ❌ Bad: Large objects in context
+withContext({ fullUserObject: user }, () => { ... })
+
+// ✅ Good: Just IDs and small metadata
+withContext({ userId: user.id, role: user.role }, () => { ... })
+```
+
+## API Reference
+
+### Functions
+
+| Function | Description |
+|----------|-------------|
+| `withContext(ctx, fn)` | Run function with context, returns function result |
+| `withContextAsync(ctx, fn)` | Alias for `withContext` with async function |
+| `getContext()` | Get current context object |
+| `createCorrelationContext(opts)` | Create correlation context with auto IDs |
+
+### Types
+
+```typescript
+interface CorrelationContext {
+  correlationId: string
+  requestId: string
+  timestamp: string
+  [key: string]: unknown
+}
+
+type Context = Record<string, unknown>
+```
+
+## Best Practices
+
+1. **Set context at request entry** - middleware, route handler entry
+2. **Keep context small** - IDs and metadata, not full objects
+3. **Use correlation IDs** - for tracing across services
+4. **Don't mutate context** - create new contexts for changes
+5. **Use child loggers** - for per-module logging with context inheritance

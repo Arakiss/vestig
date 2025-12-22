@@ -1,0 +1,559 @@
+export const metadata = {
+  title: 'Custom Transports',
+  description: 'Build custom log transports to send logs anywhere. Simple interface with built-in batching, retry, and lifecycle management.',
+}
+
+# Custom Transports
+
+Vestig's transport system is designed for extensibility. You can create custom transports to send logs to any destination: databases, message queues, third-party services, or custom storage systems.
+
+## Transport Interface
+
+Every transport implements this interface:
+
+```typescript
+interface Transport {
+  // Unique identifier for this transport
+  readonly name: string
+
+  // Transport configuration
+  readonly config: TransportConfig
+
+  // Initialize transport (called once on startup)
+  init?(): Promise<void>
+
+  // Log a single entry
+  log(entry: LogEntry): void | Promise<void>
+
+  // Flush any buffered entries
+  flush?(): Promise<void>
+
+  // Cleanup resources (called on shutdown)
+  destroy?(): Promise<void>
+}
+```
+
+## Quick Start: Simple Transport
+
+The simplest transport just implements `name`, `config`, and `log`:
+
+```typescript
+import { createLogger } from 'vestig'
+import type { Transport, TransportConfig, LogEntry } from 'vestig'
+
+class ConsoleJsonTransport implements Transport {
+  readonly name = 'console-json'
+  readonly config: TransportConfig
+
+  constructor() {
+    this.config = {
+      name: 'console-json',
+      enabled: true,
+    }
+  }
+
+  log(entry: LogEntry): void {
+    console.log(JSON.stringify(entry))
+  }
+}
+
+// Use the transport
+const logger = createLogger({
+  transports: [new ConsoleJsonTransport()]
+})
+
+logger.info('Hello World')
+```
+
+## LogEntry Structure
+
+Every log entry passed to your transport has this structure:
+
+```typescript
+interface LogEntry {
+  // ISO timestamp string
+  timestamp: string       // "2025-01-01T12:00:00.000Z"
+
+  // Log level
+  level: LogLevel         // 'trace' | 'debug' | 'info' | 'warn' | 'error'
+
+  // The log message
+  message: string         // "User logged in"
+
+  // Additional metadata
+  metadata?: LogMetadata  // { userId: 'user-123', ip: '10.0.0.1' }
+
+  // Correlation context
+  context?: LogContext    // { requestId: 'req-abc', traceId: '...' }
+
+  // Runtime environment
+  runtime: Runtime        // 'node' | 'bun' | 'deno' | 'edge' | 'browser'
+
+  // Logger namespace
+  namespace?: string      // 'api:users'
+
+  // Serialized error (if logged)
+  error?: SerializedError // { name: 'Error', message: '...', stack: '...' }
+}
+```
+
+## Configuration Options
+
+Transports can accept configuration through `TransportConfig`:
+
+```typescript
+interface TransportConfig {
+  // Transport name (required)
+  name: string
+
+  // Enable/disable this transport (default: true)
+  enabled?: boolean
+
+  // Minimum log level for this transport
+  level?: LogLevel
+
+  // Filter function for entries
+  filter?: (entry: LogEntry) => boolean
+}
+```
+
+### Configurable Transport Example
+
+```typescript
+interface SlackTransportConfig {
+  webhookUrl: string
+  channel?: string
+  enabled?: boolean
+  level?: 'warn' | 'error'
+}
+
+class SlackTransport implements Transport {
+  readonly name = 'slack'
+  readonly config: TransportConfig
+  private webhookUrl: string
+  private channel?: string
+
+  constructor(config: SlackTransportConfig) {
+    this.webhookUrl = config.webhookUrl
+    this.channel = config.channel
+    this.config = {
+      name: 'slack',
+      enabled: config.enabled ?? true,
+      level: config.level ?? 'error', // Only errors by default
+    }
+  }
+
+  async log(entry: LogEntry): Promise<void> {
+    const text = `[${entry.level.toUpperCase()}] ${entry.message}`
+
+    await fetch(this.webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        channel: this.channel,
+        text,
+        attachments: [{
+          color: entry.level === 'error' ? 'danger' : 'warning',
+          fields: [
+            { title: 'Timestamp', value: entry.timestamp },
+            { title: 'Namespace', value: entry.namespace ?? 'root' },
+          ],
+        }],
+      }),
+    })
+  }
+}
+```
+
+## Batching with BatchTransport
+
+For network-based transports, use `BatchTransport` as a base class:
+
+```typescript
+import type { LogEntry, BatchTransportConfig } from 'vestig'
+
+interface MyServiceConfig extends BatchTransportConfig {
+  apiKey: string
+  endpoint: string
+}
+
+class MyServiceTransport extends BatchTransport {
+  readonly name = 'my-service'
+  private apiKey: string
+  private endpoint: string
+
+  constructor(config: MyServiceConfig) {
+    super({
+      ...config,
+      name: 'my-service',
+      batchSize: config.batchSize ?? 50,
+      flushInterval: config.flushInterval ?? 10000,
+    })
+
+    this.apiKey = config.apiKey
+    this.endpoint = config.endpoint
+  }
+
+  // Implement the send method - called with batched entries
+  protected async send(entries: LogEntry[]): Promise<void> {
+    const response = await fetch(this.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({ logs: entries }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+  }
+}
+```
+
+### BatchTransport Features
+
+`BatchTransport` provides:
+
+| Feature | Description |
+|---------|-------------|
+| **Batching** | Collects entries until `batchSize` or `flushInterval` |
+| **Auto-flush** | Periodic flushing at `flushInterval` (default: 5s) |
+| **Retry** | Exponential backoff retry on failure |
+| **Buffer** | Circular buffer prevents memory issues |
+| **Lifecycle** | Automatic init/destroy management |
+
+### BatchTransport Configuration
+
+```typescript
+interface BatchTransportConfig {
+  // Maximum entries before auto-flush (default: 100)
+  batchSize?: number
+
+  // Interval in ms between auto-flushes (default: 5000)
+  flushInterval?: number
+
+  // Maximum retry attempts on failure (default: 3)
+  maxRetries?: number
+
+  // Delay between retries in ms (default: 1000)
+  retryDelay?: number
+}
+```
+
+### Handling Failures
+
+Override error handlers to customize behavior:
+
+```typescript
+class ResilientTransport extends BatchTransport {
+  readonly name = 'resilient'
+
+  protected async send(entries: LogEntry[]): Promise<void> {
+    // Your send logic
+  }
+
+  // Called when entries are dropped from buffer overflow
+  protected onDrop(entries: LogEntry[]): void {
+    console.warn(`Dropped ${entries.length} entries - buffer full`)
+    // Could write to fallback storage
+  }
+
+  // Called when send fails after all retries
+  protected onSendError(error: Error, entries: LogEntry[]): void {
+    console.error(`Failed to send ${entries.length} entries:`, error)
+    // Could write to dead letter queue
+  }
+}
+```
+
+### Transport Statistics
+
+Get runtime statistics:
+
+```typescript
+const transport = new MyServiceTransport({ ... })
+const stats = transport.getStats()
+
+console.log(stats)
+// {
+//   buffered: 45,      // Entries waiting to be sent
+//   dropped: 0,        // Entries dropped due to overflow
+//   isFlushing: false  // Currently sending a batch
+// }
+```
+
+## Lifecycle Methods
+
+### init()
+
+Called once when the logger starts. Use for setup:
+
+```typescript
+class DatabaseTransport implements Transport {
+  private connection: DatabaseConnection | null = null
+
+  async init(): Promise<void> {
+    this.connection = await Database.connect({
+      host: 'localhost',
+      database: 'logs',
+    })
+    console.log('Database transport initialized')
+  }
+
+  log(entry: LogEntry): void {
+    this.connection?.insert('logs', entry)
+  }
+}
+```
+
+### flush()
+
+Called to ensure all buffered entries are sent:
+
+```typescript
+class QueueTransport implements Transport {
+  private queue: LogEntry[] = []
+
+  log(entry: LogEntry): void {
+    this.queue.push(entry)
+  }
+
+  async flush(): Promise<void> {
+    if (this.queue.length === 0) return
+
+    const entries = [...this.queue]
+    this.queue = []
+
+    await this.sendToQueue(entries)
+  }
+
+  async sendToQueue(entries: LogEntry[]): Promise<void> {
+    // Send to message queue
+  }
+}
+```
+
+### destroy()
+
+Called on shutdown for cleanup:
+
+```typescript
+class FileTransport implements Transport {
+  private fileHandle: FileHandle | null = null
+
+  async init(): Promise<void> {
+    this.fileHandle = await fs.open('./app.log', 'a')
+  }
+
+  log(entry: LogEntry): void {
+    this.fileHandle?.write(JSON.stringify(entry) + '\n')
+  }
+
+  async destroy(): Promise<void> {
+    await this.flush?.()
+    await this.fileHandle?.close()
+    console.log('File transport closed')
+  }
+}
+```
+
+## Level Filtering
+
+Transports can filter by level:
+
+```typescript
+const logger = createLogger({
+  transports: [
+    new ConsoleTransport({ level: 'debug' }),  // All levels
+    new SlackTransport({ level: 'error' }),    // Errors only
+    new FileTransport({ level: 'info' }),      // Info and above
+  ]
+})
+```
+
+## Custom Filtering
+
+Use the `filter` function for complex filtering:
+
+```typescript
+const transport = new HTTPTransport({
+  url: 'https://logs.example.com',
+  filter: (entry) => {
+    // Skip health check logs
+    if (entry.namespace === 'http' && entry.message.includes('/health')) {
+      return false
+    }
+
+    // Only log entries with requestId
+    if (!entry.context?.requestId) {
+      return false
+    }
+
+    return true
+  }
+})
+```
+
+## Complete Example: Elasticsearch Transport
+
+```typescript
+import type { LogEntry, Transport, TransportConfig } from 'vestig'
+import { BatchTransport } from 'vestig/transports/batch'
+
+interface ElasticsearchConfig {
+  nodes: string[]
+  index: string
+  apiKey?: string
+  batchSize?: number
+  flushInterval?: number
+}
+
+class ElasticsearchTransport extends BatchTransport {
+  readonly name = 'elasticsearch'
+  private nodes: string[]
+  private index: string
+  private apiKey?: string
+  private currentNodeIndex = 0
+
+  constructor(config: ElasticsearchConfig) {
+    super({
+      name: 'elasticsearch',
+      batchSize: config.batchSize ?? 100,
+      flushInterval: config.flushInterval ?? 5000,
+    })
+
+    this.nodes = config.nodes
+    this.index = config.index
+    this.apiKey = config.apiKey
+  }
+
+  protected async send(entries: LogEntry[]): Promise<void> {
+    // Build bulk request body
+    const body = entries.flatMap(entry => [
+      { index: { _index: this.index } },
+      {
+        '@timestamp': entry.timestamp,
+        level: entry.level,
+        message: entry.message,
+        metadata: entry.metadata,
+        context: entry.context,
+        runtime: entry.runtime,
+        namespace: entry.namespace,
+        error: entry.error,
+      }
+    ])
+
+    const node = this.getNextNode()
+    const response = await fetch(`${node}/_bulk`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-ndjson',
+        ...(this.apiKey ? { 'Authorization': `ApiKey ${this.apiKey}` } : {}),
+      },
+      body: body.map(line => JSON.stringify(line)).join('\n') + '\n',
+    })
+
+    if (!response.ok) {
+      throw new Error(`Elasticsearch error: ${response.status}`)
+    }
+
+    const result = await response.json()
+    if (result.errors) {
+      throw new Error('Elasticsearch bulk indexing had errors')
+    }
+  }
+
+  // Round-robin node selection
+  private getNextNode(): string {
+    const node = this.nodes[this.currentNodeIndex]
+    this.currentNodeIndex = (this.currentNodeIndex + 1) % this.nodes.length
+    return node
+  }
+
+  protected onSendError(error: Error, entries: LogEntry[]): void {
+    console.error(`[elasticsearch] Failed to index ${entries.length} docs:`, error)
+    // Could fallback to file storage
+  }
+}
+
+// Usage
+const logger = createLogger({
+  transports: [
+    new ConsoleTransport(),
+    new ElasticsearchTransport({
+      nodes: ['http://localhost:9200'],
+      index: 'app-logs',
+      batchSize: 50,
+    })
+  ]
+})
+```
+
+## Testing Transports
+
+```typescript
+import { describe, expect, test, mock } from 'bun:test'
+
+describe('SlackTransport', () => {
+  test('should send error logs to Slack', async () => {
+    const fetchMock = mock(() =>
+      Promise.resolve(new Response('ok', { status: 200 }))
+    )
+    globalThis.fetch = fetchMock
+
+    const transport = new SlackTransport({
+      webhookUrl: 'https://hooks.slack.com/xxx',
+    })
+
+    await transport.log({
+      timestamp: new Date().toISOString(),
+      level: 'error',
+      message: 'Test error',
+      runtime: 'node',
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][0]).toBe('https://hooks.slack.com/xxx')
+  })
+})
+```
+
+## API Reference
+
+### Types
+
+```typescript
+import type {
+  Transport,
+  TransportConfig,
+  BatchTransportConfig,
+  LogEntry,
+  LogLevel,
+  LogMetadata,
+  LogContext,
+  SerializedError,
+} from 'vestig'
+```
+
+### BatchTransport Methods
+
+| Method | Description |
+|--------|-------------|
+| `log(entry)` | Add entry to buffer |
+| `flush()` | Send all buffered entries |
+| `destroy()` | Stop timer, final flush, cleanup |
+| `getStats()` | Get buffer statistics |
+| `send(entries)` | Abstract - implement to send entries |
+| `onDrop(entries)` | Called when entries are dropped |
+| `onSendError(error, entries)` | Called on send failure |
+
+## Best Practices
+
+1. **Extend BatchTransport** for network transports
+2. **Implement destroy()** to prevent data loss
+3. **Handle errors gracefully** - don't crash the app
+4. **Use level filtering** to reduce noise
+5. **Test with mock fetch** for HTTP transports
+6. **Add metrics** for monitoring transport health

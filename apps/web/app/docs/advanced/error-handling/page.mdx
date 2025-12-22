@@ -1,0 +1,427 @@
+export const metadata = {
+  title: 'Error Handling',
+  description: 'Safe error serialization, cause chain support, and best practices for logging errors in production.',
+}
+
+# Error Handling
+
+Vestig provides robust utilities for handling and logging errors safely. These utilities support ES2022 error cause chains, extract common error properties, and prevent sensitive information from leaking into logs.
+
+## Overview
+
+When logging errors in production, you need to:
+
+1. **Serialize safely** - Avoid circular references and non-serializable data
+2. **Preserve context** - Keep error names, messages, and stack traces
+3. **Handle cause chains** - Support ES2022 `cause` property
+4. **Extract metadata** - Capture `code`, `statusCode`, and system error properties
+
+Vestig handles all of this automatically when you pass errors to log methods.
+
+## Basic Error Logging
+
+```typescript
+import { log } from 'vestig'
+
+try {
+  await riskyOperation()
+} catch (error) {
+  // Pass error directly - Vestig serializes it safely
+  log.error('Operation failed', { error })
+}
+```
+
+Output:
+```json
+{
+  "level": "error",
+  "message": "Operation failed",
+  "error": {
+    "name": "Error",
+    "message": "Connection timeout",
+    "stack": "Error: Connection timeout\n    at riskyOperation..."
+  }
+}
+```
+
+## Error Utilities
+
+### serializeError
+
+Convert any error to a safe, serializable format:
+
+```typescript
+import { serializeError } from 'vestig'
+
+const error = new Error('Something went wrong')
+const serialized = serializeError(error)
+
+console.log(serialized)
+// {
+//   name: 'Error',
+//   message: 'Something went wrong',
+//   stack: 'Error: Something went wrong\n    at ...'
+// }
+```
+
+Handles many input types:
+
+```typescript
+// Error instances
+serializeError(new TypeError('Invalid type'))
+// { name: 'TypeError', message: 'Invalid type', stack: '...' }
+
+// Error-like objects
+serializeError({ message: 'Custom error', name: 'CustomError' })
+// { name: 'CustomError', message: 'Custom error' }
+
+// Strings (converted to Error)
+serializeError('Simple error string')
+// { name: 'Error', message: 'Simple error string' }
+
+// Returns undefined for non-errors
+serializeError(null)      // undefined
+serializeError(123)       // undefined
+serializeError({})        // undefined (no message property)
+```
+
+### isError
+
+Check if a value is an Error or error-like object:
+
+```typescript
+import { isError } from 'vestig'
+
+isError(new Error('test'))           // true
+isError(new TypeError('test'))       // true
+isError({ message: 'error' })        // true (error-like object)
+
+isError(null)                        // false
+isError('error string')              // false
+isError({ name: 'Error' })           // false (no message)
+```
+
+### getErrorMessage
+
+Extract the error message from any value:
+
+```typescript
+import { getErrorMessage } from 'vestig'
+
+getErrorMessage(new Error('test'))     // 'test'
+getErrorMessage('string error')        // 'string error'
+getErrorMessage({ message: 'error' })  // 'error'
+getErrorMessage(123)                   // '123'
+getErrorMessage(null)                  // 'null'
+```
+
+## Error Cause Chains (ES2022)
+
+Vestig fully supports ES2022 error cause chains:
+
+```typescript
+import { serializeError, log } from 'vestig'
+
+// Create error with cause chain
+try {
+  await fetchUser()
+} catch (fetchError) {
+  const error = new Error('Failed to load user profile', {
+    cause: fetchError
+  })
+
+  log.error('Profile load failed', { error })
+}
+```
+
+The cause chain is preserved in serialization:
+
+```json
+{
+  "level": "error",
+  "message": "Profile load failed",
+  "error": {
+    "name": "Error",
+    "message": "Failed to load user profile",
+    "stack": "Error: Failed to load user profile\n    at ...",
+    "cause": {
+      "name": "FetchError",
+      "message": "Network request failed",
+      "stack": "FetchError: Network request failed\n    at ...",
+      "cause": {
+        "name": "Error",
+        "message": "ECONNREFUSED",
+        "code": "ECONNREFUSED"
+      }
+    }
+  }
+}
+```
+
+### Nested Cause Chains
+
+```typescript
+const rootCause = new Error('Database connection lost')
+const dbError = new Error('Query execution failed', { cause: rootCause })
+const serviceError = new Error('User service unavailable', { cause: dbError })
+
+const serialized = serializeError(serviceError)
+
+// Entire chain is preserved
+console.log(serialized.message)              // 'User service unavailable'
+console.log(serialized.cause.message)        // 'Query execution failed'
+console.log(serialized.cause.cause.message)  // 'Database connection lost'
+```
+
+### Depth Limit
+
+To prevent infinite loops with circular references, cause chains are limited to 10 levels:
+
+```typescript
+// Creating a deeply nested error (for demonstration)
+let error = new Error('level 0')
+for (let i = 1; i <= 15; i++) {
+  error = new Error(`level ${i}`, { cause: error })
+}
+
+const serialized = serializeError(error)
+// Serialization stops at depth 10, preventing infinite recursion
+```
+
+## System Error Properties
+
+Vestig automatically extracts common error properties:
+
+```typescript
+// Node.js file system error
+const fsError = new Error('ENOENT: no such file or directory') as Error & {
+  code: string
+  errno: number
+  syscall: string
+  path: string
+}
+fsError.code = 'ENOENT'
+fsError.errno = -2
+fsError.syscall = 'open'
+fsError.path = '/missing/file.txt'
+
+log.error('File operation failed', { error: fsError })
+```
+
+Output:
+```json
+{
+  "level": "error",
+  "message": "File operation failed",
+  "error": {
+    "name": "Error",
+    "message": "ENOENT: no such file or directory",
+    "stack": "...",
+    "code": "ENOENT",
+    "errno": -2,
+    "syscall": "open",
+    "path": "/missing/file.txt"
+  }
+}
+```
+
+### Extracted Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `code` | `string \| number` | Error code (e.g., 'ENOENT', 'ETIMEDOUT') |
+| `statusCode` | `number` | HTTP status code |
+| `status` | `number` | Alternative HTTP status |
+| `errno` | `number` | System error number |
+| `syscall` | `string` | System call that failed |
+| `path` | `string` | File path for FS errors |
+| `address` | `string` | Network address |
+| `port` | `number` | Network port |
+
+## HTTP Error Handling
+
+```typescript
+class HttpError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public code: string
+  ) {
+    super(message)
+    this.name = 'HttpError'
+  }
+}
+
+try {
+  throw new HttpError('User not found', 404, 'USER_NOT_FOUND')
+} catch (error) {
+  log.warn('Request failed', { error })
+}
+```
+
+Output:
+```json
+{
+  "level": "warn",
+  "message": "Request failed",
+  "error": {
+    "name": "HttpError",
+    "message": "User not found",
+    "statusCode": 404,
+    "code": "USER_NOT_FOUND"
+  }
+}
+```
+
+## Error Boundaries (React)
+
+With `@vestig/next`, use the error boundary component:
+
+```tsx
+import { VestigErrorBoundary } from '@vestig/next/client'
+
+function App() {
+  return (
+    <VestigErrorBoundary
+      fallback={<ErrorFallback />}
+      onError={(error, errorInfo) => {
+        // Error is automatically logged with component stack
+      }}
+    >
+      <MyComponent />
+    </VestigErrorBoundary>
+  )
+}
+```
+
+## Best Practices
+
+### 1. Always Wrap Unknown Errors
+
+```typescript
+try {
+  await externalLibrary.doSomething()
+} catch (unknownError) {
+  // Wrap with context
+  const error = new Error('External operation failed', {
+    cause: unknownError
+  })
+  log.error('Operation failed', { error })
+}
+```
+
+### 2. Use Appropriate Log Levels
+
+```typescript
+// Expected errors (business logic) → warn
+log.warn('User not found', { error, userId })
+
+// Unexpected errors (bugs, system failures) → error
+log.error('Database connection failed', { error })
+
+// Fatal errors (app can't continue) → error with context
+log.error('Failed to initialize', { error, fatal: true })
+```
+
+### 3. Include Context
+
+```typescript
+try {
+  await processOrder(orderId)
+} catch (error) {
+  log.error('Order processing failed', {
+    error,
+    orderId,
+    userId: ctx.userId,
+    action: 'process_order',
+  })
+}
+```
+
+### 4. Handle Rejected Promises
+
+```typescript
+// Option 1: Try/catch with async/await
+async function handler() {
+  try {
+    await riskyOperation()
+  } catch (error) {
+    log.error('Operation failed', { error })
+  }
+}
+
+// Option 2: Promise .catch()
+riskyOperation()
+  .catch(error => log.error('Operation failed', { error }))
+
+// Option 3: Global unhandled rejection handler
+process.on('unhandledRejection', (reason) => {
+  log.error('Unhandled promise rejection', {
+    error: reason
+  })
+})
+```
+
+### 5. Don't Log Sensitive Data
+
+```typescript
+// ❌ Bad: May include passwords, tokens
+log.error('Auth failed', { error, credentials })
+
+// ✅ Good: Log only safe metadata
+log.error('Auth failed', {
+  error,
+  username: credentials.username,
+  // Don't include password
+})
+```
+
+## API Reference
+
+### Types
+
+```typescript
+interface SerializedError {
+  name: string
+  message: string
+  stack?: string
+  cause?: SerializedError
+  code?: string | number
+  statusCode?: number
+  status?: number
+  errno?: number
+  syscall?: string
+  path?: string
+  address?: string
+  port?: number
+  [key: string]: unknown
+}
+```
+
+### Functions
+
+| Function | Description |
+|----------|-------------|
+| `serializeError(error, depth?)` | Serialize error with cause chain |
+| `isError(value)` | Check if value is error-like |
+| `getErrorMessage(error)` | Extract message from any value |
+
+## Integration with Transports
+
+All Vestig transports receive serialized errors:
+
+```typescript
+import { createLogger, ConsoleTransport, HTTPTransport } from 'vestig'
+
+const logger = createLogger({
+  transports: [
+    new ConsoleTransport(), // Pretty-prints errors with colors
+    new HTTPTransport({
+      endpoint: '/api/logs'  // Sends serialized error JSON
+    })
+  ]
+})
+
+// Errors are automatically serialized for all transports
+logger.error('Critical failure', { error: new Error('Something broke') })
+```

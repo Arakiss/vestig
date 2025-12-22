@@ -1,0 +1,496 @@
+export const metadata = {
+  title: 'Express.js Integration',
+  description: 'First-class Express.js support with middleware, route handlers, error handling, and automatic correlation ID propagation.',
+}
+
+# Express.js Integration
+
+The `@vestig/express` package provides seamless integration with Express.js, offering middleware for automatic request logging, correlation ID propagation, and error handling.
+
+## Installation
+
+```bash
+# Using bun
+bun add @vestig/express vestig
+
+# Using npm
+npm install @vestig/express vestig
+
+# Using pnpm
+pnpm add @vestig/express vestig
+```
+
+## Quick Start
+
+```typescript
+import express from 'express'
+import {
+  vestigMiddleware,
+  withVestig,
+  vestigErrorHandler,
+} from '@vestig/express'
+
+const app = express()
+
+// Add vestig middleware (logs requests, sets up correlation context)
+app.use(vestigMiddleware)
+
+// Use withVestig for typed logging in route handlers
+app.get('/api/users', withVestig(async (req, res, { log, ctx }) => {
+  log.info('Fetching users', { requestId: ctx.requestId })
+  res.json({ users: [] })
+}))
+
+// Error handler (should be last)
+app.use(vestigErrorHandler)
+
+app.listen(3000)
+```
+
+## Middleware
+
+### vestigMiddleware
+
+The pre-configured middleware for immediate use:
+
+```typescript
+import express from 'express'
+import { vestigMiddleware } from '@vestig/express'
+
+const app = express()
+app.use(vestigMiddleware)
+```
+
+This middleware automatically:
+- **Generates correlation IDs** for each request (or extracts from headers)
+- **Logs incoming requests** with method, path, and headers
+- **Logs responses** with status code and duration
+- **Propagates W3C Trace Context** via `traceparent` headers
+- **Sets up AsyncLocalStorage** context for downstream handlers
+
+### Custom Middleware Configuration
+
+Use `createVestigMiddleware` for custom configuration:
+
+```typescript
+import { createVestigMiddleware } from '@vestig/express'
+
+app.use(createVestigMiddleware({
+  // Log level for middleware
+  level: 'info',
+
+  // PII sanitization preset
+  sanitize: 'gdpr',
+
+  // Paths to skip logging (health checks, metrics)
+  skipPaths: ['/health', '/metrics', '/favicon.ico'],
+
+  // Custom request ID header
+  requestIdHeader: 'X-Request-ID',
+
+  // Enable request/response timing
+  timing: true,
+
+  // Log level for incoming requests
+  requestLogLevel: 'info',
+
+  // Log level for outgoing responses
+  responseLogLevel: 'info',
+
+  // Use structured JSON output
+  structured: true,
+}))
+```
+
+### Middleware Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `level` | `LogLevel` | `'info'` | Log level for middleware logger |
+| `enabled` | `boolean` | `true` | Enable/disable logging |
+| `sanitize` | `SanitizePreset` | `'default'` | PII sanitization preset |
+| `namespace` | `string` | `'http'` | Logger namespace |
+| `skipPaths` | `string[]` | `[]` | Path prefixes to skip |
+| `requestIdHeader` | `string` | `'X-Request-ID'` | Header for request ID |
+| `timing` | `boolean` | `true` | Enable timing logs |
+| `requestLogLevel` | `LogLevel` | `'info'` | Level for request logs |
+| `responseLogLevel` | `LogLevel` | `'info'` | Level for response logs |
+| `structured` | `boolean` | `true` | Use JSON output |
+
+## Route Handlers
+
+### withVestig Wrapper
+
+Wrap route handlers to get typed access to logging context:
+
+```typescript
+import { withVestig } from '@vestig/express'
+
+app.get('/api/users/:id', withVestig(async (req, res, { log, ctx, timing }) => {
+  // Typed logger with namespace
+  log.info('Fetching user', {
+    userId: req.params.id,
+    requestId: ctx.requestId
+  })
+
+  // Mark checkpoints for performance tracking
+  timing.mark('db_query_start')
+
+  const user = await db.users.findById(req.params.id)
+
+  timing.mark('db_query_end')
+  log.debug('User fetched', {
+    elapsed: timing.elapsed(),
+    userId: user?.id
+  })
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' })
+  }
+
+  res.json({ user })
+}))
+```
+
+### Route Handler Context
+
+The context object provides:
+
+```typescript
+interface RouteHandlerContext {
+  // Logger instance (child of middleware logger)
+  log: Logger
+
+  // Correlation context with request/trace IDs
+  ctx: {
+    requestId: string
+    traceId: string
+    spanId: string
+    timestamp: string
+    // ... other context
+  }
+
+  // Request timing utilities
+  timing: {
+    start: number          // Start timestamp
+    elapsed: () => number  // Get elapsed time in ms
+    mark: (name: string) => void  // Mark a checkpoint
+    getMark: (name: string) => number | undefined
+  }
+}
+```
+
+### Route Handler Options
+
+```typescript
+app.get('/api/users', withVestig(handler, {
+  // Custom namespace for this route
+  namespace: 'api:users',
+
+  // Log level for this route
+  level: 'debug',
+
+  // Log request on entry
+  logRequest: true,
+
+  // Log response on completion
+  logResponse: true,
+}))
+```
+
+### Route Handler Factory
+
+Create a factory with preset options:
+
+```typescript
+import { createRouteHandler } from '@vestig/express'
+
+// Create factory with defaults
+const apiHandler = createRouteHandler({
+  namespace: 'api',
+  logRequest: true,
+  logResponse: true,
+})
+
+// Use factory for consistent configuration
+app.get('/api/users', apiHandler(async (req, res, { log }) => {
+  log.info('Fetching users')
+  res.json({ users: [] })
+}))
+
+app.get('/api/orders', apiHandler(async (req, res, { log }) => {
+  log.info('Fetching orders')
+  res.json({ orders: [] })
+}))
+```
+
+## Error Handling
+
+### vestigErrorHandler
+
+The pre-configured error handler:
+
+```typescript
+import { vestigErrorHandler } from '@vestig/express'
+
+// Should be the last middleware
+app.use(vestigErrorHandler)
+```
+
+Error responses include correlation IDs for debugging:
+
+```json
+{
+  "error": {
+    "message": "User not found"
+  },
+  "requestId": "req_abc123",
+  "traceId": "0af7651916cd43dd8448eb211c80319c"
+}
+```
+
+### Custom Error Handler
+
+```typescript
+import { createVestigErrorHandler } from '@vestig/express'
+
+app.use(createVestigErrorHandler({
+  // Include stack traces (only in development)
+  includeStack: process.env.NODE_ENV !== 'production',
+
+  // Log level for errors
+  level: 'error',
+
+  // PII sanitization for error details
+  sanitize: 'default',
+
+  // Include correlation IDs in error response
+  includeCorrelationInResponse: true,
+}))
+```
+
+### 404 Not Found Handler
+
+```typescript
+import { notFoundHandler, vestigErrorHandler } from '@vestig/express'
+
+// 404 handler before error handler
+app.use(notFoundHandler)
+
+// Error handler last
+app.use(vestigErrorHandler)
+```
+
+Custom not found message:
+
+```typescript
+import { createNotFoundHandler } from '@vestig/express'
+
+app.use(createNotFoundHandler('Resource not found'))
+```
+
+## Correlation Context
+
+### Automatic Propagation
+
+The middleware automatically handles correlation ID propagation:
+
+```typescript
+// Incoming request headers are parsed:
+// - X-Request-ID → requestId
+// - X-Correlation-ID → correlationId
+// - traceparent → W3C trace context
+
+// Response headers are set:
+// - X-Request-ID
+// - X-Correlation-ID
+// - traceparent
+```
+
+### Accessing Context in Handlers
+
+```typescript
+app.get('/api/orders', withVestig(async (req, res, { ctx }) => {
+  console.log(ctx.requestId)   // 'req_abc123'
+  console.log(ctx.traceId)     // '0af7651916cd43dd8448eb211c80319c'
+  console.log(ctx.spanId)      // 'b7ad6b7169203331'
+  console.log(ctx.timestamp)   // '2025-01-01T12:00:00.000Z'
+}))
+```
+
+### Calling Downstream Services
+
+```typescript
+import { createTraceparent } from 'vestig'
+
+app.get('/api/orders', withVestig(async (req, res, { ctx }) => {
+  // Forward correlation context to downstream services
+  const response = await fetch('https://inventory-service.local/api/check', {
+    headers: {
+      'X-Request-ID': ctx.requestId,
+      'X-Correlation-ID': ctx.correlationId ?? ctx.requestId,
+      'traceparent': createTraceparent(ctx.traceId, ctx.spanId),
+    },
+  })
+}))
+```
+
+## Request Timing
+
+### Timing Utilities
+
+```typescript
+app.get('/api/complex', withVestig(async (req, res, { log, timing }) => {
+  log.info('Starting complex operation')
+
+  // Mark checkpoint before database query
+  timing.mark('db_start')
+  const data = await db.query('SELECT * FROM items')
+  timing.mark('db_end')
+
+  // Calculate DB query time
+  const dbStart = timing.getMark('db_start')
+  const dbEnd = timing.getMark('db_end')
+  const dbTime = dbEnd && dbStart ? dbEnd - dbStart : 0
+
+  // Mark checkpoint before external API
+  timing.mark('api_start')
+  const enriched = await externalApi.enrich(data)
+  timing.mark('api_end')
+
+  log.info('Operation complete', {
+    totalElapsed: timing.elapsed(),
+    dbQueryMs: dbTime,
+    items: data.length,
+  })
+
+  res.json({ items: enriched })
+}))
+```
+
+## Complete Example
+
+```typescript
+import express from 'express'
+import {
+  createVestigMiddleware,
+  withVestig,
+  createRouteHandler,
+  createVestigErrorHandler,
+  createNotFoundHandler,
+} from '@vestig/express'
+import { createLogger } from 'vestig'
+
+const app = express()
+
+// Parse JSON bodies
+app.use(express.json())
+
+// Vestig middleware with custom config
+app.use(createVestigMiddleware({
+  level: 'info',
+  sanitize: 'gdpr',
+  skipPaths: ['/health', '/ready'],
+  structured: process.env.NODE_ENV === 'production',
+}))
+
+// Create route handler factory for API routes
+const apiHandler = createRouteHandler({
+  namespace: 'api',
+  logRequest: true,
+})
+
+// Health check (skipped by middleware)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' })
+})
+
+// API routes with logging
+app.get('/api/users', apiHandler(async (req, res, { log, ctx }) => {
+  log.info('Fetching users list')
+
+  const users = await db.users.findMany({
+    limit: parseInt(req.query.limit as string) || 10,
+  })
+
+  log.debug('Users retrieved', { count: users.length })
+  res.json({ users })
+}))
+
+app.post('/api/users', apiHandler(async (req, res, { log, ctx }) => {
+  log.info('Creating new user', { email: req.body.email })
+
+  const user = await db.users.create(req.body)
+
+  log.info('User created', { userId: user.id })
+  res.status(201).json({ user })
+}))
+
+app.get('/api/users/:id', apiHandler(async (req, res, { log }) => {
+  const { id } = req.params
+
+  log.info('Fetching user', { userId: id })
+  const user = await db.users.findById(id)
+
+  if (!user) {
+    const error = new Error('User not found') as Error & { statusCode: number }
+    error.statusCode = 404
+    throw error
+  }
+
+  res.json({ user })
+}))
+
+// 404 handler
+app.use(createNotFoundHandler('Resource not found'))
+
+// Error handler with correlation IDs
+app.use(createVestigErrorHandler({
+  includeStack: process.env.NODE_ENV !== 'production',
+  includeCorrelationInResponse: true,
+}))
+
+// Start server
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => {
+  const log = createLogger({ namespace: 'server' })
+  log.info('Server started', { port: PORT })
+})
+```
+
+## API Reference
+
+### Exports
+
+| Export | Type | Description |
+|--------|------|-------------|
+| `vestigMiddleware` | `RequestHandler` | Pre-configured middleware |
+| `createVestigMiddleware` | `Function` | Middleware factory |
+| `withVestig` | `Function` | Route handler wrapper |
+| `createRouteHandler` | `Function` | Route handler factory |
+| `vestigErrorHandler` | `ErrorRequestHandler` | Pre-configured error handler |
+| `createVestigErrorHandler` | `Function` | Error handler factory |
+| `notFoundHandler` | `RequestHandler` | Pre-configured 404 handler |
+| `createNotFoundHandler` | `Function` | 404 handler factory |
+
+### Types
+
+```typescript
+import type {
+  MiddlewareOptions,
+  RouteHandlerContext,
+  RouteHandlerOptions,
+  VestigRouteHandler,
+  ErrorHandlerOptions,
+  VestigRequest,
+  RequestTiming,
+} from '@vestig/express'
+```
+
+## Best Practices
+
+1. **Order matters**: Place middleware before routes, error handler last
+2. **Skip health checks**: Use `skipPaths` for high-frequency endpoints
+3. **Use factories**: Create route handler factories for consistent configuration
+4. **Propagate context**: Forward correlation headers to downstream services
+5. **Handle errors properly**: Use the error handler to capture all errors with context

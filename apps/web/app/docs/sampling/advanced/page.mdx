@@ -1,0 +1,568 @@
+export const metadata = {
+  title: 'Advanced Sampling',
+  description: 'Deep dive into Vestig sampling strategies: probability, rate limiting, namespace-based sampling, and custom samplers.',
+}
+
+# Advanced Sampling
+
+This guide covers advanced sampling patterns for high-throughput production environments. Learn how to fine-tune log volume while preserving critical information.
+
+## Sampling Architecture
+
+Vestig's sampling system consists of:
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    LogEntry                          │
+└─────────────────────┬───────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────┐
+│              Composite Sampler                       │
+│  ┌────────────────────────────────────────────────┐ │
+│  │ Bypass Rules:                                  │ │
+│  │ - alwaysSampleErrors: true → bypass sampling   │ │
+│  │ - bypassLevel: 'error' → bypass sampling       │ │
+│  └────────────────────────────────────────────────┘ │
+│                      │                               │
+│  ┌───────────────────▼──────────────────────────┐   │
+│  │          Inner Sampler                        │   │
+│  │  (Probability | RateLimit | Namespace)       │   │
+│  └──────────────────────────────────────────────┘   │
+└─────────────────────┬───────────────────────────────┘
+                      │
+            ┌─────────▼─────────┐
+            │  Sample: true/false │
+            └───────────────────┘
+```
+
+## Probability Sampling
+
+Random sampling based on configured probability.
+
+### Basic Usage
+
+```typescript
+import { createLogger, createProbabilitySampler } from 'vestig'
+
+const logger = createLogger({
+  sampling: {
+    enabled: true,
+    sampler: createProbabilitySampler({ probability: 0.1 }), // 10%
+  }
+})
+
+// ~10% of these logs will be kept
+logger.info('Regular event')
+```
+
+### Shorthand Syntax
+
+```typescript
+import { createLogger } from 'vestig'
+
+const logger = createLogger({
+  sampling: {
+    enabled: true,
+    sampler: 0.1, // Shorthand: 10% probability
+  }
+})
+```
+
+### Probability Values
+
+| Value | Meaning |
+|-------|---------|
+| `0` | Drop all logs (0%) |
+| `0.01` | Keep 1% of logs |
+| `0.1` | Keep 10% of logs |
+| `0.5` | Keep 50% of logs |
+| `1` | Keep all logs (100%) |
+
+Values are clamped between 0 and 1.
+
+## Rate Limit Sampling
+
+Cap logs to a maximum rate per time window.
+
+### Basic Usage
+
+```typescript
+import { createLogger, createRateLimitSampler } from 'vestig'
+
+const logger = createLogger({
+  sampling: {
+    enabled: true,
+    sampler: createRateLimitSampler({
+      maxPerSecond: 100, // Max 100 logs per second
+    }),
+  }
+})
+
+// First 100 logs each second are kept
+// Additional logs are dropped until next window
+```
+
+### Custom Time Windows
+
+```typescript
+const sampler = createRateLimitSampler({
+  maxPerSecond: 1000,
+  windowMs: 100, // 100ms window = finer granularity
+})
+```
+
+### Use Cases
+
+- **Prevent log storms**: Protect infrastructure during failures
+- **Cost control**: Limit logs to paid services
+- **Backpressure**: Prevent queue overflow
+
+### Behavior During Bursts
+
+```typescript
+// With maxPerSecond: 100
+
+// Second 0: First 100 logs kept, rest dropped
+for (let i = 0; i < 500; i++) {
+  log.info('Burst log') // Only first 100 kept
+}
+
+// Second 1: Counter resets, next 100 logs kept
+await sleep(1000)
+for (let i = 0; i < 500; i++) {
+  log.info('Burst log') // Only first 100 kept
+}
+```
+
+## Namespace Sampling
+
+Apply different sampling rates to different parts of your application.
+
+### Basic Usage
+
+```typescript
+import { createLogger, createNamespaceSampler } from 'vestig'
+
+const logger = createLogger({
+  sampling: {
+    enabled: true,
+    sampler: createNamespaceSampler({
+      // Default for unmatched namespaces
+      default: 0.1, // 10%
+
+      namespaces: {
+        // Exact matches
+        'auth': 1.0,     // Keep all auth logs
+        'payment': 1.0,  // Keep all payment logs
+
+        // Wildcard patterns
+        'http.*': 0.5,   // 50% of HTTP logs
+        'db.*': 0.25,    // 25% of database logs
+      }
+    })
+  }
+})
+```
+
+### Wildcard Patterns
+
+| Pattern | Matches |
+|---------|---------|
+| `api` | Exactly "api" |
+| `api.*` | "api.users", "api.orders" |
+| `*.error` | "payment.error", "auth.error" |
+| `*` | Everything |
+
+### Pattern Priority
+
+Exact matches take precedence over wildcards:
+
+```typescript
+createNamespaceSampler({
+  default: 0.1,
+  namespaces: {
+    'api.users': 0.8,     // 80% - exact match, takes priority
+    'api.*': 0.2,         // 20% - for other api namespaces
+  }
+})
+```
+
+### Nested Sampling
+
+Combine sampling types per namespace:
+
+```typescript
+createNamespaceSampler({
+  default: { probability: 0.1 },
+
+  namespaces: {
+    // Probability for API logs
+    'api.*': { probability: 0.5 },
+
+    // Rate limit for database logs
+    'db.*': { maxPerSecond: 50 },
+  }
+})
+```
+
+## Bypass Rules
+
+Ensure critical logs are never dropped.
+
+### Error Bypass
+
+```typescript
+const logger = createLogger({
+  sampling: {
+    enabled: true,
+    sampler: 0.1,
+    alwaysSampleErrors: true, // Default: true
+  }
+})
+
+// Sampled at 10%
+log.debug('Debug info')
+
+// Never sampled (has error)
+log.error('Critical failure', { error: new Error('Failed') })
+```
+
+### Level Bypass
+
+```typescript
+const logger = createLogger({
+  sampling: {
+    enabled: true,
+    sampler: 0.1,
+    bypassLevel: 'warn', // 'warn' and 'error' bypass sampling
+  }
+})
+
+// Sampled at 10%
+log.debug('Debug info')
+log.info('Info message')
+
+// Never sampled (at or above 'warn')
+log.warn('Warning message')
+log.error('Error message')
+```
+
+### Bypass Levels
+
+| bypassLevel | Bypassed Levels |
+|-------------|-----------------|
+| `'trace'` | All levels (sampling disabled) |
+| `'debug'` | debug, info, warn, error |
+| `'info'` | info, warn, error |
+| `'warn'` | warn, error |
+| `'error'` | error only (default) |
+
+## Composite Sampling
+
+Combine bypass rules with any inner sampler:
+
+```typescript
+import { createCompositeSampler, createRateLimitSampler } from 'vestig'
+
+const innerSampler = createRateLimitSampler({ maxPerSecond: 100 })
+
+const sampler = createCompositeSampler(innerSampler, {
+  alwaysSampleErrors: true,
+  bypassLevel: 'warn',
+})
+
+const logger = createLogger({
+  sampling: {
+    enabled: true,
+    sampler,
+  }
+})
+```
+
+## Custom Samplers
+
+Implement the `Sampler` interface for custom logic:
+
+```typescript
+import type { Sampler, LogEntry } from 'vestig'
+
+// Sample based on user type
+const userBasedSampler: Sampler = {
+  shouldSample(entry: LogEntry): boolean {
+    const userId = entry.context?.userId as string
+
+    // Always keep logs for premium users
+    if (userId?.startsWith('premium_')) {
+      return true
+    }
+
+    // 50% for regular users
+    if (userId) {
+      return Math.random() < 0.5
+    }
+
+    // 10% for anonymous
+    return Math.random() < 0.1
+  }
+}
+```
+
+### Stateful Sampler
+
+```typescript
+class ReservoirSampler implements Sampler {
+  private reservoir: LogEntry[] = []
+  private readonly maxSize: number
+  private count = 0
+
+  constructor(maxSize: number) {
+    this.maxSize = maxSize
+  }
+
+  shouldSample(entry: LogEntry): boolean {
+    this.count++
+
+    // Always include first N entries
+    if (this.reservoir.length < this.maxSize) {
+      this.reservoir.push(entry)
+      return true
+    }
+
+    // Probabilistically replace entries
+    const j = Math.floor(Math.random() * this.count)
+    if (j < this.maxSize) {
+      this.reservoir[j] = entry
+      return true
+    }
+
+    return false
+  }
+
+  destroy(): void {
+    this.reservoir = []
+    this.count = 0
+  }
+}
+```
+
+### Hash-Based Consistent Sampling
+
+Sample same requests consistently (useful for debugging):
+
+```typescript
+class ConsistentSampler implements Sampler {
+  private readonly rate: number
+
+  constructor(rate: number) {
+    this.rate = Math.max(0, Math.min(1, rate))
+  }
+
+  shouldSample(entry: LogEntry): boolean {
+    const key = entry.context?.requestId ?? entry.timestamp
+    const hash = this.hashString(String(key))
+    return hash < this.rate
+  }
+
+  private hashString(str: string): number {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32bit integer
+    }
+    // Normalize to 0-1
+    return Math.abs(hash) / 2147483647
+  }
+}
+```
+
+## Production Patterns
+
+### Environment-Based Sampling
+
+```typescript
+const getSamplingConfig = () => {
+  if (process.env.NODE_ENV === 'development') {
+    return { enabled: false } // Keep all logs in dev
+  }
+
+  if (process.env.NODE_ENV === 'staging') {
+    return {
+      enabled: true,
+      sampler: 0.5, // 50% in staging
+    }
+  }
+
+  // Production: aggressive sampling
+  return {
+    enabled: true,
+    sampler: createNamespaceSampler({
+      default: 0.1,
+      namespaces: {
+        'auth.*': 1.0,
+        'payment.*': 1.0,
+        'http.*': 0.05,
+        'cache.*': 0.01,
+      }
+    }),
+    alwaysSampleErrors: true,
+    bypassLevel: 'warn',
+  }
+}
+
+const logger = createLogger({
+  sampling: getSamplingConfig(),
+})
+```
+
+### Trace-Based Sampling
+
+Sample entire request traces consistently:
+
+```typescript
+import { getContext, createProbabilitySampler } from 'vestig'
+
+const traceSampler: Sampler = {
+  // Cache sampling decision per trace
+  private decisions = new Map<string, boolean>()
+
+  shouldSample(entry: LogEntry): boolean {
+    const traceId = entry.context?.traceId as string
+    if (!traceId) {
+      return Math.random() < 0.1 // 10% for untraced
+    }
+
+    // Return cached decision for this trace
+    if (this.decisions.has(traceId)) {
+      return this.decisions.get(traceId)!
+    }
+
+    // Make and cache decision
+    const decision = Math.random() < 0.1
+    this.decisions.set(traceId, decision)
+
+    // Cleanup old decisions (simple LRU)
+    if (this.decisions.size > 10000) {
+      const firstKey = this.decisions.keys().next().value
+      this.decisions.delete(firstKey)
+    }
+
+    return decision
+  }
+}
+```
+
+### Adaptive Sampling
+
+Adjust sampling based on load:
+
+```typescript
+class AdaptiveSampler implements Sampler {
+  private logCount = 0
+  private lastReset = Date.now()
+  private currentRate = 1.0
+
+  private readonly targetPerSecond: number
+  private readonly minRate: number
+  private readonly maxRate: number
+
+  constructor(opts: {
+    targetPerSecond: number
+    minRate?: number
+    maxRate?: number
+  }) {
+    this.targetPerSecond = opts.targetPerSecond
+    this.minRate = opts.minRate ?? 0.01
+    this.maxRate = opts.maxRate ?? 1.0
+  }
+
+  shouldSample(entry: LogEntry): boolean {
+    this.logCount++
+
+    // Recalculate rate every second
+    const now = Date.now()
+    if (now - this.lastReset >= 1000) {
+      // Adjust rate based on actual throughput
+      const actualRate = this.logCount
+      const ratio = this.targetPerSecond / Math.max(actualRate, 1)
+
+      this.currentRate = Math.max(
+        this.minRate,
+        Math.min(this.maxRate, this.currentRate * ratio)
+      )
+
+      this.logCount = 0
+      this.lastReset = now
+    }
+
+    return Math.random() < this.currentRate
+  }
+}
+```
+
+## API Reference
+
+### Types
+
+```typescript
+// Sampler function signature
+type SamplerFn = (entry: LogEntry) => boolean
+
+// Probability sampler config
+interface ProbabilitySamplerConfig {
+  probability: number // 0-1
+}
+
+// Rate limit sampler config
+interface RateLimitSamplerConfig {
+  maxPerSecond: number
+  windowMs?: number // default: 1000
+}
+
+// Namespace sampler config
+interface NamespaceSamplerConfig {
+  default?: SamplerConfig
+  namespaces?: Record<string, SamplerConfig>
+}
+
+// Union type for sampler config
+type SamplerConfig =
+  | number // Shorthand for probability
+  | ProbabilitySamplerConfig
+  | RateLimitSamplerConfig
+  | NamespaceSamplerConfig
+
+// Full sampling config
+interface SamplingConfig {
+  enabled?: boolean
+  sampler?: SamplerConfig
+  alwaysSampleErrors?: boolean // default: true
+  bypassLevel?: LogLevel       // default: 'error'
+}
+
+// Sampler instance interface
+interface Sampler {
+  shouldSample(entry: LogEntry): boolean
+  destroy?(): void
+}
+```
+
+### Factory Functions
+
+| Function | Description |
+|----------|-------------|
+| `createProbabilitySampler(config)` | Random sampling |
+| `createRateLimitSampler(config)` | Max logs per second |
+| `createNamespaceSampler(config)` | Per-namespace rules |
+| `createCompositeSampler(inner, opts)` | Add bypass rules |
+| `createSampler(config)` | Create from SamplingConfig |
+| `createSamplerFromConfig(config)` | Create from SamplerConfig |
+
+## Best Practices
+
+1. **Always bypass errors**: Keep `alwaysSampleErrors: true`
+2. **Use namespace sampling**: Different rates for different concerns
+3. **Test sampling rates**: Verify you're keeping enough logs for debugging
+4. **Monitor dropped logs**: Track how many logs are being sampled out
+5. **Adjust based on load**: Higher traffic → more aggressive sampling
+6. **Keep traces together**: Sample by traceId for consistent debugging

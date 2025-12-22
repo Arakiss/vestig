@@ -1,0 +1,278 @@
+export const metadata = {
+  title: 'W3C Trace Context',
+  description: 'Full W3C Trace Context compliance with traceparent and tracestate headers for distributed tracing across services.',
+}
+
+# W3C Trace Context
+
+Vestig implements the [W3C Trace Context](https://www.w3.org/TR/trace-context/) specification for distributed tracing across services. This enables seamless integration with OpenTelemetry and other tracing systems.
+
+## Overview
+
+W3C Trace Context defines two HTTP headers for propagating trace information:
+
+- **`traceparent`**: Contains the trace ID, span ID, and trace flags
+- **`tracestate`**: Contains vendor-specific trace data
+
+Vestig provides utilities for both parsing incoming headers and creating outgoing headers.
+
+## Traceparent Header
+
+The `traceparent` header format is:
+```
+{version}-{trace-id}-{parent-id}-{trace-flags}
+```
+
+Example: `00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01`
+
+### Parsing Traceparent
+
+```typescript
+import { parseTraceparent } from 'vestig'
+
+const header = '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
+const context = parseTraceparent(header)
+
+if (context) {
+  console.log(context.traceId)    // '0af7651916cd43dd8448eb211c80319c'
+  console.log(context.parentId)   // 'b7ad6b7169203331'
+  console.log(context.traceFlags) // 1 (sampled)
+  console.log(context.version)    // 0
+}
+```
+
+### Creating Traceparent
+
+```typescript
+import { createTraceparent, generateTraceId, generateSpanId } from 'vestig'
+
+// Generate new trace context
+const traceparent = createTraceparent({
+  traceId: generateTraceId(),   // 32 hex chars
+  parentId: generateSpanId(),   // 16 hex chars
+  traceFlags: 1,                // 1 = sampled
+  version: 0
+})
+
+// Result: '00-{traceId}-{parentId}-01'
+```
+
+### Trace Flags
+
+| Flag Value | Meaning |
+|------------|---------|
+| `0` | Not sampled - trace may be discarded |
+| `1` | Sampled - trace should be recorded |
+
+## Tracestate Header
+
+The `tracestate` header allows vendors to include additional trace context:
+
+```
+tracestate: vendor1=value1,vendor2=value2,vestig=abc123
+```
+
+### Parsing Tracestate
+
+```typescript
+import { parseTracestate } from 'vestig'
+
+const header = 'vendor1=value1,vendor2=value2,vestig=abc123'
+const state = parseTracestate(header)
+
+// state is a Map<string, string>
+console.log(state.get('vendor1')) // 'value1'
+console.log(state.get('vestig'))  // 'abc123'
+```
+
+### Creating Tracestate
+
+```typescript
+import { createTracestate } from 'vestig'
+
+const state = new Map([
+  ['vestig', 'span-123'],
+  ['region', 'us-east-1'],
+])
+
+const header = createTracestate(state)
+// Result: 'vestig=span-123,region=us-east-1'
+```
+
+### Modifying Tracestate
+
+Use the utility functions to safely modify tracestate:
+
+```typescript
+import {
+  parseTracestate,
+  getTracestateValue,
+  setTracestateValue,
+  deleteTracestateKey,
+  createTracestate
+} from 'vestig'
+
+// Parse incoming header
+let state = parseTracestate('vendor1=value1,vendor2=value2')
+
+// Get a value
+const vendor1 = getTracestateValue(state, 'vendor1') // 'value1'
+
+// Set a value (moves key to front per spec)
+state = setTracestateValue(state, 'vestig', 'my-span-id')
+// Result order: vestig, vendor1, vendor2
+
+// Delete a key
+state = deleteTracestateKey(state, 'vendor2')
+
+// Create outgoing header
+const header = createTracestate(state)
+// Result: 'vestig=my-span-id,vendor1=value1'
+```
+
+### Tracestate Limits
+
+Per the W3C specification:
+- Maximum 32 list members
+- Key format: `[a-z][a-z0-9_\-\*/]{0,255}` or `[a-z0-9][a-z0-9_\-\*/]{0,240}@[a-z][a-z0-9_\-\*/]{0,13}`
+- Value format: printable ASCII excluding `,` and `=`
+
+Vestig automatically validates and enforces these limits.
+
+## Integration with Spans
+
+When creating spans, Vestig can automatically propagate trace context:
+
+```typescript
+import { span, parseTraceparent } from 'vestig'
+
+// In an HTTP handler
+async function handleRequest(req: Request) {
+  // Parse incoming trace context
+  const traceparent = parseTraceparent(
+    req.headers.get('traceparent') || ''
+  )
+
+  // Create span with parent context
+  return await span('handle-request', async (s) => {
+    if (traceparent) {
+      s.setAttribute('parentTraceId', traceparent.traceId)
+    }
+
+    // Your logic here
+    return processRequest(req)
+  }, {
+    parentContext: traceparent ? {
+      traceId: traceparent.traceId,
+      spanId: traceparent.parentId,
+    } : undefined
+  })
+}
+```
+
+## Propagating to Outgoing Requests
+
+```typescript
+import { createTraceparent, getActiveSpan } from 'vestig'
+
+async function callDownstreamService(url: string) {
+  const activeSpan = getActiveSpan()
+
+  const headers: Record<string, string> = {}
+
+  if (activeSpan) {
+    headers['traceparent'] = createTraceparent({
+      traceId: activeSpan.traceId,
+      parentId: activeSpan.spanId,
+      traceFlags: activeSpan.sampled ? 1 : 0,
+      version: 0
+    })
+  }
+
+  return fetch(url, { headers })
+}
+```
+
+## Next.js Integration
+
+With `@vestig/next`, trace context is automatically handled in middleware:
+
+```typescript
+// middleware.ts
+import { withVestig } from '@vestig/next/middleware'
+
+export const middleware = withVestig((request) => {
+  // Trace context is automatically:
+  // 1. Parsed from incoming traceparent header
+  // 2. Propagated to response headers
+  // 3. Available in your route handlers
+})
+```
+
+## OpenTelemetry Compatibility
+
+Vestig's W3C Trace Context implementation is fully compatible with OpenTelemetry. You can:
+
+1. **Receive traces** from OTel-instrumented services
+2. **Send traces** to OTel-instrumented services
+3. **Export to OTel collectors** (coming in v0.8.0)
+
+```typescript
+// Example: Calling an OTel-instrumented service
+import { span, createTraceparent, createTracestate } from 'vestig'
+
+await span('call-otel-service', async (s) => {
+  const response = await fetch('https://otel-service.example.com/api', {
+    headers: {
+      'traceparent': createTraceparent({
+        traceId: s.traceId,
+        parentId: s.spanId,
+        traceFlags: 1,
+        version: 0
+      }),
+      'tracestate': createTracestate(new Map([
+        ['vestig', s.spanId]
+      ]))
+    }
+  })
+
+  return response.json()
+})
+```
+
+## API Reference
+
+### Types
+
+```typescript
+interface TraceContext {
+  version: number       // Always 0 for current spec
+  traceId: string       // 32 hex characters
+  parentId: string      // 16 hex characters (span ID)
+  traceFlags: number    // Bit field (1 = sampled)
+}
+
+type Tracestate = Map<string, string>
+```
+
+### Functions
+
+| Function | Description |
+|----------|-------------|
+| `parseTraceparent(header)` | Parse traceparent header, returns `TraceContext \| null` |
+| `createTraceparent(context)` | Create traceparent header string |
+| `parseTracestate(header)` | Parse tracestate header, returns `Map<string, string>` |
+| `createTracestate(state)` | Create tracestate header string |
+| `getTracestateValue(state, key)` | Get value from tracestate |
+| `setTracestateValue(state, key, value)` | Set value in tracestate (returns new Map) |
+| `deleteTracestateKey(state, key)` | Delete key from tracestate (returns new Map) |
+| `generateTraceId()` | Generate random 32-char hex trace ID |
+| `generateSpanId()` | Generate random 16-char hex span ID |
+
+## Best Practices
+
+1. **Always propagate trace context** in outgoing HTTP requests
+2. **Check for existing context** before creating new trace IDs
+3. **Respect the sampled flag** - don't record unsampled traces
+4. **Keep tracestate values short** - they add HTTP header overhead
+5. **Use your vendor key** in tracestate for your own metadata
