@@ -46,6 +46,11 @@ export default async function RootLayout({
 
 	return (
 		<html lang="en" className={`${outfit.variable} ${inter.variable} ${jetbrainsMono.variable}`}>
+			<head>
+				{/* LLM-friendly content discovery */}
+				<link rel="llms" href="/llms.txt" />
+				<link rel="llms-full" href="/llms-full.txt" />
+			</head>
 			<body className="min-h-screen bg-gray-950 font-sans antialiased">
 				<VestigProvider initialContext={ctx} endpoint="/api/vestig" namespace="client">
 					<LogProvider>{children}</LogProvider>
