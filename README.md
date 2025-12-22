@@ -8,9 +8,35 @@ A modern, runtime-agnostic structured logging library with automatic PII sanitiz
 [![npm version](https://img.shields.io/npm/v/vestig.svg)](https://www.npmjs.com/package/vestig)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
+[![Test Coverage](https://img.shields.io/badge/tests-737%20passing-brightgreen.svg)](https://github.com/Arakiss/vestig)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
+**v0.6.0** · Beta · Active Development
+
 </div>
+
+---
+
+## Project Status
+
+Vestig is in **active beta** with continuous development. The API is stable and production-ready for most use cases.
+
+| Metric | Status |
+|--------|--------|
+| **Version** | v0.6.0 |
+| **Stage** | Beta - API stable |
+| **Tests** | 737 passing (1,439 assertions) |
+| **Core Coverage** | 90%+ |
+| **Releases** | 9 versions published |
+| **Packages** | 3 (`vestig`, `@vestig/next`, `@vestig/express`) |
+
+### Packages
+
+| Package | Version | Description |
+|---------|---------|-------------|
+| [`vestig`](https://www.npmjs.com/package/vestig) | [![npm](https://img.shields.io/npm/v/vestig.svg)](https://www.npmjs.com/package/vestig) | Core logging library |
+| [`@vestig/next`](https://www.npmjs.com/package/@vestig/next) | [![npm](https://img.shields.io/npm/v/@vestig/next.svg)](https://www.npmjs.com/package/@vestig/next) | Next.js integration (App Router, RSC, middleware) |
+| [`@vestig/express`](https://www.npmjs.com/package/@vestig/express) | [![npm](https://img.shields.io/npm/v/@vestig/express.svg)](https://www.npmjs.com/package/@vestig/express) | Express.js middleware |
 
 ---
 
@@ -50,6 +76,16 @@ npm install vestig
 pnpm add vestig
 ```
 
+### Framework Integrations
+
+```bash
+# Next.js (App Router, Server Components, Middleware)
+bun add @vestig/next
+
+# Express.js
+bun add @vestig/express
+```
+
 ## Quick Start
 
 ```typescript
@@ -65,6 +101,21 @@ log.info('User login', {
   password: 'secret123',          // → [REDACTED]
   creditCard: '4111111111111111', // → ****1111
 })
+```
+
+### Next.js Integration
+
+```typescript
+// app/page.tsx
+import { getLogger } from '@vestig/next'
+
+export default async function Page() {
+  const log = await getLogger('home')
+
+  log.info('Rendering home page')
+
+  return <h1>Welcome</h1>
+}
 ```
 
 ## Features
@@ -139,6 +190,24 @@ const log = createLogger({
 | `gdpr` | + name, address, phone, IP | + IP addresses, phone |
 | `hipaa` | + patient, medical, SSN | + SSN pattern |
 | `pci-dss` | + card, CVV, PIN | Full card detection |
+
+### Native Tracing with Spans
+
+```typescript
+import { span } from 'vestig'
+
+// Trace async operations
+await span('api:request', async (s) => {
+  s.setAttribute('method', 'GET')
+  s.setAttribute('path', '/users')
+
+  await span('db:query', async () => {
+    return await db.query('SELECT * FROM users')
+  })
+
+  s.setStatus('ok')
+})
+```
 
 ### Custom Sanitization
 
@@ -389,6 +458,16 @@ import { createLogger } from 'vestig'
 const logger = createLogger({ level: 'info' })
 logger.info('Hello', { meta: 'data' })
 ```
+
+## Documentation
+
+For comprehensive documentation, visit our [documentation site](https://vestig.dev/docs):
+
+- [Getting Started](https://vestig.dev/docs/getting-started)
+- [Core Concepts](https://vestig.dev/docs/core/logging)
+- [PII Sanitization](https://vestig.dev/docs/security/sanitization)
+- [Next.js Integration](https://vestig.dev/docs/nextjs)
+- [API Reference](https://vestig.dev/docs/api)
 
 ## Contributing
 
