@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.8.0](https://github.com/Arakiss/vestig/compare/v0.7.0...v0.8.0) (2025-12-23)
+
+### ✨ Features
+
+* **next:** add database logging for Prisma and Drizzle ([964ee51](https://github.com/Arakiss/vestig/commit/964ee51e61cd4c3cd94af9b139748c4c585c3774))
+* **next:** add Dev Overlay for real-time log viewing ([cf309e1](https://github.com/Arakiss/vestig/commit/cf309e17843cf2f23a10ef89106b6f2321847699))
+* **next:** add enhanced Error Boundary with breadcrumbs ([61d15cb](https://github.com/Arakiss/vestig/commit/61d15cb8cff7243b8ea1171ac385543e5d1a7cdb))
+* **next:** add WebVitals and Route Metrics module ([b7c93fa](https://github.com/Arakiss/vestig/commit/b7c93fa5621a7806c9276f9248d0d1f9e13bd8ae))
+* **web:** add comprehensive SEO infrastructure and blog section ([d9f035e](https://github.com/Arakiss/vestig/commit/d9f035edb3308958262505d38a772e373b42c576))
+
+### 🐛 Bug Fixes
+
+* **web:** remove broken links to non-existent pages ([56c7db2](https://github.com/Arakiss/vestig/commit/56c7db2b4d2eaac5f3bb15ff4b500b345536ed93))
+* **web:** update landing page content for v0.7.0 ([ddd5ed2](https://github.com/Arakiss/vestig/commit/ddd5ed24c6dc9db5095df14f59f231ce90db2e40))
+
+### 📚 Documentation
+
+* update documentation for v0.7.0 release ([db7b9d7](https://github.com/Arakiss/vestig/commit/db7b9d725a84f9980f11a23266f3220051cd80a6))
+* **web:** add new documentation pages ([a92ee86](https://github.com/Arakiss/vestig/commit/a92ee86758a361c1f6ab547a551cc5dd8ad1dbdd))
+
+### ⚠️ BREAKING CHANGES
+
+* **express:** Remove `@vestig/express` package - Vestig now focuses exclusively on Next.js ([53cab0a](https://github.com/Arakiss/vestig/commit/53cab0a))
+
 ## [0.7.0](https://github.com/Arakiss/vestig/compare/v0.6.0...v0.7.0) (2025-12-22)
 
 ### ✨ Features
