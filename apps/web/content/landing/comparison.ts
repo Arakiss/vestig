@@ -76,5 +76,5 @@ export const comparisonConfig: ComparisonConfig = {
 			bunyan: false,
 		},
 	],
-	footnote: 'Bundle sizes measured with esbuild minify + gzip. Feature comparisons as of Dec 2024.',
+	footnote: 'Bundle sizes measured with esbuild minify + gzip. Feature comparisons as of Dec 2025.',
 }

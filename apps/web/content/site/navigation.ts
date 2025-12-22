@@ -20,18 +20,18 @@ export const navigationConfig: NavigationConfig = {
 		{
 			title: 'Features',
 			links: [
-				{ label: 'PII Sanitization', href: '/docs/features/sanitization' },
-				{ label: 'Native Tracing', href: '/docs/features/tracing' },
-				{ label: 'Context Propagation', href: '/docs/features/context' },
-				{ label: 'Transports', href: '/docs/features/transports' },
+				{ label: 'PII Sanitization', href: '/docs/security/sanitization' },
+				{ label: 'Native Tracing', href: '/docs/tracing' },
+				{ label: 'Sampling', href: '/docs/sampling' },
+				{ label: 'Transports', href: '/docs/transports' },
 			],
 		},
 		{
 			title: 'Integrations',
 			links: [
-				{ label: 'Next.js', href: '/docs/integrations/nextjs' },
-				{ label: 'Express', href: '/docs/integrations/express' },
-				{ label: 'Hono', href: '/docs/integrations/hono' },
+				{ label: 'Next.js', href: '/docs/nextjs' },
+				{ label: 'Express', href: '/docs/api' },
+				{ label: 'Core API', href: '/docs/api' },
 			],
 		},
 		{

@@ -2,7 +2,7 @@ import type { HeroContent } from '@/lib/content/types'
 
 export const heroContent: HeroContent = {
 	badge: {
-		text: 'v0.6.0 — Native Tracing',
+		text: 'v0.7.0 — Deno Support + Sampling',
 		href: '/changelog',
 		variant: 'new',
 	},
@@ -11,7 +11,7 @@ export const heroContent: HeroContent = {
 		secondary: 'for Every Runtime',
 	},
 	subheadline:
-		'Zero-dependency TypeScript logging with auto PII sanitization, native tracing, and seamless context propagation. Works in Bun, Node, Edge, and browsers.',
+		'Zero-dependency TypeScript logging with auto PII sanitization, native tracing, and seamless context propagation. Works in Bun, Node, Deno, Edge, and browsers.',
 	ctas: {
 		primary: {
 			text: 'Get Started',

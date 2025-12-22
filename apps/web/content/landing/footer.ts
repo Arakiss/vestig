@@ -14,19 +14,19 @@ export const footerContent: FooterContent = {
 		{
 			title: 'Features',
 			links: [
-				{ label: 'PII Sanitization', href: '/docs/features/sanitization' },
-				{ label: 'Native Tracing', href: '/docs/features/tracing' },
-				{ label: 'Context Propagation', href: '/docs/features/context' },
-				{ label: 'Sampling', href: '/docs/features/sampling' },
+				{ label: 'PII Sanitization', href: '/docs/security/sanitization' },
+				{ label: 'Native Tracing', href: '/docs/tracing' },
+				{ label: 'Transports', href: '/docs/transports' },
+				{ label: 'Sampling', href: '/docs/sampling' },
 			],
 		},
 		{
 			title: 'Integrations',
 			links: [
-				{ label: 'Next.js', href: '/docs/integrations/nextjs' },
-				{ label: 'Express', href: '/docs/integrations/express' },
-				{ label: 'Hono', href: '/docs/integrations/hono' },
-				{ label: 'Datadog', href: '/docs/transports/datadog' },
+				{ label: 'Next.js', href: '/docs/nextjs' },
+				{ label: 'Express', href: '/docs/api' },
+				{ label: 'Core API', href: '/docs/api' },
+				{ label: 'Transports', href: '/docs/transports' },
 			],
 		},
 		{
@@ -47,6 +47,6 @@ export const footerContent: FooterContent = {
 			],
 		},
 	],
-	copyright: '© 2024 Vestig. MIT License.',
+	copyright: '© 2025 Vestig. MIT License.',
 	tagline: 'Zero-dependency TypeScript logging for modern applications.',
 }
