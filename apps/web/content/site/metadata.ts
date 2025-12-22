@@ -8,7 +8,7 @@ export const siteConfig: SiteConfig = {
 			'Structured logging for modern TypeScript applications with auto PII sanitization, native tracing, and multi-runtime support.',
 		url: 'https://vestig.dev',
 		version: '0.6.0',
-		repository: 'https://github.com/vestig-lang/vestig',
+		repository: 'https://github.com/Arakiss/vestig',
 	},
 	seo: {
 		titleTemplate: '%s | Vestig',
@@ -38,7 +38,7 @@ export const siteConfig: SiteConfig = {
 		},
 	},
 	social: {
-		github: 'https://github.com/vestig-lang/vestig',
+		github: 'https://github.com/Arakiss/vestig',
 		twitter: 'https://twitter.com/vestig_dev',
 	},
 }

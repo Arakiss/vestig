@@ -5,7 +5,7 @@ export const navigationConfig: NavigationConfig = {
 		{ label: 'Docs', href: '/docs' },
 		{ label: 'Playground', href: '/playground' },
 		{ label: 'Examples', href: '/examples' },
-		{ label: 'GitHub', href: 'https://github.com/vestig-lang/vestig', external: true },
+		{ label: 'GitHub', href: 'https://github.com/Arakiss/vestig', external: true },
 	],
 	footer: [
 		{
@@ -37,10 +37,10 @@ export const navigationConfig: NavigationConfig = {
 		{
 			title: 'Community',
 			links: [
-				{ label: 'GitHub', href: 'https://github.com/vestig-lang/vestig', external: true },
+				{ label: 'GitHub', href: 'https://github.com/Arakiss/vestig', external: true },
 				{
 					label: 'Discussions',
-					href: 'https://github.com/vestig-lang/vestig/discussions',
+					href: 'https://github.com/Arakiss/vestig/discussions',
 					external: true,
 				},
 				{ label: 'Changelog', href: '/changelog' },

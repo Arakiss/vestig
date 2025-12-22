@@ -32,16 +32,16 @@ export const footerContent: FooterContent = {
 		{
 			title: 'Community',
 			links: [
-				{ label: 'GitHub', href: 'https://github.com/vestig-lang/vestig', external: true },
+				{ label: 'GitHub', href: 'https://github.com/Arakiss/vestig', external: true },
 				{
 					label: 'Discussions',
-					href: 'https://github.com/vestig-lang/vestig/discussions',
+					href: 'https://github.com/Arakiss/vestig/discussions',
 					external: true,
 				},
-				{ label: 'Issues', href: 'https://github.com/vestig-lang/vestig/issues', external: true },
+				{ label: 'Issues', href: 'https://github.com/Arakiss/vestig/issues', external: true },
 				{
 					label: 'Contributing',
-					href: 'https://github.com/vestig-lang/vestig/blob/main/CONTRIBUTING.md',
+					href: 'https://github.com/Arakiss/vestig/blob/main/CONTRIBUTING.md',
 					external: true,
 				},
 			],

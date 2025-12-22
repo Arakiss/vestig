@@ -54,6 +54,6 @@ log.error('Request failed', { error: new Error('Timeout') })
 
 ## Links
 
-- [GitHub Repository](https://github.com/vestig-lang/vestig)
+- [GitHub Repository](https://github.com/Arakiss/vestig)
 - [npm Package](https://www.npmjs.com/package/vestig)
 - [Changelog](/changelog)
