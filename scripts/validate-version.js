@@ -19,11 +19,7 @@ const { execSync } = require('child_process')
 const path = require('path')
 
 // Configuration
-const PACKAGES = [
-	'packages/vestig/package.json',
-	'packages/vestig-next/package.json',
-	'packages/vestig-express/package.json',
-]
+const PACKAGES = ['packages/vestig/package.json', 'packages/vestig-next/package.json']
 
 const ROOT_PACKAGE = 'package.json'
 
