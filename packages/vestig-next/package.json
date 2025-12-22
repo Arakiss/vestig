@@ -25,6 +25,26 @@
 		"./config": {
 			"types": "./dist/config/index.d.ts",
 			"import": "./dist/config/index.js"
+		},
+		"./dev": {
+			"types": "./dist/dev/index.d.ts",
+			"import": "./dist/dev/index.js"
+		},
+		"./dev/api": {
+			"types": "./dist/dev/api/index.d.ts",
+			"import": "./dist/dev/api/index.js"
+		},
+		"./metrics": {
+			"types": "./dist/metrics/index.d.ts",
+			"import": "./dist/metrics/index.js"
+		},
+		"./error": {
+			"types": "./dist/error/index.d.ts",
+			"import": "./dist/error/index.js"
+		},
+		"./db": {
+			"types": "./dist/db/index.d.ts",
+			"import": "./dist/db/index.js"
 		}
 	},
 	"files": ["dist"],
@@ -66,17 +86,21 @@
 	"peerDependencies": {
 		"next": ">=15.0.0",
 		"react": ">=19.0.0",
+		"react-dom": ">=19.0.0",
 		"vestig": ">=0.2.0"
 	},
 	"dependencies": {
-		"vestig": "workspace:*"
+		"vestig": "workspace:*",
+		"web-vitals": "^4.2.4"
 	},
 	"devDependencies": {
 		"typescript": "catalog:",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
 		"next": "catalog:",
-		"react": "catalog:"
+		"react": "catalog:",
+		"react-dom": "catalog:"
 	},
 	"engines": {
 		"node": ">=18"
