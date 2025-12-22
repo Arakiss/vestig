@@ -18,11 +18,11 @@
   </g>
 
   <!-- Logo mark - Trail 2-Step (Ghost smaller/lower + Solid larger/higher) -->
-  <g transform="translate(420, 80)">
-    <!-- Ghost/trace - smaller, positioned lower -->
-    <rect x="0" y="16" width="33" height="42" fill="#ffffff" fill-opacity="0.3"/>
+  <g transform="translate(420, 97)">
+    <!-- Ghost/trace - smaller, positioned slightly lower -->
+    <rect x="0" y="6" width="33" height="42" fill="#ffffff" fill-opacity="0.3"/>
     <!-- Solid - larger, positioned higher -->
-    <rect x="42" y="6" width="39" height="54" fill="#ffffff"/>
+    <rect x="42" y="0" width="39" height="54" fill="#ffffff"/>
   </g>
 
   <!-- Wordmark "vestig" -->
