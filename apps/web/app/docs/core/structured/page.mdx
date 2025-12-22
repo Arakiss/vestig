@@ -1,0 +1,206 @@
+# Structured Output
+
+JSON logging for production environments.
+
+## Overview
+
+Vestig supports two output formats:
+
+<Table><TableHead><TableRow><TableHeader>Format</TableHeader><TableHeader>Best For</TableHeader><TableHeader>Output</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>**Pretty**</TableCell><TableCell>Development</TableCell><TableCell>Colored, human-readable</TableCell></TableRow><TableRow><TableCell>**Structured**</TableCell><TableCell>Production</TableCell><TableCell>JSON, machine-parseable</TableCell></TableRow></TableBody></Table>
+
+## Automatic Detection
+
+By default, Vestig auto-detects the best format:
+
+```typescript
+import { log } from 'vestig'
+
+// Development (NODE_ENV !== 'production')
+log.info('Hello')
+// → [10:30:45] INFO  Hello
+
+// Production (NODE_ENV === 'production')
+log.info('Hello')
+// → {"level":"info","message":"Hello","timestamp":"..."}
+```
+
+## Forcing Structured Mode
+
+```typescript
+import { createLogger } from 'vestig'
+
+const logger = createLogger({
+  structured: true  // Always JSON
+})
+```
+
+Or via environment:
+
+```bash
+VESTIG_STRUCTURED=true
+```
+
+## JSON Output Format
+
+```typescript
+log.info('User action', { userId: 'usr_123', action: 'click' })
+```
+
+Produces:
+
+```json
+{
+  "level": "info",
+  "message": "User action",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "metadata": {
+    "userId": "usr_123",
+    "action": "click"
+  },
+  "runtime": "node",
+  "namespace": "my-app",
+  "context": {
+    "requestId": "550e8400-e29b-41d4-a716-446655440000",
+    "traceId": "0af7651916cd43dd8448eb211c80319c"
+  }
+}
+```
+
+## Pretty Output Format
+
+In development, logs are formatted for readability:
+
+```
+[10:30:45] INFO  User action { userId: 'usr_123', action: 'click' }
+[10:30:46] DEBUG Loading config { file: 'app.config.ts' }
+[10:30:47] WARN  Rate limit approaching { current: 95, limit: 100 }
+[10:30:48] ERROR Request failed { status: 500 }
+```
+
+With colors:
+
+- `TRACE` — Gray
+- `DEBUG` — Cyan
+- `INFO` — Green
+- `WARN` — Yellow
+- `ERROR` — Red
+
+## ConsoleTransport Options
+
+Fine-tune console output:
+
+```typescript
+import { createLogger, ConsoleTransport } from 'vestig'
+
+const logger = createLogger({
+  transports: [
+    new ConsoleTransport({
+      // Force structured JSON
+      structured: true,
+
+      // Enable/disable colors
+      colors: true,
+
+      // Include timestamps in pretty mode
+      timestamps: true,
+
+      // Indent JSON output
+      indent: 2
+    })
+  ]
+})
+```
+
+## Log Aggregation
+
+Structured logs are designed for log aggregation services:
+
+### Datadog
+
+```json
+{
+  "level": "info",
+  "message": "Request completed",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "metadata": {
+    "duration": 45,
+    "status": 200
+  },
+  "dd": {
+    "trace_id": "0af7651916cd43dd8448eb211c80319c",
+    "span_id": "b7ad6b7169203331"
+  }
+}
+```
+
+### CloudWatch
+
+```json
+{
+  "level": "ERROR",
+  "message": "Database connection failed",
+  "timestamp": 1705316400000,
+  "error": {
+    "name": "ConnectionError",
+    "message": "ECONNREFUSED"
+  }
+}
+```
+
+### ELK Stack
+
+```json
+{
+  "@timestamp": "2024-01-15T10:30:00.000Z",
+  "level": "info",
+  "message": "User signed up",
+  "service": "api",
+  "userId": "usr_123"
+}
+```
+
+## Serialization
+
+### Errors
+
+Errors are automatically serialized:
+
+```typescript
+log.error('Failed', new Error('Something went wrong'))
+```
+
+```json
+{
+  "level": "error",
+  "message": "Failed",
+  "error": {
+    "name": "Error",
+    "message": "Something went wrong",
+    "stack": "Error: Something went wrong\n    at ...",
+    "cause": null
+  }
+}
+```
+
+### Circular References
+
+Circular references are handled:
+
+```typescript
+const obj = { name: 'test' }
+obj.self = obj
+
+log.info('Circular', obj)
+// → { name: 'test', self: '[Circular]' }
+```
+
+### BigInt and Symbols
+
+Special types are converted:
+
+```typescript
+log.info('Special', {
+  big: 123n,                    // → "123"
+  sym: Symbol('test')           // → "Symbol(test)"
+})
+```

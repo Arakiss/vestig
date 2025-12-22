@@ -1,0 +1,199 @@
+# Next.js Integration
+
+`@vestig/next` provides first-class support for Next.js 15+ with the App Router.
+
+## Installation
+
+```bash
+bun add vestig @vestig/next
+```
+
+## Features
+
+- **Automatic correlation** — Request IDs propagate through the entire request lifecycle
+- **Server Components** — `getLogger()` with React cache integration
+- **Route Handlers** — `withVestig()` wrapper with automatic timing
+- **Server Actions** — `vestigAction()` for form handling and mutations
+- **Middleware** — Request/response logging with correlation IDs
+- **Client Components** — React hooks with real-time log streaming
+
+## Quick Setup
+
+### 1. Create Middleware
+
+```typescript
+// middleware.ts
+import { createVestigMiddleware } from '@vestig/next/middleware'
+
+export const middleware = createVestigMiddleware({
+  // Skip static assets
+  skipPaths: ['/_next', '/favicon.ico', '/api/health'],
+
+  // Custom request ID header (optional)
+  requestIdHeader: 'x-request-id',
+
+  // Log levels
+  requestLogLevel: 'debug',
+  responseLogLevel: 'info',
+})
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+}
+```
+
+### 2. Add Provider (for Client Components)
+
+```typescript
+// app/layout.tsx
+import { VestigProvider } from '@vestig/next/client'
+import { getRequestContext } from '@vestig/next'
+
+export default async function RootLayout({ children }) {
+  const ctx = await getRequestContext()
+
+  return (
+    <html>
+      <body>
+        <VestigProvider
+          correlationContext={ctx}
+          config={{ level: 'debug' }}
+        >
+          {children}
+        </VestigProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+### 3. Use in Server Components
+
+```typescript
+// app/page.tsx
+import { getLogger, getRequestContext } from '@vestig/next'
+
+export default async function Page() {
+  const log = await getLogger('home')
+  const ctx = await getRequestContext()
+
+  log.info('Rendering home page', { requestId: ctx.requestId })
+
+  const data = await fetchData()
+  log.debug('Data fetched', { count: data.length })
+
+  return <div>...</div>
+}
+```
+
+### 4. Use in Route Handlers
+
+```typescript
+// app/api/users/route.ts
+import { withVestig } from '@vestig/next'
+
+export const GET = withVestig(
+  async (request, { log, ctx }) => {
+    log.info('Fetching users', { requestId: ctx.requestId })
+
+    const users = await db.users.findMany()
+
+    log.info('Users fetched', { count: users.length })
+
+    return Response.json(users)
+  },
+  { namespace: 'api:users' }
+)
+
+export const POST = withVestig(
+  async (request, { log, ctx }) => {
+    const body = await request.json()
+
+    log.info('Creating user', { email: body.email }) // Auto-sanitized!
+
+    const user = await db.users.create({ data: body })
+
+    return Response.json(user, { status: 201 })
+  },
+  { namespace: 'api:users' }
+)
+```
+
+### 5. Use in Server Actions
+
+```typescript
+// app/actions/user.ts
+'use server'
+
+import { vestigAction } from '@vestig/next'
+
+export const createUser = vestigAction(
+  async (formData: FormData, { log, ctx }) => {
+    log.info('Creating user from form', { requestId: ctx.requestId })
+
+    const name = formData.get('name')
+    const email = formData.get('email')
+
+    log.debug('Validating input', { name, email })
+
+    const user = await db.users.create({
+      data: { name, email }
+    })
+
+    log.info('User created', { userId: user.id })
+
+    return { success: true, userId: user.id }
+  },
+  { namespace: 'actions:createUser' }
+)
+```
+
+### 6. Use in Client Components
+
+```typescript
+'use client'
+
+import { useLogger, useCorrelationContext } from '@vestig/next/client'
+import { useEffect } from 'react'
+
+export function UserDashboard() {
+  const log = useLogger('dashboard')
+  const ctx = useCorrelationContext()
+
+  useEffect(() => {
+    log.info('Dashboard mounted', { requestId: ctx.requestId })
+
+    return () => log.debug('Dashboard unmounted')
+  }, [log, ctx.requestId])
+
+  const handleClick = () => {
+    log.info('User clicked button', {
+      timestamp: new Date().toISOString()
+    })
+  }
+
+  return <button onClick={handleClick}>Click me</button>
+}
+```
+
+## How Correlation Works
+
+```
+Request Flow:
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  Middleware │ ──▶ │   Server    │ ──▶ │   Client    │
+│  (creates)  │     │  Component  │     │  Component  │
+│  requestId  │     │  (inherits) │     │  (receives) │
+└─────────────┘     └─────────────┘     └─────────────┘
+      │                    │                    │
+      ▼                    ▼                    ▼
+   All logs share the same requestId and traceId
+```
+
+## Next Steps
+
+- [Middleware](/docs/nextjs/middleware) — Request/response logging configuration
+- [Server Components](/docs/nextjs/server-components) — Using `getLogger()` in RSC
+- [Route Handlers](/docs/nextjs/route-handlers) — API route logging with `withVestig()`
+- [Server Actions](/docs/nextjs/server-actions) — Form handling with `vestigAction()`
+- [Client Components](/docs/nextjs/client) — React hooks and providers

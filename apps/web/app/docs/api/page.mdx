@@ -14,15 +14,7 @@ const logger = createLogger(config?: LoggerConfig)
 
 ### LoggerConfig
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `level` | `LogLevel` | `'info'` | Minimum log level |
-| `enabled` | `boolean` | `true` | Enable/disable logging |
-| `structured` | `boolean` | `false` (dev) / `true` (prod) | JSON output |
-| `sanitize` | `boolean` | `true` | Enable PII sanitization |
-| `sanitizeFields` | `string[]` | `[]` | Additional fields to redact |
-| `context` | `Record<string, unknown>` | `{}` | Static context |
-| `namespace` | `string` | `''` | Logger namespace |
+<Table><TableHead><TableRow><TableHeader>Option</TableHeader><TableHeader>Type</TableHeader><TableHeader>Default</TableHeader><TableHeader>Description</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>`level`</TableCell><TableCell>`LogLevel`</TableCell><TableCell>`'info'`</TableCell><TableCell>Minimum log level</TableCell></TableRow><TableRow><TableCell>`enabled`</TableCell><TableCell>`boolean`</TableCell><TableCell>`true`</TableCell><TableCell>Enable/disable logging</TableCell></TableRow><TableRow><TableCell>`structured`</TableCell><TableCell>`boolean`</TableCell><TableCell>`false` (dev) / `true` (prod)</TableCell><TableCell>JSON output</TableCell></TableRow><TableRow><TableCell>`sanitize`</TableCell><TableCell>`boolean`</TableCell><TableCell>`true`</TableCell><TableCell>Enable PII sanitization</TableCell></TableRow><TableRow><TableCell>`sanitizeFields`</TableCell><TableCell>`string[]`</TableCell><TableCell>`[]`</TableCell><TableCell>Additional fields to redact</TableCell></TableRow><TableRow><TableCell>`context`</TableCell><TableCell>`Record<string, unknown>`</TableCell><TableCell>`{}`</TableCell><TableCell>Static context</TableCell></TableRow><TableRow><TableCell>`namespace`</TableCell><TableCell>`string`</TableCell><TableCell>`''`</TableCell><TableCell>Logger namespace</TableCell></TableRow></TableBody></Table>
 
 ### Example
 
@@ -56,20 +48,7 @@ log.error(message, ...args)
 
 ### Methods
 
-| Method | Description |
-|--------|-------------|
-| `trace(message, ...args)` | Log at trace level |
-| `debug(message, ...args)` | Log at debug level |
-| `info(message, ...args)` | Log at info level |
-| `warn(message, ...args)` | Log at warn level |
-| `error(message, ...args)` | Log at error level |
-| `setLevel(level)` | Change minimum level |
-| `getLevel()` | Get current level |
-| `enable()` | Enable logging |
-| `disable()` | Disable logging |
-| `isEnabled()` | Check if enabled |
-| `child(namespace, config?)` | Create child logger |
-| `flush()` | Flush pending logs |
+<Table><TableHead><TableRow><TableHeader>Method</TableHeader><TableHeader>Description</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>`trace(message, ...args)`</TableCell><TableCell>Log at trace level</TableCell></TableRow><TableRow><TableCell>`debug(message, ...args)`</TableCell><TableCell>Log at debug level</TableCell></TableRow><TableRow><TableCell>`info(message, ...args)`</TableCell><TableCell>Log at info level</TableCell></TableRow><TableRow><TableCell>`warn(message, ...args)`</TableCell><TableCell>Log at warn level</TableCell></TableRow><TableRow><TableCell>`error(message, ...args)`</TableCell><TableCell>Log at error level</TableCell></TableRow><TableRow><TableCell>`setLevel(level)`</TableCell><TableCell>Change minimum level</TableCell></TableRow><TableRow><TableCell>`getLevel()`</TableCell><TableCell>Get current level</TableCell></TableRow><TableRow><TableCell>`enable()`</TableCell><TableCell>Enable logging</TableCell></TableRow><TableRow><TableCell>`disable()`</TableCell><TableCell>Disable logging</TableCell></TableRow><TableRow><TableCell>`isEnabled()`</TableCell><TableCell>Check if enabled</TableCell></TableRow><TableRow><TableCell>`child(namespace, config?)`</TableCell><TableCell>Create child logger</TableCell></TableRow><TableRow><TableCell>`flush()`</TableCell><TableCell>Flush pending logs</TableCell></TableRow></TableBody></Table>
 
 ## Context Functions
 

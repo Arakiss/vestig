@@ -1,0 +1,175 @@
+# Logging Basics
+
+Understanding how vestig handles structured logging.
+
+## Creating a Logger
+
+There are two ways to use vestig:
+
+### Default Logger
+
+The quickest way to start logging:
+
+```typescript
+import { log } from 'vestig'
+
+log.info('Hello, world!')
+log.debug('Debugging info', { foo: 'bar' })
+log.error('Something went wrong', new Error('Oops'))
+```
+
+### Custom Logger
+
+For more control, create your own instance:
+
+```typescript
+import { createLogger } from 'vestig'
+
+const logger = createLogger({
+  level: 'debug',
+  structured: true,
+  namespace: 'my-app',
+  context: {
+    service: 'api',
+    version: '1.0.0'
+  }
+})
+
+logger.info('Custom logger ready')
+```
+
+## Log Entry Structure
+
+Every log entry includes:
+
+```typescript
+interface LogEntry {
+  level: 'trace' | 'debug' | 'info' | 'warn' | 'error'
+  message: string
+  timestamp: string      // ISO 8601 format
+  namespace?: string     // Logger namespace
+  metadata?: object      // Additional data you pass
+  context?: object       // Correlation IDs, static context
+  error?: SerializedError
+  runtime: Runtime       // 'node' | 'bun' | 'edge' | 'browser'
+}
+```
+
+### Example Output
+
+```typescript
+log.info('User signed up', { userId: 'usr_123', plan: 'pro' })
+```
+
+Produces (in structured mode):
+
+```json
+{
+  "level": "info",
+  "message": "User signed up",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "metadata": {
+    "userId": "usr_123",
+    "plan": "pro"
+  },
+  "runtime": "bun"
+}
+```
+
+## Logging with Metadata
+
+Pass any object as the second argument:
+
+```typescript
+log.info('Request completed', {
+  method: 'GET',
+  path: '/api/users',
+  status: 200,
+  duration: 45.2
+})
+
+log.debug('Cache operation', {
+  hit: true,
+  key: 'user:123',
+  ttl: 3600
+})
+```
+
+## Logging Errors
+
+Pass an Error object for automatic serialization:
+
+```typescript
+try {
+  await riskyOperation()
+} catch (error) {
+  log.error('Operation failed', error)
+}
+```
+
+This produces:
+
+```json
+{
+  "level": "error",
+  "message": "Operation failed",
+  "error": {
+    "name": "TypeError",
+    "message": "Cannot read property 'x' of undefined",
+    "stack": "TypeError: Cannot read property...",
+    "cause": { ... }
+  }
+}
+```
+
+### Combining Error with Metadata
+
+```typescript
+log.error('Database query failed', {
+  query: 'SELECT * FROM users',
+  duration: 1523,
+  error: new Error('Connection timeout')
+})
+```
+
+## Logger Configuration
+
+```typescript
+interface LoggerConfig {
+  // Minimum log level (default: 'info')
+  level?: LogLevel
+
+  // Enable/disable logging (default: true)
+  enabled?: boolean
+
+  // JSON output (default: false in dev, true in prod)
+  structured?: boolean
+
+  // PII sanitization (default: true)
+  sanitize?: boolean | SanitizePreset | SanitizeConfig
+
+  // Logger namespace
+  namespace?: string
+
+  // Static context added to every log
+  context?: Record<string, unknown>
+
+  // Custom transports (default: ConsoleTransport)
+  transports?: Transport[]
+
+  // Sampling configuration
+  sampling?: SamplingConfig
+}
+```
+
+## Environment-Based Configuration
+
+Vestig reads these environment variables:
+
+<Table><TableHead><TableRow><TableHeader>Variable</TableHeader><TableHeader>Type</TableHeader><TableHeader>Default</TableHeader><TableHeader>Description</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>`VESTIG_LEVEL`</TableCell><TableCell>string</TableCell><TableCell>`'info'`</TableCell><TableCell>Minimum log level</TableCell></TableRow><TableRow><TableCell>`VESTIG_ENABLED`</TableCell><TableCell>boolean</TableCell><TableCell>`true`</TableCell><TableCell>Enable/disable logging</TableCell></TableRow><TableRow><TableCell>`VESTIG_STRUCTURED`</TableCell><TableCell>boolean</TableCell><TableCell>auto</TableCell><TableCell>Force JSON output</TableCell></TableRow><TableRow><TableCell>`VESTIG_SANITIZE`</TableCell><TableCell>boolean</TableCell><TableCell>`true`</TableCell><TableCell>Enable PII sanitization</TableCell></TableRow><TableRow><TableCell>`VESTIG_SANITIZE_PRESET`</TableCell><TableCell>string</TableCell><TableCell>`'default'`</TableCell><TableCell>Sanitization preset</TableCell></TableRow><TableRow><TableCell>`NODE_ENV`</TableCell><TableCell>string</TableCell><TableCell>—</TableCell><TableCell>Auto-enables structured in production</TableCell></TableRow></TableBody></Table>
+
+## Next Steps
+
+- [Log Levels](/docs/core/levels) — Understanding log level hierarchy
+- [Structured Output](/docs/core/structured) — JSON formatting options
+- [Child Loggers](/docs/core/child-loggers) — Namespaced logging

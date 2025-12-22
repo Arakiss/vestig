@@ -2,12 +2,10 @@
 
 Get started with Vestig in your project.
 
-## Install the Package
-
-Using your preferred package manager:
+## Install the Core Package
 
 ```bash
-# Bun
+# Bun (recommended)
 bun add vestig
 
 # npm
@@ -18,6 +16,14 @@ pnpm add vestig
 
 # Yarn
 yarn add vestig
+```
+
+## For Next.js Projects
+
+If you're using Next.js 15+, also install the integration package:
+
+```bash
+bun add @vestig/next
 ```
 
 ## Basic Usage
@@ -52,13 +58,7 @@ try {
 
 Vestig supports 5 log levels, from most to least verbose:
 
-| Level | Method | Use Case |
-|-------|--------|----------|
-| `trace` | `log.trace()` | Very detailed debugging |
-| `debug` | `log.debug()` | Development debugging |
-| `info` | `log.info()` | General information |
-| `warn` | `log.warn()` | Warnings, deprecations |
-| `error` | `log.error()` | Errors, exceptions |
+<Table><TableHead><TableRow><TableHeader>Level</TableHeader><TableHeader>Value</TableHeader><TableHeader>Method</TableHeader><TableHeader>Use Case</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>`trace`</TableCell><TableCell>10</TableCell><TableCell>`log.trace()`</TableCell><TableCell>Very detailed debugging, performance tracing</TableCell></TableRow><TableRow><TableCell>`debug`</TableCell><TableCell>20</TableCell><TableCell>`log.debug()`</TableCell><TableCell>Development debugging, variable inspection</TableCell></TableRow><TableRow><TableCell>`info`</TableCell><TableCell>30</TableCell><TableCell>`log.info()`</TableCell><TableCell>General information, user actions</TableCell></TableRow><TableRow><TableCell>`warn`</TableCell><TableCell>40</TableCell><TableCell>`log.warn()`</TableCell><TableCell>Warnings, deprecations, potential issues</TableCell></TableRow><TableRow><TableCell>`error`</TableCell><TableCell>50</TableCell><TableCell>`log.error()`</TableCell><TableCell>Errors, exceptions, failures</TableCell></TableRow></TableBody></Table>
 
 ## Environment Configuration
 
@@ -71,11 +71,14 @@ VESTIG_LEVEL=debug
 # Enable/disable logging
 VESTIG_ENABLED=true
 
-# Enable structured JSON output
+# Enable structured JSON output (auto in production)
 VESTIG_STRUCTURED=true
 
 # Enable PII sanitization
 VESTIG_SANITIZE=true
+
+# Choose sanitization preset
+VESTIG_SANITIZE_PRESET=gdpr  # none, minimal, default, gdpr, hipaa, pci-dss
 
 # Add static context
 VESTIG_CONTEXT_SERVICE=api
@@ -87,17 +90,23 @@ VESTIG_CONTEXT_VERSION=1.0.0
 For more control, create a custom logger:
 
 ```typescript
-import { createLogger } from 'vestig'
+import { createLogger, ConsoleTransport, HTTPTransport } from 'vestig'
 
 const logger = createLogger({
   level: 'debug',
   structured: true,
-  sanitize: true,
-  sanitizeFields: ['customSecret'],
+  sanitize: 'gdpr',  // Use GDPR preset
   context: {
     service: 'api',
-    environment: 'production'
-  }
+    environment: process.env.NODE_ENV
+  },
+  transports: [
+    new ConsoleTransport({ colors: true }),
+    new HTTPTransport({
+      endpoint: 'https://logs.example.com/ingest',
+      batchSize: 100
+    })
+  ]
 })
 
 export { logger }
@@ -108,15 +117,48 @@ export { logger }
 Vestig is written in TypeScript and exports all types:
 
 ```typescript
-import type { LogLevel, LoggerConfig, Logger } from 'vestig'
+import type {
+  Logger,
+  LoggerConfig,
+  LogLevel,
+  LogEntry,
+  Transport,
+  SanitizePreset,
+  Span,
+  SpanOptions
+} from 'vestig'
 
 const config: LoggerConfig = {
   level: 'info',
-  structured: true
+  structured: true,
+  sanitize: 'hipaa'
 }
+```
+
+## Runtime Detection
+
+Vestig automatically detects your runtime environment:
+
+```typescript
+import { RUNTIME, CAPABILITIES, IS_SERVER, IS_EDGE } from 'vestig'
+
+console.log(RUNTIME)      // 'node' | 'bun' | 'deno' | 'edge' | 'browser'
+console.log(IS_SERVER)    // true in Node/Bun/Deno/Edge, false in browser
+console.log(IS_EDGE)      // true in Edge Runtime (Vercel Edge, Cloudflare)
+
+console.log(CAPABILITIES)
+// {
+//   hasAsyncLocalStorage: true,
+//   hasConsole: true,
+//   hasProcess: true,
+//   hasPerformance: true,
+//   hasCrypto: true
+// }
 ```
 
 ## Next Steps
 
-- [Features](/docs/features) — Learn about sanitization, context, and child loggers
-- [API Reference](/docs/api) — Complete API documentation
+- [Logging Basics](/docs/core/logging) — Understanding structured logging
+- [Next.js Integration](/docs/nextjs) — Set up `@vestig/next`
+- [Tracing](/docs/tracing) — Add spans for performance tracking
+- [Transports](/docs/transports) — Configure log destinations

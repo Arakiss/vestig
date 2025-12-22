@@ -1,0 +1,267 @@
+# Sampling
+
+Control log volume in high-throughput applications.
+
+## Overview
+
+Sampling allows you to:
+
+- **Reduce costs** — Send fewer logs to paid services
+- **Prevent overload** — Protect log infrastructure
+- **Focus on important logs** — Always capture errors, sample debug logs
+
+Vestig provides three sampling strategies:
+
+<Table><TableHead><TableRow><TableHeader>Strategy</TableHeader><TableHeader>Description</TableHeader><TableHeader>Use Case</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>**Probability**</TableCell><TableCell>Random sampling by percentage</TableCell><TableCell>General log reduction</TableCell></TableRow><TableRow><TableCell>**Rate Limit**</TableCell><TableCell>Max logs per time window</TableCell><TableCell>Protect against log storms</TableCell></TableRow><TableRow><TableCell>**Namespace**</TableCell><TableCell>Different rates per namespace</TableCell><TableCell>Fine-grained control</TableCell></TableRow></TableBody></Table>
+
+## Quick Start
+
+```typescript
+import { createLogger, createProbabilitySampler } from 'vestig'
+
+const logger = createLogger({
+  level: 'debug',
+  sampling: {
+    sampler: createProbabilitySampler({ rate: 0.1 }), // 10% of logs
+    alwaysSample: ['error', 'warn']  // Always keep errors and warnings
+  }
+})
+
+// Only ~10% of debug/info logs are kept
+logger.debug('This might be sampled out')
+
+// Errors are always kept
+logger.error('This is always logged')
+```
+
+## Probability Sampling
+
+Sample a percentage of logs:
+
+```typescript
+import { createProbabilitySampler } from 'vestig'
+
+const sampler = createProbabilitySampler({
+  // Sample 25% of logs
+  rate: 0.25
+})
+
+const logger = createLogger({
+  sampling: { sampler }
+})
+```
+
+### Dynamic Rates
+
+Adjust sampling based on conditions:
+
+```typescript
+const sampler = createProbabilitySampler({
+  rate: () => {
+    // Sample more in production
+    return process.env.NODE_ENV === 'production' ? 0.1 : 1.0
+  }
+})
+```
+
+## Rate Limit Sampling
+
+Cap the number of logs per time window:
+
+```typescript
+import { createRateLimitSampler } from 'vestig'
+
+const sampler = createRateLimitSampler({
+  // Max 100 logs per second
+  maxPerSecond: 100,
+
+  // Or use custom windows
+  maxLogs: 1000,
+  windowMs: 60000  // Per minute
+})
+
+const logger = createLogger({
+  sampling: { sampler }
+})
+```
+
+### Burst Handling
+
+Allow short bursts while maintaining average rate:
+
+```typescript
+const sampler = createRateLimitSampler({
+  maxPerSecond: 100,
+  burstSize: 50  // Allow 50 extra logs in bursts
+})
+```
+
+## Namespace Sampling
+
+Different rates for different parts of your app:
+
+```typescript
+import { createNamespaceSampler } from 'vestig'
+
+const sampler = createNamespaceSampler({
+  // Default rate for unmatched namespaces
+  defaultRate: 0.1,
+
+  // Specific rates per namespace
+  rates: {
+    'api:*': 0.5,       // 50% for API logs
+    'db:*': 0.25,       // 25% for database logs
+    'cache:*': 0.1,     // 10% for cache logs
+    'auth:*': 1.0       // 100% for auth logs (keep all)
+  }
+})
+
+const logger = createLogger({
+  sampling: { sampler }
+})
+
+const apiLogger = logger.child('api:users')     // 50% sampled
+const dbLogger = logger.child('db:postgres')    // 25% sampled
+const authLogger = logger.child('auth:login')   // Never sampled
+```
+
+## Composite Sampling
+
+Combine multiple samplers:
+
+```typescript
+import {
+  createCompositeSampler,
+  createProbabilitySampler,
+  createRateLimitSampler
+} from 'vestig'
+
+const sampler = createCompositeSampler({
+  // All samplers must agree to keep the log
+  mode: 'all',
+
+  samplers: [
+    // First: probability sampling (50%)
+    createProbabilitySampler({ rate: 0.5 }),
+
+    // Then: rate limiting (max 100/s)
+    createRateLimitSampler({ maxPerSecond: 100 })
+  ]
+})
+```
+
+### Sampling Modes
+
+- `'all'` — Log kept only if ALL samplers agree
+- `'any'` — Log kept if ANY sampler agrees
+
+## Always Sample Certain Logs
+
+Keep important logs regardless of sampling:
+
+```typescript
+const logger = createLogger({
+  sampling: {
+    sampler: createProbabilitySampler({ rate: 0.1 }),
+
+    // Never sample these levels
+    alwaysSample: ['error', 'warn'],
+
+    // Or use a function for complex logic
+    alwaysSampleFn: (entry) => {
+      // Always keep logs with specific metadata
+      return entry.metadata?.important === true
+    }
+  }
+})
+
+// Always kept (error level)
+logger.error('Critical failure')
+
+// Always kept (important flag)
+logger.info('Important event', { important: true })
+
+// Subject to 10% sampling
+logger.debug('Regular debug log')
+```
+
+## Sampling with Context
+
+Make sampling decisions based on correlation context:
+
+```typescript
+const sampler = createProbabilitySampler({
+  rate: (entry) => {
+    // Sample based on request context
+    if (entry.context?.userId === 'admin') {
+      return 1.0  // Keep all admin logs
+    }
+
+    if (entry.context?.requestId?.startsWith('debug-')) {
+      return 1.0  // Keep all debug sessions
+    }
+
+    return 0.1  // 10% for regular traffic
+  }
+})
+```
+
+## Sampler API
+
+Create custom samplers:
+
+```typescript
+import type { Sampler, LogEntry } from 'vestig'
+
+const customSampler: Sampler = {
+  shouldSample(entry: LogEntry): boolean {
+    // Your sampling logic
+    // Return true to keep, false to discard
+    return Math.random() < 0.5
+  },
+
+  // Optional: called when logger is flushed
+  flush(): void {
+    // Reset any internal state
+  }
+}
+```
+
+## Configuration
+
+Full sampling configuration:
+
+```typescript
+interface SamplingConfig {
+  // The sampler to use
+  sampler: Sampler
+
+  // Levels that bypass sampling
+  alwaysSample?: LogLevel[]
+
+  // Custom function to bypass sampling
+  alwaysSampleFn?: (entry: LogEntry) => boolean
+
+  // Add sampling metadata to logs
+  addSamplingMetadata?: boolean
+}
+```
+
+When `addSamplingMetadata` is true:
+
+```json
+{
+  "level": "info",
+  "message": "Sampled log",
+  "sampling": {
+    "sampled": true,
+    "rate": 0.1
+  }
+}
+```
+
+## Next Steps
+
+- [Probability Sampling](/docs/sampling/probability) — Detailed probability options
+- [Rate Limiting](/docs/sampling/rate-limit) — Rate limit configuration
+- [Namespace Sampling](/docs/sampling/namespace) — Per-namespace rates

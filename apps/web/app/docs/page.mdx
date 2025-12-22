@@ -8,38 +8,67 @@ Vestig is a lightweight, zero-dependency structured logging library designed for
 
 Most logging libraries are either too simple (just `console.log` wrappers) or too complex (requiring extensive configuration). Vestig strikes the perfect balance:
 
-- **Zero configuration required** — works out of the box with sensible defaults
-- **Production-ready** — structured JSON output, log levels, and timestamps
-- **Security-first** — automatic PII sanitization protects sensitive data
-- **Universal** — works in Node.js, Bun, Deno, Edge runtimes, and browsers
+- **Zero dependencies** — No external packages, minimal bundle size
+- **Universal runtime support** — Node.js, Bun, Deno, Edge, and Browser
+- **First-class Next.js support** — Dedicated `@vestig/next` package with full App Router support
+- **Production-ready** — Structured JSON output, log levels, and timestamps
+- **Security-first** — Automatic PII sanitization with GDPR, HIPAA, and PCI-DSS presets
+- **Native tracing** — Built-in span support with W3C Trace Context compatibility
+- **Smart sampling** — Probability, rate-limit, and namespace-based sampling
 
 ## Features at a Glance
 
-| Feature | Description |
-|---------|-------------|
-| Structured Output | JSON logs with timestamps, levels, and metadata |
-| PII Sanitization | Auto-redact passwords, emails, tokens, credit cards |
-| Context Propagation | Request tracing with correlation IDs |
-| Child Loggers | Namespaced loggers with inherited config |
-| Multi-Runtime | Node.js, Bun, Deno, Edge, Browser support |
-| TypeScript | Full type safety and inference |
+<Table><TableHead><TableRow><TableHeader>Feature</TableHeader><TableHeader>Description</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>**Structured Logging**</TableCell><TableCell>JSON output with timestamps, levels, metadata, and context</TableCell></TableRow><TableRow><TableCell>**PII Sanitization**</TableCell><TableCell>Auto-redact passwords, emails, tokens, credit cards with compliance presets</TableCell></TableRow><TableRow><TableCell>**Tracing & Spans**</TableCell><TableCell>Native span support for tracking operations and their relationships</TableCell></TableRow><TableRow><TableCell>**Context Propagation**</TableCell><TableCell>Request tracing with correlation IDs via AsyncLocalStorage</TableCell></TableRow><TableRow><TableCell>**Multiple Transports**</TableCell><TableCell>Console, HTTP, File, and Datadog transports out of the box</TableCell></TableRow><TableRow><TableCell>**Sampling**</TableCell><TableCell>Control log volume with probability, rate-limit, or namespace-based sampling</TableCell></TableRow><TableRow><TableCell>**Child Loggers**</TableCell><TableCell>Namespaced loggers with inherited configuration</TableCell></TableRow><TableRow><TableCell>**Multi-Runtime**</TableCell><TableCell>Node.js, Bun, Deno, Edge, and Browser support</TableCell></TableRow><TableRow><TableCell>**TypeScript**</TableCell><TableCell>Full type safety and inference</TableCell></TableRow></TableBody></Table>
+
+## Packages
+
+<Table><TableHead><TableRow><TableHeader>Package</TableHeader><TableHeader>Description</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>`vestig`</TableCell><TableCell>Core logging library with all features</TableCell></TableRow><TableRow><TableCell>`@vestig/next`</TableCell><TableCell>First-class Next.js 15+ integration</TableCell></TableRow><TableRow><TableCell>`@vestig/express`</TableCell><TableCell>Express.js middleware and utilities *(coming soon)*</TableCell></TableRow></TableBody></Table>
 
 ## Quick Example
 
 ```typescript
 import { log } from 'vestig'
 
+// Simple logging
 log.info('User signed up', { userId: 'usr_123' })
-// → {"level":"info","message":"User signed up","metadata":{"userId":"usr_123"},"timestamp":"..."}
 
-log.error('Payment failed', {
+// With PII sanitization (automatic)
+log.info('User data', {
   email: 'user@example.com',  // → partially masked
-  cardNumber: '4111...'       // → redacted
+  password: 'secret123',       // → [REDACTED]
+  cardNumber: '4111...'        // → [CARD REDACTED]
 })
+
+// With tracing
+import { span } from 'vestig'
+
+await span('api:request', async (s) => {
+  s.setAttribute('method', 'GET')
+
+  await span('db:query', async () => {
+    return await db.query('SELECT * FROM users')
+  })
+})
+```
+
+## Next.js Example
+
+```typescript
+// app/page.tsx
+import { getLogger } from '@vestig/next'
+
+export default async function Page() {
+  const log = await getLogger('home')
+
+  log.info('Rendering home page')
+
+  return <h1>Welcome</h1>
+}
 ```
 
 ## Next Steps
 
 - [Installation](/docs/getting-started) — Get Vestig installed in your project
-- [Features](/docs/features) — Explore all features in detail
+- [Core Concepts](/docs/core/logging) — Learn the fundamentals
+- [Next.js Integration](/docs/nextjs) — Set up `@vestig/next`
 - [API Reference](/docs/api) — Complete API documentation

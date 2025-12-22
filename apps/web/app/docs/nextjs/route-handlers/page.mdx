@@ -1,0 +1,306 @@
+# Route Handlers
+
+Logging in Next.js API Route Handlers with automatic timing and context.
+
+## Overview
+
+`withVestig()` wraps your Route Handlers to provide:
+
+- **Automatic logging** — Request/response logging
+- **Correlation context** — requestId, traceId, spanId
+- **Error handling** — Automatic error logging
+- **Timing** — Request duration tracking
+
+## Basic Usage
+
+```typescript
+// app/api/users/route.ts
+import { withVestig } from '@vestig/next'
+
+export const GET = withVestig(
+  async (request, { log, ctx }) => {
+    log.info('Fetching users')
+
+    const users = await db.users.findMany()
+
+    log.debug('Users fetched', { count: users.length })
+
+    return Response.json(users)
+  }
+)
+```
+
+## Handler Context
+
+The second argument provides:
+
+```typescript
+interface RouteHandlerContext {
+  log: Logger          // Namespaced logger
+  ctx: CorrelationContext  // requestId, traceId, spanId
+  params: Record<string, string>  // Route params
+}
+```
+
+### Using Context
+
+```typescript
+export const GET = withVestig(
+  async (request, { log, ctx, params }) => {
+    log.info('Request received', {
+      requestId: ctx.requestId,
+      traceId: ctx.traceId,
+      userId: params.id
+    })
+
+    // ...
+  }
+)
+```
+
+## Configuration Options
+
+```typescript
+interface WithVestigOptions {
+  // Logger namespace
+  namespace?: string
+
+  // Log request details
+  logRequest?: boolean
+
+  // Log response details
+  logResponse?: boolean
+
+  // Log request body (careful with PII)
+  logBody?: boolean
+}
+```
+
+### With Options
+
+```typescript
+export const POST = withVestig(
+  async (request, { log }) => {
+    const body = await request.json()
+
+    log.info('Creating user', { email: body.email })
+
+    const user = await db.users.create({ data: body })
+
+    return Response.json(user, { status: 201 })
+  },
+  {
+    namespace: 'api:users:create',
+    logRequest: true,
+    logResponse: true
+  }
+)
+```
+
+## HTTP Methods
+
+Handle multiple HTTP methods:
+
+```typescript
+// app/api/users/route.ts
+import { withVestig } from '@vestig/next'
+
+export const GET = withVestig(
+  async (request, { log }) => {
+    log.info('Listing users')
+    const users = await db.users.findMany()
+    return Response.json(users)
+  },
+  { namespace: 'api:users:list' }
+)
+
+export const POST = withVestig(
+  async (request, { log }) => {
+    const body = await request.json()
+    log.info('Creating user', { email: body.email })
+    const user = await db.users.create({ data: body })
+    return Response.json(user, { status: 201 })
+  },
+  { namespace: 'api:users:create' }
+)
+```
+
+## Dynamic Routes
+
+Access route parameters:
+
+```typescript
+// app/api/users/[id]/route.ts
+import { withVestig } from '@vestig/next'
+
+export const GET = withVestig(
+  async (request, { log, params }) => {
+    const { id } = params
+
+    log.info('Fetching user', { userId: id })
+
+    const user = await db.users.findUnique({ where: { id } })
+
+    if (!user) {
+      log.warn('User not found', { userId: id })
+      return Response.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    return Response.json(user)
+  },
+  { namespace: 'api:users:get' }
+)
+
+export const DELETE = withVestig(
+  async (request, { log, params }) => {
+    const { id } = params
+
+    log.info('Deleting user', { userId: id })
+
+    await db.users.delete({ where: { id } })
+
+    log.info('User deleted', { userId: id })
+
+    return new Response(null, { status: 204 })
+  },
+  { namespace: 'api:users:delete' }
+)
+```
+
+## Error Handling
+
+Errors are automatically logged:
+
+```typescript
+export const GET = withVestig(
+  async (request, { log }) => {
+    // If this throws, error is logged automatically
+    const data = await riskyOperation()
+
+    return Response.json(data)
+  }
+)
+```
+
+### Manual Error Handling
+
+```typescript
+export const GET = withVestig(
+  async (request, { log }) => {
+    try {
+      const data = await riskyOperation()
+      return Response.json(data)
+    } catch (error) {
+      log.error('Operation failed', {
+        error,
+        recoverable: true
+      })
+
+      return Response.json(
+        { error: 'Something went wrong' },
+        { status: 500 }
+      )
+    }
+  }
+)
+```
+
+## Request Body Logging
+
+Log request bodies (auto-sanitized):
+
+```typescript
+export const POST = withVestig(
+  async (request, { log }) => {
+    const body = await request.json()
+
+    // PII is automatically sanitized
+    log.info('Request body', body)
+    // email: us***@example.com
+    // password: [REDACTED]
+
+    // ...
+  }
+)
+```
+
+## Response Headers
+
+Add correlation IDs to responses:
+
+```typescript
+export const GET = withVestig(
+  async (request, { log, ctx }) => {
+    const data = await fetchData()
+
+    return Response.json(data, {
+      headers: {
+        'X-Request-Id': ctx.requestId,
+        'X-Trace-Id': ctx.traceId
+      }
+    })
+  }
+)
+```
+
+## Timing
+
+Request duration is automatically logged:
+
+```json
+{
+  "level": "info",
+  "message": "Response sent",
+  "namespace": "api:users:list",
+  "metadata": {
+    "status": 200,
+    "duration": "45.23ms",
+    "durationMs": 45.23
+  }
+}
+```
+
+## Edge Runtime
+
+Works in Edge Runtime:
+
+```typescript
+// app/api/edge/route.ts
+export const runtime = 'edge'
+
+import { withVestig } from '@vestig/next'
+
+export const GET = withVestig(
+  async (request, { log }) => {
+    log.info('Edge function called')
+
+    return Response.json({ runtime: 'edge' })
+  }
+)
+```
+
+## Streaming Responses
+
+Works with streaming:
+
+```typescript
+export const GET = withVestig(
+  async (request, { log }) => {
+    log.info('Starting stream')
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        for (let i = 0; i < 10; i++) {
+          controller.enqueue(`data: ${i}\n\n`)
+          await new Promise(r => setTimeout(r, 100))
+        }
+        controller.close()
+      }
+    })
+
+    return new Response(stream, {
+      headers: { 'Content-Type': 'text/event-stream' }
+    })
+  }
+)
+```

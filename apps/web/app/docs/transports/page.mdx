@@ -1,0 +1,259 @@
+# Transports
+
+Configure where your logs are sent.
+
+## Overview
+
+Transports define log destinations. Vestig includes four built-in transports:
+
+<Table><TableHead><TableRow><TableHeader>Transport</TableHeader><TableHeader>Description</TableHeader><TableHeader>Best For</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>`ConsoleTransport`</TableCell><TableCell>Output to console with colors</TableCell><TableCell>Development, debugging</TableCell></TableRow><TableRow><TableCell>`HTTPTransport`</TableCell><TableCell>Send to HTTP endpoint</TableCell><TableCell>Log aggregation services</TableCell></TableRow><TableRow><TableCell>`FileTransport`</TableCell><TableCell>Write to files with rotation</TableCell><TableCell>Server-side persistence</TableCell></TableRow><TableRow><TableCell>`DatadogTransport`</TableCell><TableCell>Direct Datadog integration</TableCell><TableCell>Datadog Log Management</TableCell></TableRow></TableBody></Table>
+
+## Using Multiple Transports
+
+Send logs to multiple destinations:
+
+```typescript
+import {
+  createLogger,
+  ConsoleTransport,
+  HTTPTransport,
+  FileTransport
+} from 'vestig'
+
+const logger = createLogger({
+  level: 'debug',
+  transports: [
+    // Console for development
+    new ConsoleTransport({
+      enabled: process.env.NODE_ENV !== 'production',
+      colors: true
+    }),
+
+    // HTTP for log aggregation
+    new HTTPTransport({
+      endpoint: process.env.LOG_ENDPOINT,
+      batchSize: 50,
+      headers: {
+        'Authorization': `Bearer ${process.env.LOG_API_KEY}`
+      }
+    }),
+
+    // File for local persistence
+    new FileTransport({
+      filename: './logs/app.log',
+      maxSize: '50mb',
+      maxFiles: 10
+    })
+  ]
+})
+```
+
+## Common Transport Options
+
+All transports share these options:
+
+```typescript
+interface TransportConfig {
+  // Minimum log level for this transport
+  level?: LogLevel
+
+  // Enable/disable this transport
+  enabled?: boolean
+
+  // Custom filter function
+  filter?: (entry: LogEntry) => boolean
+}
+```
+
+### Level Filtering
+
+Each transport can have its own level:
+
+```typescript
+new ConsoleTransport({ level: 'debug' })  // All logs
+new HTTPTransport({ level: 'warn' })      // Only warn and error
+new FileTransport({ level: 'error' })     // Only errors
+```
+
+### Custom Filtering
+
+```typescript
+new HTTPTransport({
+  endpoint: '...',
+  filter: (entry) => {
+    // Only send logs from specific namespaces
+    return entry.namespace?.startsWith('api:')
+  }
+})
+```
+
+## ConsoleTransport
+
+Pretty console output with colors:
+
+```typescript
+import { ConsoleTransport } from 'vestig'
+
+new ConsoleTransport({
+  // Enable colored output (default: true in TTY)
+  colors: true,
+
+  // Use structured JSON (default: based on NODE_ENV)
+  structured: false,
+
+  // Minimum level
+  level: 'debug'
+})
+```
+
+### Output Formats
+
+**Pretty mode** (development):
+```
+[10:30:45] INFO  User signed up { userId: 'usr_123' }
+[10:30:46] ERROR Request failed { error: 'Connection timeout' }
+```
+
+**Structured mode** (production):
+```json
+{"level":"info","message":"User signed up","metadata":{"userId":"usr_123"},"timestamp":"..."}
+```
+
+## HTTPTransport
+
+Send logs to any HTTP endpoint:
+
+```typescript
+import { HTTPTransport } from 'vestig'
+
+new HTTPTransport({
+  // Required: Target endpoint
+  endpoint: 'https://logs.example.com/ingest',
+
+  // Batching (for performance)
+  batchSize: 100,          // Logs per batch
+  flushInterval: 5000,     // Auto-flush every 5s
+
+  // Authentication
+  headers: {
+    'Authorization': 'Bearer your-api-key',
+    'X-Source': 'my-app'
+  },
+
+  // Retry configuration
+  maxRetries: 3,
+  retryDelay: 1000,        // Initial delay (doubles each retry)
+
+  // Timeout
+  timeout: 10000,          // 10 seconds
+
+  // Compression
+  compress: true           // gzip request body
+})
+```
+
+### Error Handling
+
+```typescript
+import { HTTPTransport, HTTPTransportError } from 'vestig'
+
+const transport = new HTTPTransport({
+  endpoint: '...',
+  onError: (error: HTTPTransportError) => {
+    console.error('Failed to send logs:', error.message)
+    console.error('Failed batch size:', error.batchSize)
+  }
+})
+```
+
+## FileTransport
+
+Write logs to files with automatic rotation:
+
+```typescript
+import { FileTransport } from 'vestig'
+
+new FileTransport({
+  // File path (supports date patterns)
+  filename: './logs/app-%DATE%.log',
+
+  // Rotation settings
+  maxSize: '10mb',         // Rotate when file reaches this size
+  maxFiles: 5,             // Keep last 5 files
+  compress: true,          // Gzip rotated files
+
+  // Batching
+  batchSize: 50,
+  flushInterval: 1000
+})
+```
+
+### Date Patterns
+
+Use `%DATE%` in filename for daily rotation:
+
+```typescript
+filename: './logs/app-%DATE%.log'
+// Creates: app-2024-01-15.log, app-2024-01-16.log, etc.
+```
+
+## DatadogTransport
+
+Direct integration with Datadog Log Management:
+
+```typescript
+import { DatadogTransport } from 'vestig'
+
+new DatadogTransport({
+  // Required
+  apiKey: process.env.DD_API_KEY,
+
+  // Datadog configuration
+  site: 'datadoghq.com',   // or 'datadoghq.eu', etc.
+  service: 'my-app',
+  source: 'nodejs',
+
+  // Tags for filtering
+  tags: [
+    'env:production',
+    'team:backend',
+    `version:${process.env.APP_VERSION}`
+  ],
+
+  // Batching
+  batchSize: 100,
+  flushInterval: 5000
+})
+```
+
+## Creating Custom Transports
+
+Extend `BatchTransport` for efficient custom transports:
+
+```typescript
+import { BatchTransport, type LogEntry } from 'vestig'
+
+class CustomTransport extends BatchTransport {
+  constructor(config: CustomConfig) {
+    super({
+      batchSize: config.batchSize ?? 50,
+      flushInterval: config.flushInterval ?? 5000,
+      level: config.level
+    })
+    // Your initialization
+  }
+
+  protected async sendBatch(entries: LogEntry[]): Promise<void> {
+    // Your implementation to send logs
+    await myService.send(entries)
+  }
+}
+```
+
+## Next Steps
+
+- [Console Transport](/docs/transports/console) — Detailed console options
+- [HTTP Transport](/docs/transports/http) — HTTP configuration and error handling
+- [File Transport](/docs/transports/file) — File rotation and compression
+- [Datadog Transport](/docs/transports/datadog) — Datadog integration details
+- [Custom Transports](/docs/transports/custom) — Build your own transport

@@ -1,0 +1,190 @@
+# Child Loggers
+
+Create namespaced loggers for different parts of your application.
+
+## Overview
+
+Child loggers help you:
+
+- **Organize logs** — Group logs by component or feature
+- **Filter logs** — Find logs from specific parts of your app
+- **Inherit configuration** — Share settings with parent logger
+
+## Creating Child Loggers
+
+```typescript
+import { createLogger } from 'vestig'
+
+const logger = createLogger({
+  level: 'info',
+  context: { service: 'api' }
+})
+
+// Create child loggers
+const dbLogger = logger.child('database')
+const authLogger = logger.child('auth')
+const cacheLogger = logger.child('cache')
+
+dbLogger.info('Query executed')
+// → namespace: "database"
+
+authLogger.info('User logged in')
+// → namespace: "auth"
+```
+
+## Namespace Hierarchy
+
+Child loggers can be nested to create hierarchies:
+
+```typescript
+const appLogger = logger.child('app')
+const userService = appLogger.child('user-service')
+const userRepo = userService.child('repository')
+
+userRepo.info('User created')
+// → namespace: "app:user-service:repository"
+```
+
+## Overriding Configuration
+
+Child loggers can have their own settings:
+
+```typescript
+// Parent with info level
+const logger = createLogger({ level: 'info' })
+
+// Child with debug level (for detailed debugging)
+const debugLogger = logger.child('debug', {
+  level: 'debug'
+})
+
+debugLogger.debug('This is visible')
+logger.debug('This is not visible')
+```
+
+### Override Context
+
+```typescript
+const logger = createLogger({
+  context: { service: 'api', version: '1.0' }
+})
+
+const v2Logger = logger.child('v2', {
+  context: { version: '2.0' }
+})
+
+v2Logger.info('Request')
+// → context: { service: 'api', version: '2.0' }
+```
+
+## Use Cases
+
+### By Feature
+
+```typescript
+const logger = createLogger()
+
+const authLogger = logger.child('auth')
+const paymentLogger = logger.child('payment')
+const notificationLogger = logger.child('notification')
+```
+
+### By Layer
+
+```typescript
+const logger = createLogger()
+
+const controllerLogger = logger.child('controller')
+const serviceLogger = logger.child('service')
+const repositoryLogger = logger.child('repository')
+```
+
+### By Component (React)
+
+```typescript
+// In a Server Component
+import { getLogger } from '@vestig/next'
+
+export async function UserProfile({ userId }) {
+  const log = await getLogger('components:user-profile')
+
+  log.debug('Rendering user profile', { userId })
+
+  // ...
+}
+```
+
+## Pattern: Service Logger
+
+Common pattern for creating a logger per service:
+
+```typescript
+// lib/logger.ts
+import { createLogger } from 'vestig'
+
+const rootLogger = createLogger({
+  level: process.env.LOG_LEVEL ?? 'info',
+  context: {
+    service: process.env.SERVICE_NAME,
+    version: process.env.VERSION
+  }
+})
+
+export function getServiceLogger(namespace: string) {
+  return rootLogger.child(namespace)
+}
+```
+
+```typescript
+// services/user.ts
+import { getServiceLogger } from '@/lib/logger'
+
+const log = getServiceLogger('user-service')
+
+export async function createUser(data: UserInput) {
+  log.info('Creating user', { email: data.email })
+  // ...
+}
+```
+
+## Filtering by Namespace
+
+Use namespace patterns in your log aggregation:
+
+```bash
+# Find all database logs
+grep '"namespace":"database' logs.json
+
+# Find all auth-related logs
+grep '"namespace":"auth' logs.json
+```
+
+Or configure transports to filter:
+
+```typescript
+new HTTPTransport({
+  endpoint: '...',
+  filter: (entry) => entry.namespace?.startsWith('api:')
+})
+```
+
+## Namespace in Sampling
+
+Use namespace sampling for fine-grained control:
+
+```typescript
+import { createNamespaceSampler, createLogger } from 'vestig'
+
+const sampler = createNamespaceSampler({
+  defaultRate: 0.1,
+  rates: {
+    'api:*': 0.5,      // 50% of API logs
+    'db:*': 0.25,      // 25% of DB logs
+    'auth:*': 1.0      // All auth logs
+  }
+})
+
+const logger = createLogger({
+  sampling: { sampler }
+})
+```

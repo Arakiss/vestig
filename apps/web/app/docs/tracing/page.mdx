@@ -1,0 +1,249 @@
+# Tracing
+
+Native tracing support for tracking operations and their relationships.
+
+## Overview
+
+Vestig includes built-in tracing that lets you:
+
+- **Track operations** — Measure duration of functions and async operations
+- **Build relationships** — Nested spans automatically become parent-child
+- **Correlate logs** — Spans are linked to logs via shared context
+- **Export traces** — Compatible with OpenTelemetry and W3C Trace Context
+
+## Quick Start
+
+```typescript
+import { span } from 'vestig'
+
+// Wrap any async operation
+const result = await span('api:request', async (s) => {
+  s.setAttribute('method', 'GET')
+  s.setAttribute('path', '/users')
+
+  const data = await fetchData()
+
+  s.setAttribute('responseSize', data.length)
+  return data
+})
+```
+
+## Creating Spans
+
+### Async Spans (Recommended)
+
+The `span()` function handles lifecycle automatically:
+
+```typescript
+import { span } from 'vestig'
+
+await span('operation-name', async (s) => {
+  // s is the active Span
+  s.setAttribute('key', 'value')
+
+  // Your async code here
+  await doWork()
+
+  // Span ends automatically when callback returns
+})
+```
+
+### Sync Spans
+
+For synchronous operations:
+
+```typescript
+import { spanSync } from 'vestig'
+
+const result = spanSync('sync-operation', (s) => {
+  s.setAttribute('input', 42)
+  return computeResult()
+})
+```
+
+### Manual Control
+
+When you need explicit control over span lifecycle:
+
+```typescript
+import { startSpan, endSpan } from 'vestig'
+
+const s = startSpan('background-job')
+
+try {
+  await doWork()
+  s.setStatus('ok')
+} catch (error) {
+  s.setStatus('error', error.message)
+  s.recordException(error)
+} finally {
+  endSpan(s)
+}
+```
+
+## Nested Spans
+
+Nested spans automatically become children:
+
+```typescript
+await span('api:request', async (parent) => {
+  parent.setAttribute('method', 'POST')
+
+  // This span is automatically a child of 'api:request'
+  await span('db:query', async (child) => {
+    child.setAttribute('table', 'users')
+    return await db.query('INSERT INTO users...')
+  })
+
+  // Another child span
+  await span('cache:set', async (child) => {
+    child.setAttribute('key', 'user:123')
+    await cache.set('user:123', data)
+  })
+})
+```
+
+This produces a trace like:
+
+```
+api:request (150ms)
+├── db:query (80ms)
+└── cache:set (20ms)
+```
+
+## Span Attributes
+
+Add metadata to spans:
+
+```typescript
+await span('http:request', async (s) => {
+  // Set individual attributes
+  s.setAttribute('http.method', 'GET')
+  s.setAttribute('http.url', '/api/users')
+  s.setAttribute('http.status_code', 200)
+
+  // Or set multiple at once
+  s.setAttributes({
+    'user.id': 'usr_123',
+    'user.role': 'admin'
+  })
+})
+```
+
+## Span Events
+
+Record events within a span:
+
+```typescript
+await span('process:order', async (s) => {
+  s.addEvent('validation:start')
+
+  await validateOrder()
+  s.addEvent('validation:complete', { valid: true })
+
+  await processPayment()
+  s.addEvent('payment:processed', {
+    amount: 99.99,
+    currency: 'USD'
+  })
+})
+```
+
+## Span Status
+
+Set the final status of a span:
+
+```typescript
+await span('risky:operation', async (s) => {
+  try {
+    await riskyCall()
+    s.setStatus('ok')
+  } catch (error) {
+    s.setStatus('error', error.message)
+    s.recordException(error)
+    throw error
+  }
+})
+```
+
+Status values:
+- `'unset'` — Default, no explicit status
+- `'ok'` — Operation completed successfully
+- `'error'` — Operation failed
+
+## Getting the Active Span
+
+Access the current span from anywhere:
+
+```typescript
+import { getActiveSpan } from 'vestig'
+
+function logWithSpan(message: string) {
+  const span = getActiveSpan()
+
+  if (span) {
+    span.addEvent('log', { message })
+  }
+
+  log.info(message)
+}
+```
+
+## Span Options
+
+Configure spans when creating them:
+
+```typescript
+await span('operation', async (s) => {
+  // ...
+}, {
+  // Custom attributes
+  attributes: {
+    'service.name': 'api',
+    'deployment.environment': 'production'
+  },
+
+  // Link to other spans
+  links: [
+    { traceId: '...', spanId: '...' }
+  ],
+
+  // Span kind
+  kind: 'server' // 'internal' | 'server' | 'client' | 'producer' | 'consumer'
+})
+```
+
+## Integration with Logging
+
+Spans automatically correlate with logs:
+
+```typescript
+await span('api:request', async (s) => {
+  // This log includes the span's traceId and spanId
+  log.info('Processing request')
+
+  await span('db:query', async () => {
+    // This log includes both spans' context
+    log.debug('Executing query')
+  })
+})
+```
+
+Log output includes trace context:
+
+```json
+{
+  "level": "info",
+  "message": "Processing request",
+  "context": {
+    "traceId": "0af7651916cd43dd8448eb211c80319c",
+    "spanId": "b7ad6b7169203331"
+  }
+}
+```
+
+## Next Steps
+
+- [Spans](/docs/tracing/spans) — Deep dive into span API
+- [Context Propagation](/docs/tracing/context) — How context flows through your app
+- [W3C Trace Context](/docs/tracing/w3c) — Interoperability with other systems

@@ -1,0 +1,278 @@
+# PII Sanitization
+
+Protect sensitive data in your logs.
+
+## Overview
+
+Vestig automatically detects and redacts Personally Identifiable Information (PII) to:
+
+- **Prevent data leaks** — No accidental exposure in logs
+- **Meet compliance** — GDPR, HIPAA, PCI-DSS ready presets
+- **Zero configuration** — Works out of the box
+
+## Quick Start
+
+Sanitization is enabled by default:
+
+```typescript
+import { log } from 'vestig'
+
+log.info('User data', {
+  name: 'John Doe',           // Kept as-is
+  email: 'john@example.com',  // → jo***@example.com
+  password: 'secret123',      // → [REDACTED]
+  creditCard: '4111111111111111'  // → [CARD REDACTED]
+})
+```
+
+## Sanitization Presets
+
+Vestig includes 6 presets for different compliance needs:
+
+<Table><TableHead><TableRow><TableHeader>Preset</TableHeader><TableHeader>Description</TableHeader><TableHeader>Use Case</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>`none`</TableCell><TableCell>No sanitization</TableCell><TableCell>Development only</TableCell></TableRow><TableRow><TableCell>`minimal`</TableCell><TableCell>Passwords and secrets only</TableCell><TableCell>Internal tools</TableCell></TableRow><TableRow><TableCell>`default`</TableCell><TableCell>Common PII patterns</TableCell><TableCell>General use</TableCell></TableRow><TableRow><TableCell>`gdpr`</TableCell><TableCell>EU data protection</TableCell><TableCell>GDPR compliance</TableCell></TableRow><TableRow><TableCell>`hipaa`</TableCell><TableCell>Healthcare data</TableCell><TableCell>HIPAA compliance</TableCell></TableRow><TableRow><TableCell>`pci-dss`</TableCell><TableCell>Payment card data</TableCell><TableCell>PCI-DSS compliance</TableCell></TableRow></TableBody></Table>
+
+### Using Presets
+
+```typescript
+import { createLogger } from 'vestig'
+
+// Use GDPR preset
+const logger = createLogger({
+  sanitize: 'gdpr'
+})
+
+// Or via environment variable
+// VESTIG_SANITIZE_PRESET=hipaa
+```
+
+## What Gets Sanitized
+
+### Field Name Detection
+
+Fields are sanitized based on their names:
+
+```typescript
+// Always redacted (any preset except 'none')
+password, pass, pwd, passwd
+secret, token, api_key, apiKey
+authorization, bearer, auth
+session, sessionId, session_id
+```
+
+### Pattern Detection
+
+Values are analyzed for common patterns:
+
+```typescript
+log.info('Data', {
+  // Emails → partially masked
+  email: 'user@example.com',          // → us***@example.com
+
+  // Credit cards → [CARD REDACTED]
+  card: '4111-1111-1111-1111',
+
+  // SSN → [SSN REDACTED]
+  ssn: '123-45-6789',
+
+  // Phone numbers → partially masked (GDPR+)
+  phone: '+1 (555) 123-4567',         // → +1 (555) ***-****
+
+  // JWTs → [JWT REDACTED]
+  token: 'eyJhbGciOiJIUzI1NiIs...',
+
+  // IP addresses → masked (GDPR+)
+  ip: '192.168.1.100',                // → 192.168.xxx.xxx
+})
+```
+
+## Preset Details
+
+### `minimal`
+
+Only passwords and explicit secrets:
+
+```typescript
+{
+  fields: ['password', 'pass', 'pwd', 'secret', 'token'],
+  patterns: []  // No pattern detection
+}
+```
+
+### `default`
+
+Common PII plus authentication data:
+
+```typescript
+{
+  fields: [
+    'password', 'secret', 'token', 'api_key', 'apikey',
+    'authorization', 'bearer', 'auth',
+    'session', 'sessionId', 'cookie',
+    'credit_card', 'creditcard', 'cvv'
+  ],
+  patterns: [
+    'email',      // user@domain.com
+    'creditCard', // 16-digit numbers
+    'ssn',        // XXX-XX-XXXX
+    'jwt'         // eyJ... tokens
+  ]
+}
+```
+
+### `gdpr`
+
+EU data protection requirements:
+
+```typescript
+{
+  fields: [
+    // All from default, plus:
+    'name', 'firstName', 'lastName',
+    'address', 'street', 'city', 'zip',
+    'phone', 'mobile', 'dob', 'birthdate',
+    'nationalId', 'passport'
+  ],
+  patterns: [
+    // All from default, plus:
+    'phone',    // International phone numbers
+    'ip',       // IP addresses
+    'iban',     // Bank account numbers
+    'postcode'  // Postal codes
+  ]
+}
+```
+
+### `hipaa`
+
+Healthcare data protection:
+
+```typescript
+{
+  fields: [
+    // All from GDPR, plus:
+    'patientId', 'medicalRecord', 'mrn',
+    'diagnosis', 'condition', 'medication',
+    'insurance', 'claim', 'provider',
+    'beneficiary', 'subscriber'
+  ],
+  patterns: [
+    // All from GDPR, plus:
+    'npi',      // National Provider Identifier
+    'dea'       // DEA number
+  ]
+}
+```
+
+### `pci-dss`
+
+Payment card industry:
+
+```typescript
+{
+  fields: [
+    // All from default, plus:
+    'pan', 'primaryAccountNumber',
+    'cardholderName', 'expiryDate', 'expiry',
+    'securityCode', 'cvc', 'cvv',
+    'pinBlock', 'trackData'
+  ],
+  patterns: [
+    'creditCard',  // Luhn-validated card numbers
+    'cvv',         // 3-4 digit codes
+    'trackData'    // Magnetic stripe data
+  ]
+}
+```
+
+## Custom Configuration
+
+Extend presets or create your own:
+
+```typescript
+import { createLogger, Sanitizer } from 'vestig'
+
+const logger = createLogger({
+  sanitize: {
+    // Start from a preset
+    preset: 'gdpr',
+
+    // Add custom fields
+    additionalFields: ['internalId', 'employeeCode'],
+
+    // Add custom patterns
+    additionalPatterns: [
+      {
+        name: 'customId',
+        pattern: /^CUS-\d{8}$/,
+        replacement: '[CUSTOMER_ID]'
+      }
+    ],
+
+    // Custom replacer function
+    replacer: (key, value) => {
+      if (key === 'specialField') {
+        return '[SPECIAL_REDACTED]'
+      }
+      return value
+    }
+  }
+})
+```
+
+## Direct Sanitization
+
+Sanitize data without logging:
+
+```typescript
+import { sanitize, Sanitizer } from 'vestig'
+
+// Quick sanitization with default preset
+const clean = sanitize({
+  email: 'user@example.com',
+  password: 'secret'
+})
+// → { email: 'us***@example.com', password: '[REDACTED]' }
+
+// Create a reusable sanitizer
+const sanitizer = Sanitizer.fromPreset('hipaa')
+const cleanData = sanitizer.sanitize(sensitiveData)
+```
+
+## Deep Object Sanitization
+
+Vestig sanitizes nested objects and arrays:
+
+```typescript
+log.info('Complex data', {
+  user: {
+    name: 'John',
+    credentials: {
+      password: 'secret',  // → [REDACTED]
+      apiKey: 'sk_live_xxx'  // → [REDACTED]
+    }
+  },
+  cards: [
+    { number: '4111111111111111' },  // → [CARD REDACTED]
+    { number: '5555555555554444' }   // → [CARD REDACTED]
+  ]
+})
+```
+
+## Disable Sanitization
+
+For development or when needed:
+
+```typescript
+// Disable globally
+const logger = createLogger({
+  sanitize: false
+})
+
+// Or per-log (not recommended)
+logger.info('Debug data', data, { sanitize: false })
+```
+
+## Next Steps
+
+- [Presets](/docs/security/presets) — Detailed preset configuration
+- [Custom Patterns](/docs/security/custom-patterns) — Create your own patterns

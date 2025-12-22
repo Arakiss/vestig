@@ -1,0 +1,416 @@
+# @vestig/next API Reference
+
+Complete API documentation for the Next.js integration package.
+
+## Installation
+
+```bash
+bun add vestig @vestig/next
+```
+
+## Server Exports
+
+Import from `@vestig/next`:
+
+```typescript
+import {
+  getLogger,
+  getRequestContext,
+  createChildLogger,
+  withVestig,
+  vestigAction
+} from '@vestig/next'
+```
+
+### getLogger
+
+Get a logger for Server Components with automatic context propagation.
+
+```typescript
+async function getLogger(namespace?: string): Promise<Logger>
+```
+
+**Usage:**
+
+```typescript
+export default async function Page() {
+  const log = await getLogger('my-page')
+
+  log.info('Rendering page')
+
+  return <div>...</div>
+}
+```
+
+**Notes:**
+- Uses React `cache()` for request deduplication
+- Automatically includes correlation context from middleware
+- Creates child logger with the given namespace
+
+### getRequestContext
+
+Get the current request's correlation context.
+
+```typescript
+async function getRequestContext(): Promise<CorrelationContext>
+
+interface CorrelationContext {
+  requestId: string
+  traceId: string
+  spanId: string
+}
+```
+
+**Usage:**
+
+```typescript
+export default async function Page() {
+  const ctx = await getRequestContext()
+
+  console.log(ctx.requestId)  // '550e8400-e29b-41d4...'
+  console.log(ctx.traceId)    // '0af7651916cd43dd...'
+
+  return <div>Request ID: {ctx.requestId}</div>
+}
+```
+
+### withVestig
+
+Wrap Route Handlers for automatic logging and context.
+
+```typescript
+function withVestig<T>(
+  handler: (
+    request: Request,
+    context: RouteHandlerContext
+  ) => Promise<Response>,
+  options?: WithVestigOptions
+): RouteHandler
+
+interface RouteHandlerContext {
+  log: Logger
+  ctx: CorrelationContext
+  params: Record<string, string>
+}
+
+interface WithVestigOptions {
+  namespace?: string
+  logRequest?: boolean
+  logResponse?: boolean
+  logBody?: boolean
+}
+```
+
+**Usage:**
+
+```typescript
+// app/api/users/route.ts
+import { withVestig } from '@vestig/next'
+
+export const GET = withVestig(
+  async (request, { log, ctx, params }) => {
+    log.info('Fetching users')
+
+    const users = await db.users.findMany()
+
+    return Response.json(users)
+  },
+  { namespace: 'api:users' }
+)
+
+export const POST = withVestig(
+  async (request, { log }) => {
+    const body = await request.json()
+
+    log.info('Creating user', { email: body.email })
+
+    const user = await db.users.create({ data: body })
+
+    return Response.json(user, { status: 201 })
+  },
+  { namespace: 'api:users', logBody: true }
+)
+```
+
+### vestigAction
+
+Wrap Server Actions for automatic logging and context.
+
+```typescript
+function vestigAction<TInput, TOutput>(
+  action: (
+    input: TInput,
+    context: ActionContext
+  ) => Promise<TOutput>,
+  options?: VestigActionOptions
+): ServerAction<TInput, TOutput>
+
+interface ActionContext {
+  log: Logger
+  ctx: CorrelationContext
+}
+
+interface VestigActionOptions {
+  namespace?: string
+  logInput?: boolean
+  logOutput?: boolean
+}
+```
+
+**Usage:**
+
+```typescript
+// app/actions/user.ts
+'use server'
+
+import { vestigAction } from '@vestig/next'
+
+export const createUser = vestigAction(
+  async (formData: FormData, { log, ctx }) => {
+    log.info('Creating user', { requestId: ctx.requestId })
+
+    const name = formData.get('name')
+    const email = formData.get('email')
+
+    const user = await db.users.create({
+      data: { name, email }
+    })
+
+    log.info('User created', { userId: user.id })
+
+    return { success: true, userId: user.id }
+  },
+  { namespace: 'actions:createUser' }
+)
+```
+
+## Client Exports
+
+Import from `@vestig/next/client`:
+
+```typescript
+'use client'
+
+import {
+  VestigProvider,
+  useLogger,
+  useCorrelationContext,
+  useVestigConnection,
+  VestigErrorBoundary
+} from '@vestig/next/client'
+```
+
+### VestigProvider
+
+Provider component for client-side logging.
+
+```typescript
+interface VestigProviderProps {
+  children: React.ReactNode
+  correlationContext?: CorrelationContext
+  config?: LoggerConfig
+  endpoint?: string  // Log streaming endpoint
+}
+```
+
+**Usage:**
+
+```typescript
+// app/layout.tsx
+import { VestigProvider } from '@vestig/next/client'
+import { getRequestContext } from '@vestig/next'
+
+export default async function RootLayout({ children }) {
+  const ctx = await getRequestContext()
+
+  return (
+    <html>
+      <body>
+        <VestigProvider
+          correlationContext={ctx}
+          config={{ level: 'debug' }}
+        >
+          {children}
+        </VestigProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+### useLogger
+
+Get a logger instance in Client Components.
+
+```typescript
+function useLogger(namespace?: string): Logger
+```
+
+**Usage:**
+
+```typescript
+'use client'
+
+import { useLogger } from '@vestig/next/client'
+
+export function MyComponent() {
+  const log = useLogger('my-component')
+
+  useEffect(() => {
+    log.info('Component mounted')
+    return () => log.debug('Component unmounted')
+  }, [log])
+
+  return <div>...</div>
+}
+```
+
+### useCorrelationContext
+
+Get the correlation context in Client Components.
+
+```typescript
+function useCorrelationContext(): CorrelationContext
+```
+
+**Usage:**
+
+```typescript
+'use client'
+
+import { useLogger, useCorrelationContext } from '@vestig/next/client'
+
+export function MyComponent() {
+  const log = useLogger()
+  const ctx = useCorrelationContext()
+
+  const handleClick = () => {
+    log.info('Button clicked', { requestId: ctx.requestId })
+  }
+
+  return <button onClick={handleClick}>Click me</button>
+}
+```
+
+### useVestigConnection
+
+Monitor the connection to the log streaming server.
+
+```typescript
+function useVestigConnection(): {
+  isConnected: boolean
+  reconnect: () => void
+}
+```
+
+### VestigErrorBoundary
+
+Error boundary with automatic error logging.
+
+```typescript
+interface VestigErrorBoundaryProps {
+  children: React.ReactNode
+  fallback?: React.ReactNode | ((error: Error) => React.ReactNode)
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void
+}
+```
+
+**Usage:**
+
+```typescript
+'use client'
+
+import { VestigErrorBoundary } from '@vestig/next/client'
+
+export function MyPage() {
+  return (
+    <VestigErrorBoundary
+      fallback={<div>Something went wrong</div>}
+      onError={(error) => {
+        // Additional error handling
+      }}
+    >
+      <MyComponent />
+    </VestigErrorBoundary>
+  )
+}
+```
+
+## Middleware Exports
+
+Import from `@vestig/next/middleware`:
+
+```typescript
+import { createVestigMiddleware } from '@vestig/next/middleware'
+```
+
+### createVestigMiddleware
+
+Create Next.js middleware with automatic request logging.
+
+```typescript
+function createVestigMiddleware(
+  config?: VestigMiddlewareConfig
+): NextMiddleware
+
+interface VestigMiddlewareConfig {
+  // Paths to skip (static assets, health checks)
+  skipPaths?: string[]
+
+  // Custom request ID header
+  requestIdHeader?: string
+
+  // Log levels
+  requestLogLevel?: LogLevel
+  responseLogLevel?: LogLevel
+
+  // Include request/response details
+  logHeaders?: boolean
+  logBody?: boolean
+
+  // Custom logger configuration
+  loggerConfig?: LoggerConfig
+}
+```
+
+**Usage:**
+
+```typescript
+// middleware.ts
+import { createVestigMiddleware } from '@vestig/next/middleware'
+
+export const middleware = createVestigMiddleware({
+  skipPaths: ['/_next', '/favicon.ico', '/api/health'],
+  requestLogLevel: 'debug',
+  responseLogLevel: 'info'
+})
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
+}
+```
+
+## Types
+
+```typescript
+import type {
+  // Core types (re-exported from vestig)
+  Logger,
+  LoggerConfig,
+  LogLevel,
+  LogEntry,
+  Transport,
+  SanitizePreset,
+  Span,
+
+  // Next.js specific types
+  RouteHandlerContext,
+  RouteHandler,
+  WithVestigOptions,
+  ActionContext,
+  ServerAction,
+  VestigActionOptions,
+  VestigProviderProps,
+  VestigMiddlewareConfig
+} from '@vestig/next'
+```

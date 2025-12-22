@@ -1,0 +1,352 @@
+# Client Components
+
+React hooks and providers for client-side logging.
+
+## Overview
+
+Client-side logging in Next.js requires:
+
+1. **VestigProvider** — Provides logging context to components
+2. **useLogger** — Hook to get a logger instance
+3. **useCorrelationContext** — Hook to access correlation IDs
+
+## Setup
+
+### 1. Add the Provider
+
+```typescript
+// app/layout.tsx
+import { VestigProvider } from '@vestig/next/client'
+import { getRequestContext } from '@vestig/next'
+
+export default async function RootLayout({
+  children
+}: {
+  children: React.ReactNode
+}) {
+  // Get correlation context from server
+  const ctx = await getRequestContext()
+
+  return (
+    <html>
+      <body>
+        <VestigProvider
+          correlationContext={ctx}
+          config={{ level: 'debug' }}
+        >
+          {children}
+        </VestigProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+### 2. Use in Components
+
+```typescript
+'use client'
+
+import { useLogger, useCorrelationContext } from '@vestig/next/client'
+import { useEffect } from 'react'
+
+export function Dashboard() {
+  const log = useLogger('dashboard')
+  const ctx = useCorrelationContext()
+
+  useEffect(() => {
+    log.info('Dashboard mounted', { requestId: ctx.requestId })
+
+    return () => {
+      log.debug('Dashboard unmounted')
+    }
+  }, [log, ctx.requestId])
+
+  const handleAction = () => {
+    log.info('User clicked action button')
+  }
+
+  return (
+    <button onClick={handleAction}>
+      Take Action
+    </button>
+  )
+}
+```
+
+## VestigProvider
+
+Provider component for client-side logging context.
+
+```typescript
+interface VestigProviderProps {
+  children: React.ReactNode
+
+  // Correlation context from server
+  correlationContext?: CorrelationContext
+
+  // Logger configuration
+  config?: LoggerConfig
+
+  // Log streaming endpoint (for real-time viewing)
+  endpoint?: string
+}
+```
+
+### Basic Usage
+
+```typescript
+<VestigProvider config={{ level: 'debug' }}>
+  {children}
+</VestigProvider>
+```
+
+### With Server Context
+
+```typescript
+// Server Component (layout.tsx)
+const ctx = await getRequestContext()
+
+<VestigProvider correlationContext={ctx}>
+  {children}
+</VestigProvider>
+```
+
+### With Log Streaming
+
+```typescript
+<VestigProvider
+  config={{ level: 'debug' }}
+  endpoint="/api/logs"  // Receives client logs
+>
+  {children}
+</VestigProvider>
+```
+
+## useLogger
+
+Get a logger instance in Client Components.
+
+```typescript
+function useLogger(namespace?: string): Logger
+```
+
+### Basic Usage
+
+```typescript
+'use client'
+
+import { useLogger } from '@vestig/next/client'
+
+export function MyComponent() {
+  const log = useLogger()
+
+  log.info('Component rendered')
+
+  return <div>...</div>
+}
+```
+
+### With Namespace
+
+```typescript
+const log = useLogger('components:my-component')
+
+log.info('Message')
+// → namespace: "components:my-component"
+```
+
+### In Event Handlers
+
+```typescript
+export function Form() {
+  const log = useLogger('form')
+
+  const handleSubmit = async (data: FormData) => {
+    log.info('Form submitted', {
+      fields: Object.keys(Object.fromEntries(data))
+    })
+
+    try {
+      await submitForm(data)
+      log.info('Form submission successful')
+    } catch (error) {
+      log.error('Form submission failed', error)
+    }
+  }
+
+  return <form onSubmit={handleSubmit}>...</form>
+}
+```
+
+## useCorrelationContext
+
+Access correlation IDs in Client Components.
+
+```typescript
+function useCorrelationContext(): CorrelationContext
+
+interface CorrelationContext {
+  requestId: string
+  traceId: string
+  spanId: string
+}
+```
+
+### Usage
+
+```typescript
+'use client'
+
+import { useCorrelationContext, useLogger } from '@vestig/next/client'
+
+export function TrackedButton() {
+  const log = useLogger()
+  const ctx = useCorrelationContext()
+
+  const handleClick = () => {
+    log.info('Button clicked', {
+      requestId: ctx.requestId,
+      action: 'purchase'
+    })
+  }
+
+  return <button onClick={handleClick}>Buy Now</button>
+}
+```
+
+## useComponentLogger
+
+Specialized hook for component lifecycle logging.
+
+```typescript
+'use client'
+
+import { useComponentLogger } from '@vestig/next/client'
+
+export function TrackedComponent() {
+  // Automatically logs mount/unmount
+  useComponentLogger('tracked-component', {
+    logMount: true,
+    logUnmount: true,
+    logRenders: false  // Can be noisy
+  })
+
+  return <div>...</div>
+}
+```
+
+## useRenderLogger
+
+Debug component re-renders:
+
+```typescript
+'use client'
+
+import { useRenderLogger } from '@vestig/next/client'
+
+export function ExpensiveComponent({ data }) {
+  // Logs when component re-renders with reason
+  useRenderLogger('expensive-component', { data })
+
+  return <div>...</div>
+}
+```
+
+Logs:
+```json
+{
+  "level": "debug",
+  "message": "Component re-rendered",
+  "metadata": {
+    "component": "expensive-component",
+    "changedProps": ["data"],
+    "renderCount": 3
+  }
+}
+```
+
+## VestigErrorBoundary
+
+Error boundary with automatic error logging.
+
+```typescript
+'use client'
+
+import { VestigErrorBoundary } from '@vestig/next/client'
+
+export function MyPage() {
+  return (
+    <VestigErrorBoundary
+      fallback={<div>Something went wrong</div>}
+      onError={(error, errorInfo) => {
+        // Additional error handling (e.g., send to Sentry)
+      }}
+    >
+      <RiskyComponent />
+    </VestigErrorBoundary>
+  )
+}
+```
+
+Automatically logs:
+```json
+{
+  "level": "error",
+  "message": "React Error Boundary caught error",
+  "error": {
+    "name": "TypeError",
+    "message": "Cannot read property...",
+    "stack": "..."
+  },
+  "metadata": {
+    "componentStack": "..."
+  }
+}
+```
+
+## useVestigConnection
+
+Monitor log streaming connection status:
+
+```typescript
+'use client'
+
+import { useVestigConnection } from '@vestig/next/client'
+
+export function ConnectionStatus() {
+  const { isConnected, reconnect } = useVestigConnection()
+
+  return (
+    <div>
+      Status: {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
+      {!isConnected && (
+        <button onClick={reconnect}>Reconnect</button>
+      )}
+    </div>
+  )
+}
+```
+
+## PII Sanitization
+
+Client-side logs are automatically sanitized:
+
+```typescript
+const log = useLogger()
+
+log.info('User data', {
+  email: 'user@example.com',    // → us***@example.com
+  password: 'secret123',         // → [REDACTED]
+  creditCard: '4111111111111111' // → [CARD REDACTED]
+})
+```
+
+## Browser Console
+
+In development, logs also appear in the browser console with colors:
+
+```
+[10:30:45] INFO  [dashboard] User clicked button { action: 'purchase' }
+[10:30:46] ERROR [form] Submission failed { error: 'Network error' }
+```

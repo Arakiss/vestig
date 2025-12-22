@@ -1,205 +1,135 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import {
+	Book,
+	Code,
+	Rocket,
+	Settings,
+	Server,
+	Laptop,
+	Flash,
+	MediaVideo,
+	PlugTypeA,
+	Lock,
+	Antenna,
+	GitFork,
+	Timer,
+	Shield,
+	Terminal,
+} from 'iconoir-react'
+import { InnerNav, Sidebar, type SidebarSection } from '@/components/layout'
 
-const navigation = [
+const navigation: SidebarSection[] = [
 	{
 		title: 'Getting Started',
 		items: [
-			{ title: 'Introduction', href: '/docs' },
-			{ title: 'Installation', href: '/docs/getting-started' },
+			{ title: 'Introduction', href: '/docs', icon: <Book className="h-4 w-4" /> },
+			{
+				title: 'Installation',
+				href: '/docs/getting-started',
+				icon: <Rocket className="h-4 w-4" />,
+			},
 		],
 	},
 	{
-		title: 'Features',
+		title: 'Core Concepts',
 		items: [
-			{ title: 'Log Levels', href: '/docs/features' },
-			{ title: 'Sanitization', href: '/docs/features#sanitization' },
-			{ title: 'Context', href: '/docs/features#context' },
-			{ title: 'Child Loggers', href: '/docs/features#child-loggers' },
+			{ title: 'Logging Basics', href: '/docs/core/logging' },
+			{ title: 'Log Levels', href: '/docs/core/levels' },
+			{ title: 'Structured Output', href: '/docs/core/structured' },
+			{ title: 'Child Loggers', href: '/docs/core/child-loggers' },
+		],
+	},
+	{
+		title: 'Next.js Integration',
+		items: [
+			{ title: 'Overview', href: '/docs/nextjs', icon: <Server className="h-4 w-4" /> },
+			{ title: 'Middleware', href: '/docs/nextjs/middleware' },
+			{ title: 'Server Components', href: '/docs/nextjs/server-components' },
+			{ title: 'Route Handlers', href: '/docs/nextjs/route-handlers' },
+			{ title: 'Server Actions', href: '/docs/nextjs/server-actions' },
+			{
+				title: 'Client Components',
+				href: '/docs/nextjs/client',
+				icon: <Laptop className="h-4 w-4" />,
+			},
+		],
+	},
+	{
+		title: 'Tracing',
+		items: [
+			{ title: 'Overview', href: '/docs/tracing', icon: <GitFork className="h-4 w-4" /> },
+			{ title: 'Spans', href: '/docs/tracing/spans' },
+			{ title: 'Context Propagation', href: '/docs/tracing/context' },
+			{ title: 'W3C Trace Context', href: '/docs/tracing/w3c' },
+		],
+	},
+	{
+		title: 'Transports',
+		items: [
+			{ title: 'Overview', href: '/docs/transports', icon: <Antenna className="h-4 w-4" /> },
+			{
+				title: 'Console',
+				href: '/docs/transports/console',
+				icon: <Terminal className="h-4 w-4" />,
+			},
+			{ title: 'HTTP', href: '/docs/transports/http' },
+			{ title: 'File', href: '/docs/transports/file' },
+			{ title: 'Datadog', href: '/docs/transports/datadog' },
+			{ title: 'Custom Transports', href: '/docs/transports/custom' },
+		],
+	},
+	{
+		title: 'Sampling',
+		items: [
+			{ title: 'Overview', href: '/docs/sampling', icon: <Timer className="h-4 w-4" /> },
+			{ title: 'Probability Sampling', href: '/docs/sampling/probability' },
+			{ title: 'Rate Limiting', href: '/docs/sampling/rate-limit' },
+			{ title: 'Namespace Sampling', href: '/docs/sampling/namespace' },
+		],
+	},
+	{
+		title: 'Security',
+		items: [
+			{
+				title: 'PII Sanitization',
+				href: '/docs/security/sanitization',
+				icon: <Lock className="h-4 w-4" />,
+			},
+			{ title: 'Presets (GDPR, HIPAA)', href: '/docs/security/presets' },
+			{ title: 'Custom Patterns', href: '/docs/security/custom-patterns' },
 		],
 	},
 	{
 		title: 'API Reference',
 		items: [
-			{ title: 'createLogger', href: '/docs/api' },
-			{ title: 'log', href: '/docs/api#default-logger' },
-			{ title: 'withContext', href: '/docs/api#context' },
-			{ title: 'sanitize', href: '/docs/api#sanitize' },
+			{ title: 'vestig', href: '/docs/api', icon: <Code className="h-4 w-4" /> },
+			{ title: '@vestig/next', href: '/docs/api/next' },
+			{ title: '@vestig/express', href: '/docs/api/express', badge: 'Soon' },
 		],
 	},
 ]
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
-	const pathname = usePathname()
-
 	return (
-		<div className="docs-layout">
-			<style>{`
-				.docs-layout {
-					min-height: 100vh;
-					background: #0a0a0a;
-					color: #fafafa;
-					font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-				}
+		<div className="min-h-screen bg-background">
+			<InnerNav section="Documentation" />
+			<Sidebar sections={navigation} />
 
-				.docs-nav {
-					position: fixed;
-					top: 0;
-					left: 0;
-					right: 0;
-					z-index: 100;
-					background: rgba(10,10,10,0.9);
-					backdrop-filter: blur(12px);
-					border-bottom: 1px solid rgba(255,255,255,0.06);
-				}
+			{/* Main content */}
+			<main className="lg:pl-64 pt-14">
+				<div className="max-w-4xl mx-auto px-6 lg:px-8 py-12">
+					{/* Clean article wrapper - styling handled by mdx-components */}
+					<article className="min-h-[calc(100vh-8rem)]">{children}</article>
 
-				.docs-nav-inner {
-					max-width: 1400px;
-					margin: 0 auto;
-					padding: 1rem 2rem;
-					display: flex;
-					justify-content: space-between;
-					align-items: center;
-				}
-
-				.docs-logo {
-					font-size: 1.25rem;
-					font-weight: 700;
-					background: linear-gradient(135deg, #22d3ee, #a78bfa);
-					-webkit-background-clip: text;
-					-webkit-text-fill-color: transparent;
-					text-decoration: none;
-				}
-
-				.docs-nav-links {
-					display: flex;
-					gap: 1.5rem;
-					align-items: center;
-				}
-
-				.docs-nav-links a {
-					color: #a3a3a3;
-					text-decoration: none;
-					font-size: 0.9375rem;
-					transition: color 0.15s;
-				}
-
-				.docs-nav-links a:hover {
-					color: #fafafa;
-				}
-
-				.docs-container {
-					display: flex;
-					max-width: 1400px;
-					margin: 0 auto;
-					padding-top: 64px;
-				}
-
-				.docs-sidebar {
-					position: fixed;
-					top: 64px;
-					left: 0;
-					bottom: 0;
-					width: 280px;
-					padding: 2rem;
-					overflow-y: auto;
-					border-right: 1px solid rgba(255,255,255,0.06);
-				}
-
-				@media (max-width: 1024px) {
-					.docs-sidebar { display: none; }
-					.docs-content { margin-left: 0 !important; }
-				}
-
-				.sidebar-section {
-					margin-bottom: 2rem;
-				}
-
-				.sidebar-title {
-					font-size: 0.75rem;
-					font-weight: 600;
-					text-transform: uppercase;
-					letter-spacing: 0.1em;
-					color: #525252;
-					margin-bottom: 0.75rem;
-				}
-
-				.sidebar-links {
-					display: flex;
-					flex-direction: column;
-					gap: 0.25rem;
-				}
-
-				.sidebar-link {
-					display: block;
-					padding: 0.5rem 0.75rem;
-					border-radius: 6px;
-					color: #a3a3a3;
-					text-decoration: none;
-					font-size: 0.9375rem;
-					transition: all 0.15s;
-				}
-
-				.sidebar-link:hover {
-					color: #fafafa;
-					background: rgba(255,255,255,0.05);
-				}
-
-				.sidebar-link.active {
-					color: #22d3ee;
-					background: rgba(34,211,238,0.1);
-				}
-
-				.docs-content {
-					flex: 1;
-					margin-left: 280px;
-					padding: 3rem 4rem;
-					max-width: 900px;
-				}
-
-				.docs-content > :first-child {
-					margin-top: 0 !important;
-				}
-			`}</style>
-
-			<nav className="docs-nav">
-				<div className="docs-nav-inner">
-					<Link href="/" className="docs-logo">
-						Vestig
-					</Link>
-					<div className="docs-nav-links">
-						<Link href="/docs">Docs</Link>
-						<Link href="/docs/api">API</Link>
-						<a href="https://github.com/Arakiss/vestig" target="_blank" rel="noopener noreferrer">
-							GitHub
-						</a>
-					</div>
+					{/* Footer navigation placeholder */}
+					<footer className="mt-16 pt-8 border-t border-white/[0.06]">
+						<p className="text-sm text-white/30">
+							© {new Date().getFullYear()} Vestig. Open source under MIT License.
+						</p>
+					</footer>
 				</div>
-			</nav>
-
-			<div className="docs-container">
-				<aside className="docs-sidebar">
-					{navigation.map((section) => (
-						<div key={section.title} className="sidebar-section">
-							<div className="sidebar-title">{section.title}</div>
-							<div className="sidebar-links">
-								{section.items.map((item) => (
-									<Link
-										key={item.href}
-										href={item.href}
-										className={`sidebar-link ${pathname === item.href ? 'active' : ''}`}
-									>
-										{item.title}
-									</Link>
-								))}
-							</div>
-						</div>
-					))}
-				</aside>
-				<main className="docs-content">{children}</main>
-			</div>
+			</main>
 		</div>
 	)
 }

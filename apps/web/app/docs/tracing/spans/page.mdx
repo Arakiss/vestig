@@ -1,0 +1,335 @@
+# Spans
+
+Deep dive into the Span API for tracing operations.
+
+## Overview
+
+Spans represent units of work in your application. They track:
+
+- **Duration** — How long the operation took
+- **Attributes** — Key-value metadata
+- **Events** — Timestamped events within the span
+- **Status** — Success or failure
+- **Relationships** — Parent-child hierarchy
+
+## Creating Spans
+
+### Async Spans
+
+Use `span()` for async operations (recommended):
+
+```typescript
+import { span } from 'vestig'
+
+const result = await span('operation-name', async (s) => {
+  // Your async code
+  return await doWork()
+})
+// Span automatically ends when callback returns
+```
+
+### Sync Spans
+
+Use `spanSync()` for synchronous operations:
+
+```typescript
+import { spanSync } from 'vestig'
+
+const result = spanSync('sync-operation', (s) => {
+  return computeValue()
+})
+```
+
+### Manual Control
+
+For complex scenarios, use `startSpan()` and `endSpan()`:
+
+```typescript
+import { startSpan, endSpan } from 'vestig'
+
+const s = startSpan('long-operation')
+
+try {
+  await step1()
+  s.addEvent('step1-complete')
+
+  await step2()
+  s.addEvent('step2-complete')
+
+  s.setStatus('ok')
+} catch (error) {
+  s.setStatus('error', error.message)
+  s.recordException(error)
+} finally {
+  endSpan(s)
+}
+```
+
+## Span Interface
+
+```typescript
+interface Span {
+  // Identification
+  readonly name: string
+  readonly traceId: string
+  readonly spanId: string
+  readonly parentSpanId?: string
+
+  // Timing
+  readonly startTime: number
+  readonly endTime?: number
+
+  // Attributes
+  setAttribute(key: string, value: unknown): void
+  setAttributes(attributes: Record<string, unknown>): void
+
+  // Events
+  addEvent(name: string, attributes?: Record<string, unknown>): void
+
+  // Status
+  setStatus(status: 'unset' | 'ok' | 'error', message?: string): void
+
+  // Exceptions
+  recordException(error: Error): void
+
+  // Lifecycle
+  end(): void
+  isRecording(): boolean
+}
+```
+
+## Attributes
+
+Add metadata to spans:
+
+```typescript
+await span('http:request', async (s) => {
+  // Set individual attributes
+  s.setAttribute('http.method', 'POST')
+  s.setAttribute('http.url', '/api/users')
+
+  // Set multiple at once
+  s.setAttributes({
+    'http.status_code': 201,
+    'http.response_size': 1234
+  })
+
+  // Attributes can be any serializable value
+  s.setAttribute('user.roles', ['admin', 'editor'])
+  s.setAttribute('request.validated', true)
+})
+```
+
+### Common Attribute Conventions
+
+Follow OpenTelemetry semantic conventions:
+
+```typescript
+// HTTP
+s.setAttribute('http.method', 'GET')
+s.setAttribute('http.url', 'https://example.com/api')
+s.setAttribute('http.status_code', 200)
+
+// Database
+s.setAttribute('db.system', 'postgresql')
+s.setAttribute('db.statement', 'SELECT * FROM users')
+s.setAttribute('db.operation', 'SELECT')
+
+// Messaging
+s.setAttribute('messaging.system', 'rabbitmq')
+s.setAttribute('messaging.destination', 'orders')
+
+// Custom
+s.setAttribute('user.id', 'usr_123')
+s.setAttribute('order.total', 99.99)
+```
+
+## Events
+
+Record timestamped events within a span:
+
+```typescript
+await span('process:order', async (s) => {
+  s.addEvent('order.received')
+
+  await validateOrder()
+  s.addEvent('order.validated', { valid: true })
+
+  await processPayment()
+  s.addEvent('payment.processed', {
+    amount: 99.99,
+    method: 'card'
+  })
+
+  await shipOrder()
+  s.addEvent('order.shipped', {
+    trackingId: 'TRK123'
+  })
+})
+```
+
+Events are useful for:
+
+- Marking milestones
+- Recording state changes
+- Debugging timing issues
+
+## Status
+
+Set the final status of a span:
+
+```typescript
+await span('risky:operation', async (s) => {
+  try {
+    await riskyCall()
+    s.setStatus('ok')
+  } catch (error) {
+    s.setStatus('error', error.message)
+    throw error
+  }
+})
+```
+
+Status values:
+
+<Table><TableHead><TableRow><TableHeader>Status</TableHeader><TableHeader>Meaning</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>`unset`</TableCell><TableCell>Default, no explicit status</TableCell></TableRow><TableRow><TableCell>`ok`</TableCell><TableCell>Operation completed successfully</TableCell></TableRow><TableRow><TableCell>`error`</TableCell><TableCell>Operation failed</TableCell></TableRow></TableBody></Table>
+
+## Recording Exceptions
+
+Capture full error details:
+
+```typescript
+await span('api:call', async (s) => {
+  try {
+    await callExternalApi()
+  } catch (error) {
+    // Record the exception with full stack trace
+    s.recordException(error)
+
+    // Also set error status
+    s.setStatus('error', error.message)
+
+    throw error
+  }
+})
+```
+
+Exception recording captures:
+
+- Error name
+- Error message
+- Full stack trace
+- Nested cause (if any)
+
+## Nested Spans
+
+Nested spans automatically become children:
+
+```typescript
+await span('api:handler', async (parent) => {
+  parent.setAttribute('method', 'POST')
+
+  // Child span
+  await span('db:query', async (child) => {
+    child.setAttribute('table', 'users')
+    // parent is automatically the parent
+  })
+
+  // Another child
+  await span('cache:write', async (child) => {
+    child.setAttribute('key', 'user:123')
+  })
+})
+```
+
+Trace hierarchy:
+
+```
+api:handler (parent)
+├── db:query (child)
+└── cache:write (child)
+```
+
+## Getting Active Span
+
+Access the current span from anywhere:
+
+```typescript
+import { getActiveSpan } from 'vestig'
+
+function logWithSpan(message: string) {
+  const activeSpan = getActiveSpan()
+
+  if (activeSpan) {
+    activeSpan.addEvent('log', { message })
+  }
+
+  console.log(message)
+}
+```
+
+## Span Options
+
+Configure spans when creating:
+
+```typescript
+await span('operation', async (s) => {
+  // ...
+}, {
+  // Initial attributes
+  attributes: {
+    'service.name': 'api',
+    'deployment.environment': 'production'
+  },
+
+  // Link to related spans
+  links: [
+    { traceId: 'abc...', spanId: 'def...' }
+  ],
+
+  // Span kind for distributed tracing
+  kind: 'server'  // 'internal' | 'server' | 'client' | 'producer' | 'consumer'
+})
+```
+
+## Best Practices
+
+### 1. Meaningful Names
+
+```typescript
+// Good - descriptive
+span('api:users:create', ...)
+span('db:postgres:query', ...)
+span('cache:redis:get', ...)
+
+// Bad - generic
+span('operation', ...)
+span('work', ...)
+```
+
+### 2. Keep Spans Focused
+
+```typescript
+// Good - one operation per span
+await span('db:query', async () => {
+  return await db.query(sql)
+})
+
+await span('cache:set', async () => {
+  await cache.set(key, value)
+})
+```
+
+### 3. Always Set Status
+
+```typescript
+await span('operation', async (s) => {
+  try {
+    await work()
+    s.setStatus('ok')  // Always set on success
+  } catch (error) {
+    s.setStatus('error')  // Always set on failure
+    throw error
+  }
+})
+```
