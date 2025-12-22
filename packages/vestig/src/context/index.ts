@@ -67,7 +67,7 @@ class GlobalContextManager implements ContextManager {
 }
 
 /**
- * AsyncLocalStorage context manager for Node.js/Bun
+ * AsyncLocalStorage context manager for Node.js/Bun/Deno
  */
 class AsyncLocalStorageContextManager implements ContextManager {
 	private storage: {

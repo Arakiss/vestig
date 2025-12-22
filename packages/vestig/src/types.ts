@@ -6,7 +6,7 @@ export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error'
 /**
  * Runtime environment detection
  */
-export type Runtime = 'node' | 'bun' | 'edge' | 'browser' | 'worker' | 'unknown'
+export type Runtime = 'node' | 'bun' | 'deno' | 'edge' | 'browser' | 'worker' | 'unknown'
 
 /**
  * Metadata attached to log entries

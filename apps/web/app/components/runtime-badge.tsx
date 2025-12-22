@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 const runtimeConfig: Record<Runtime | 'unknown', { label: string; shortLabel: string }> = {
 	node: { label: 'Node.js', shortLabel: 'Node' },
 	bun: { label: 'Bun', shortLabel: 'Bun' },
+	deno: { label: 'Deno', shortLabel: 'Deno' },
 	edge: { label: 'Edge', shortLabel: 'Edge' },
 	browser: { label: 'Browser', shortLabel: 'Browser' },
 	worker: { label: 'Worker', shortLabel: 'Worker' },

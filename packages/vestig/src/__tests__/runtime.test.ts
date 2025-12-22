@@ -3,6 +3,7 @@ import {
 	CAPABILITIES,
 	IS_BROWSER,
 	IS_BUN,
+	IS_DENO,
 	IS_EDGE,
 	IS_NODE,
 	IS_SERVER,
@@ -17,7 +18,7 @@ describe('RUNTIME detection', () => {
 	})
 
 	test('should export a valid runtime type', () => {
-		const validRuntimes = ['node', 'bun', 'edge', 'browser', 'worker', 'unknown']
+		const validRuntimes = ['node', 'bun', 'deno', 'edge', 'browser', 'worker', 'unknown']
 		expect(validRuntimes).toContain(RUNTIME)
 	})
 })
@@ -58,6 +59,10 @@ describe('Convenience flags', () => {
 		expect(IS_NODE).toBe(false)
 	})
 
+	test('IS_DENO should be false in bun runtime', () => {
+		expect(IS_DENO).toBe(false)
+	})
+
 	test('IS_EDGE should be false in bun runtime', () => {
 		expect(IS_EDGE).toBe(false)
 	})
@@ -74,14 +79,14 @@ describe('Convenience flags', () => {
 		expect(IS_SERVER).toBe(true)
 	})
 
-	test('IS_SERVER should be IS_NODE || IS_BUN || IS_EDGE', () => {
-		expect(IS_SERVER).toBe(IS_NODE || IS_BUN || IS_EDGE)
+	test('IS_SERVER should be IS_NODE || IS_BUN || IS_DENO || IS_EDGE', () => {
+		expect(IS_SERVER).toBe(IS_NODE || IS_BUN || IS_DENO || IS_EDGE)
 	})
 })
 
 describe('Runtime flags consistency', () => {
 	test('only one runtime flag should be true', () => {
-		const flags = [IS_NODE, IS_BUN, IS_EDGE, IS_BROWSER, IS_WORKER]
+		const flags = [IS_NODE, IS_BUN, IS_DENO, IS_EDGE, IS_BROWSER, IS_WORKER]
 		const trueCount = flags.filter(Boolean).length
 		expect(trueCount).toBe(1)
 	})
@@ -89,6 +94,7 @@ describe('Runtime flags consistency', () => {
 	test('RUNTIME and flags should be consistent', () => {
 		if (RUNTIME === 'node') expect(IS_NODE).toBe(true)
 		if (RUNTIME === 'bun') expect(IS_BUN).toBe(true)
+		if (RUNTIME === 'deno') expect(IS_DENO).toBe(true)
 		if (RUNTIME === 'edge') expect(IS_EDGE).toBe(true)
 		if (RUNTIME === 'browser') expect(IS_BROWSER).toBe(true)
 		if (RUNTIME === 'worker') expect(IS_WORKER).toBe(true)

@@ -33,6 +33,11 @@ function detectRuntime(): Runtime {
 		return 'bun'
 	}
 
+	// Deno detection (must be before Node.js check since Deno 2.0+ has process global)
+	if (typeof globalThis !== 'undefined' && 'Deno' in globalThis) {
+		return 'deno'
+	}
+
 	// Edge runtime detection
 	if (typeof globalThis !== 'undefined') {
 		// Vercel Edge Runtime
@@ -86,8 +91,11 @@ function detectRuntime(): Runtime {
  */
 function detectCapabilities(): RuntimeCapabilities {
 	const hasProc = typeof globalThis.process !== 'undefined'
+	// Deno 2.0+ has process global for Node.js compatibility
+	// Deno has AsyncLocalStorage via node:async_hooks (since v1.34+)
+	const hasALS = (hasProc && (RUNTIME === 'node' || RUNTIME === 'bun')) || RUNTIME === 'deno'
 	return {
-		hasAsyncLocalStorage: hasProc && (RUNTIME === 'node' || RUNTIME === 'bun'),
+		hasAsyncLocalStorage: hasALS,
 		hasProcess: hasProc,
 		hasPerformance: typeof performance !== 'undefined',
 		hasConsole: typeof console !== 'undefined',
@@ -110,7 +118,8 @@ export const CAPABILITIES: RuntimeCapabilities = detectCapabilities()
  */
 export const IS_NODE = RUNTIME === 'node'
 export const IS_BUN = RUNTIME === 'bun'
+export const IS_DENO = RUNTIME === 'deno'
 export const IS_EDGE = RUNTIME === 'edge'
 export const IS_BROWSER = RUNTIME === 'browser'
 export const IS_WORKER = RUNTIME === 'worker'
-export const IS_SERVER = IS_NODE || IS_BUN || IS_EDGE
+export const IS_SERVER = IS_NODE || IS_BUN || IS_DENO || IS_EDGE

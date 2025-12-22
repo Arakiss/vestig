@@ -11,7 +11,7 @@
 | Feature | Status | Differentiator |
 |---------|--------|---------------|
 | Zero Dependencies | ✅ Complete | 🏆 Unique in market |
-| Runtime Agnostic | ✅ Complete | 🏆 Node, Bun, Edge, Browser (Deno v0.7.0) |
+| Runtime Agnostic | ✅ Complete | 🏆 Node, Bun, Deno, Edge, Browser |
 | PII Sanitization | ✅ Complete | 🏆 6 presets (GDPR, HIPAA, PCI-DSS) |
 | TypeScript-First | ✅ Complete | 🏆 100% type-safe |
 | Context Propagation | ✅ Complete | AsyncLocalStorage + fallback |
@@ -109,7 +109,9 @@
 - [ ] Browser runtime tests (jsdom/playwright)
 - [ ] E2E tests for demo app
 
-#### 1.3 Deno Full Support
+#### 1.3 Deno Support
+- [x] Runtime detection and IS_DENO flag ✅
+- [x] AsyncLocalStorage via node:async_hooks ✅
 - [ ] Deno-specific transport (Deno.writeFile)
 - [ ] Deno Deploy edge support
 - [ ] Deno Fresh integration package

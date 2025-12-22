@@ -58,12 +58,10 @@ Vestig is in **active beta** with continuous development. The API is stable and 
 | Zero Dependencies | ✅ | ❌ | ❌ | ❌ |
 
 **Vestig is the only logging library that:**
-- Works everywhere (Node.js, Bun, Edge, Browser)
+- Works everywhere (Node.js, Bun, Deno, Edge, Browser)
 - Automatically sanitizes PII with compliance presets
 - Propagates context through async operations
 - Has zero runtime dependencies
-
-> **Note:** Deno support is planned for v0.7.0. Currently detected as `unknown` runtime.
 
 ## Installation
 
@@ -347,13 +345,14 @@ Vestig automatically detects and adapts to:
 
 - **Node.js** - Full features with AsyncLocalStorage
 - **Bun** - Full features with AsyncLocalStorage
+- **Deno** - Full features with AsyncLocalStorage (via `node:async_hooks`)
 - **Edge Runtime** - Vercel Edge, Cloudflare Workers
 - **Browser** - Client-side logging (use with `@vestig/next` or custom HTTPTransport)
 
 ```typescript
-import { RUNTIME, IS_SERVER, IS_EDGE } from 'vestig'
+import { RUNTIME, IS_SERVER, IS_DENO } from 'vestig'
 
-console.log(RUNTIME) // 'node' | 'bun' | 'edge' | 'browser' | 'worker' | 'unknown'
+console.log(RUNTIME) // 'node' | 'bun' | 'deno' | 'edge' | 'browser' | 'worker' | 'unknown'
 ```
 
 > **Browser Usage:** For client-side logging, we recommend using `@vestig/next` which provides `VestigProvider` and `useLogger()` hook with automatic server sync. For other frameworks, configure `HTTPTransport` to send logs to your backend.
