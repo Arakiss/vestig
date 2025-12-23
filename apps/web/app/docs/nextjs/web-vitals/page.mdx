@@ -1,0 +1,218 @@
+export const metadata = {
+  title: 'Web Vitals',
+  description: 'Capture Core Web Vitals and route-level performance metrics in your Next.js app.',
+}
+
+# Web Vitals
+
+Automatically capture Core Web Vitals (LCP, CLS, INP, TTFB, FCP) and route-level performance metrics with zero configuration.
+
+## Quick Setup
+
+Add the metrics component to your root layout:
+
+```typescript
+// app/layout.tsx
+import { VestigMetrics } from '@vestig/next/metrics'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        {children}
+        <VestigMetrics />
+      </body>
+    </html>
+  )
+}
+```
+
+Metrics are automatically captured and displayed in the Dev Overlay's Metrics tab.
+
+## Configuration
+
+<Table>
+  <TableHead>
+    <TableRow>
+      <TableHeader>Prop</TableHeader>
+      <TableHeader>Type</TableHeader>
+      <TableHeader>Default</TableHeader>
+      <TableHeader>Description</TableHeader>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    <TableRow>
+      <TableCell>`enabled`</TableCell>
+      <TableCell>`boolean`</TableCell>
+      <TableCell>`true`</TableCell>
+      <TableCell>Enable/disable metric collection</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`sampleRate`</TableCell>
+      <TableCell>`number`</TableCell>
+      <TableCell>`1.0` (dev) / `0.1` (prod)</TableCell>
+      <TableCell>Percentage of sessions to track (0.0 - 1.0)</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`reportEndpoint`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>`'/api/vestig/metrics'`</TableCell>
+      <TableCell>Endpoint for sending metrics</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`reportPoorImmediately`</TableCell>
+      <TableCell>`boolean`</TableCell>
+      <TableCell>`true`</TableCell>
+      <TableCell>Send "poor" ratings immediately (don't wait for batch)</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`captureRouteMetrics`</TableCell>
+      <TableCell>`boolean`</TableCell>
+      <TableCell>`true`</TableCell>
+      <TableCell>Track route navigation timing</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`debug`</TableCell>
+      <TableCell>`boolean`</TableCell>
+      <TableCell>`false`</TableCell>
+      <TableCell>Log metrics to console</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+## Captured Metrics
+
+### Core Web Vitals
+
+| Metric | Description | Good | Poor |
+|--------|-------------|------|------|
+| **LCP** | Largest Contentful Paint - Loading performance | < 2.5s | > 4.0s |
+| **CLS** | Cumulative Layout Shift - Visual stability | < 0.1 | > 0.25 |
+| **INP** | Interaction to Next Paint - Interactivity | < 200ms | > 500ms |
+| **TTFB** | Time to First Byte - Server responsiveness | < 800ms | > 1.8s |
+| **FCP** | First Contentful Paint - Perceived load speed | < 1.8s | > 3.0s |
+
+### Route Metrics
+
+- **Render Time**: Time to render the page
+- **Hydration Time**: Time for React hydration
+- **Data Fetch Time**: Time spent fetching data
+
+## Using Hooks
+
+Access metrics data in your components:
+
+```typescript
+import {
+  useWebVitalsData,
+  useWebVitalsSummary,
+  useRouteMetricsData,
+} from '@vestig/next/metrics'
+
+function MetricsDashboard() {
+  // Get latest Web Vitals values
+  const vitals = useWebVitalsData()
+  // { LCP: { value, rating }, CLS: {...}, ... }
+
+  // Get summary statistics (avg, p75, count)
+  const summary = useWebVitalsSummary()
+  // { LCP: { avg, p75, rating, count }, ... }
+
+  // Get route metrics
+  const route = useRouteMetricsData()
+  // { pathname, renderTime, hydrationTime, dataFetchTime }
+
+  return (
+    <div>
+      <h2>LCP: {vitals.LCP?.value}ms</h2>
+      <p>Rating: {vitals.LCP?.rating}</p>
+      <p>P75: {summary.LCP?.p75}ms</p>
+    </div>
+  )
+}
+```
+
+## Rating System
+
+Each metric receives a rating based on Google's Core Web Vitals thresholds:
+
+- 🟢 **Good** - Meets the recommended threshold
+- 🟡 **Needs Improvement** - Between good and poor
+- 🔴 **Poor** - Exceeds the poor threshold
+
+## Production Setup
+
+For production, use sampling to reduce data volume:
+
+```typescript
+<VestigMetrics
+  sampleRate={0.1}  // Track 10% of sessions
+  reportPoorImmediately={true}  // Always report poor experiences
+  reportEndpoint="/api/metrics"
+/>
+```
+
+### Metrics API Endpoint
+
+Create an endpoint to receive metrics:
+
+```typescript
+// app/api/metrics/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+
+export async function POST(request: NextRequest) {
+  const metrics = await request.json()
+
+  // Send to your analytics service
+  await sendToAnalytics(metrics)
+
+  return NextResponse.json({ success: true })
+}
+```
+
+## Best Practices
+
+### 1. Use Sampling in Production
+
+Full metric collection on every user adds overhead. Sample a percentage:
+
+```typescript
+<VestigMetrics sampleRate={0.1} />  // 10% sampling
+```
+
+### 2. Report Poor Metrics Immediately
+
+Don't wait to batch poor experiences:
+
+```typescript
+<VestigMetrics reportPoorImmediately={true} />
+```
+
+### 3. Combine with Dev Overlay
+
+Use the Dev Overlay's Metrics tab during development:
+
+```typescript
+{process.env.NODE_ENV === 'development' && <VestigDevOverlay />}
+<VestigMetrics />
+```
+
+## Threshold Reference
+
+```typescript
+import { THRESHOLDS, getRating } from '@vestig/next/metrics'
+
+// Check thresholds
+console.log(THRESHOLDS.LCP)
+// { good: 2500, poor: 4000, unit: 'ms' }
+
+// Get rating for a value
+const rating = getRating('LCP', 3000)
+// 'needs-improvement'
+```
+
+## Next Steps
+
+- [Dev Overlay](/docs/nextjs/dev-overlay) — View metrics in real-time
+- [Error Boundary](/docs/nextjs/error-boundary) — Handle errors gracefully
+- [Logging Basics](/docs/core) — Understand structured logging

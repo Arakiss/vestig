@@ -21,7 +21,7 @@ interface InnerNavProps {
 	showDevelopmentBadge?: boolean
 }
 
-export function InnerNav({ section, links = [], showDevelopmentBadge = true }: InnerNavProps) {
+export function InnerNav({ section, links = [], showDevelopmentBadge = false }: InnerNavProps) {
 	const [isScrolled, setIsScrolled] = useState(false)
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 

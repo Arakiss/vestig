@@ -1,11 +1,9 @@
 'use client'
 
-import { DemoCard, DemoResult } from '@/app/components/demo-card'
-import { FullRuntimeBadge } from '@/app/components/runtime-badge'
+import { GlassCard, GlassButton, GlassGrid } from '@/app/components/glass-card'
 import { Container } from '@/components/layout'
 import { PlugTypeA, Download, Upload, Code } from 'iconoir-react'
 import { useState } from 'react'
-import { IS_SERVER, RUNTIME } from 'vestig'
 
 interface ApiResponse {
 	status: number
@@ -15,18 +13,11 @@ interface ApiResponse {
 	duration?: number
 }
 
-/**
- * API Routes Demo Page
- *
- * This page demonstrates logging in Next.js API Routes.
- * Includes GET and POST examples with correlation IDs.
- */
 export default function ApiRoutesDemoPage() {
 	const [getResponse, setGetResponse] = useState<ApiResponse | null>(null)
 	const [postResponse, setPostResponse] = useState<ApiResponse | null>(null)
 	const [isLoading, setIsLoading] = useState({ get: false, post: false })
 
-	// Make GET request to demo API
 	const handleGetRequest = async () => {
 		setIsLoading((prev) => ({ ...prev, get: true }))
 		const start = performance.now()
@@ -54,7 +45,6 @@ export default function ApiRoutesDemoPage() {
 		}
 	}
 
-	// Make POST request to demo API
 	const handlePostRequest = async () => {
 		setIsLoading((prev) => ({ ...prev, post: true }))
 		const start = performance.now()
@@ -92,86 +82,86 @@ export default function ApiRoutesDemoPage() {
 	}
 
 	return (
-		<Container size="default">
+		<Container size="wide">
 			{/* Header */}
-			<div className="mb-8">
-				<div className="flex items-center gap-3 mb-4">
-					<PlugTypeA className="h-8 w-8 text-foreground" />
-					<h1 className="text-2xl font-bold text-foreground">API Routes</h1>
+			<div className="relative mb-12">
+				<div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20 rounded-full blur-[100px] pointer-events-none" />
+
+				<div className="relative">
+					<div className="flex items-center gap-3 mb-4">
+						<div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30">
+							<PlugTypeA className="h-6 w-6 text-purple-400" />
+						</div>
+						<div>
+							<h1 className="text-3xl font-bold text-white">API Routes</h1>
+							<p className="text-white/50 text-sm">
+								Request lifecycle logging with correlation IDs
+							</p>
+						</div>
+					</div>
 				</div>
-				<p className="text-muted-foreground mb-4">
-					Full request lifecycle logging with correlation ID propagation in Next.js API Routes.
-				</p>
-				<FullRuntimeBadge runtime={RUNTIME} isServer={IS_SERVER} />
 			</div>
 
 			{/* GET Request Demo */}
-			<DemoCard
-				title="GET Request"
-				description="Fetches mock user data with full request tracing"
-				icon={<Download className="h-5 w-5" />}
-				actionLabel={isLoading.get ? 'Loading...' : 'Send GET Request'}
-				onAction={handleGetRequest}
-				isLoading={isLoading.get}
-			>
-				{getResponse && (
-					<DemoResult title="Response">
-						<div className="space-y-2 text-sm">
-							<div className="flex gap-2">
-								<span className="text-muted-foreground">Status:</span>
-								<span className="font-mono text-foreground">{getResponse.status}</span>
-							</div>
-							<div className="flex gap-2">
-								<span className="text-muted-foreground">Duration:</span>
-								<span className="font-mono text-foreground">
-									{getResponse.duration?.toFixed(2)}ms
-								</span>
-							</div>
-							{getResponse.requestId && (
-								<div className="flex gap-2">
-									<span className="text-muted-foreground">Request ID:</span>
-									<span className="font-mono text-foreground/70 text-xs">
-										{getResponse.requestId}
-									</span>
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Download className="h-5 w-5 text-purple-400" />
+					GET Request
+				</h2>
+				<GlassCard variant="default" padding="lg">
+					<p className="text-sm text-white/50 mb-4">
+						Fetches mock user data with full request tracing
+					</p>
+					<GlassButton variant="secondary" onClick={handleGetRequest} loading={isLoading.get}>
+						{isLoading.get ? 'Loading...' : 'Send GET Request'}
+					</GlassButton>
+
+					{getResponse && (
+						<div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
+							<div className="grid grid-cols-2 gap-4 text-sm mb-4">
+								<div>
+									<span className="text-white/40">Status:</span>{' '}
+									<span className="text-white font-mono">{getResponse.status}</span>
 								</div>
-							)}
-							{getResponse.traceId && (
-								<div className="flex gap-2">
-									<span className="text-muted-foreground">Trace ID:</span>
-									<span className="font-mono text-foreground/70 text-xs">
-										{getResponse.traceId}
-									</span>
+								<div>
+									<span className="text-white/40">Duration:</span>{' '}
+									<span className="text-white font-mono">{getResponse.duration?.toFixed(2)}ms</span>
 								</div>
-							)}
-							<div className="mt-3 p-3 bg-black/30 overflow-auto">
-								<pre className="text-xs text-muted-foreground">
-									{JSON.stringify(getResponse.data, null, 2)}
-								</pre>
+								{getResponse.requestId && (
+									<div className="col-span-2">
+										<span className="text-white/40">Request ID:</span>{' '}
+										<span className="text-purple-400 font-mono text-xs">
+											{getResponse.requestId}
+										</span>
+									</div>
+								)}
 							</div>
+							<pre className="text-xs text-white/60 overflow-auto">
+								{JSON.stringify(getResponse.data, null, 2)}
+							</pre>
 						</div>
-					</DemoResult>
-				)}
-			</DemoCard>
+					)}
+				</GlassCard>
+			</div>
 
 			{/* POST Request Demo */}
-			<div className="mt-6">
-				<DemoCard
-					title="POST Request with PII"
-					description="Sends sensitive data to the API (watch how it's sanitized in logs)"
-					icon={<Upload className="h-5 w-5" />}
-					actionLabel={isLoading.post ? 'Loading...' : 'Send POST Request'}
-					onAction={handlePostRequest}
-					isLoading={isLoading.post}
-				>
-					<div className="mb-4 p-3 bg-white/5 border border-white/10 text-xs text-white/50">
-						<span className="text-amber-400/80">!</span> This request includes: email, password, and
-						creditCard fields. Check the log panel to see them sanitized
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Upload className="h-5 w-5 text-purple-400" />
+					POST Request with PII
+				</h2>
+				<GlassCard variant="glow" padding="lg" className="border-purple-500/20">
+					<p className="text-sm text-white/50 mb-4">
+						Sends sensitive data to the API (watch how it's sanitized in logs)
+					</p>
+
+					<div className="mb-4 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg text-xs text-amber-400/80">
+						⚠️ This request includes: email, password, and creditCard fields
 					</div>
-					<div className="mb-4 p-3 bg-black/30">
-						<div className="text-[10px] text-muted-foreground uppercase mb-1">
-							Request Body (sent to API)
-						</div>
-						<pre className="text-xs text-muted-foreground">
+
+					<div className="mb-4 p-3 bg-white/5 rounded-lg border border-white/10">
+						<div className="text-[10px] text-white/40 uppercase mb-1">Request Body</div>
+						<pre className="text-xs text-white/60">
 							{`{
   "name": "Test User",
   "email": "test@example.com",
@@ -180,45 +170,42 @@ export default function ApiRoutesDemoPage() {
 }`}
 						</pre>
 					</div>
+
+					<GlassButton variant="primary" onClick={handlePostRequest} loading={isLoading.post}>
+						{isLoading.post ? 'Loading...' : 'Send POST Request'}
+					</GlassButton>
+
 					{postResponse && (
-						<DemoResult title="Response">
-							<div className="space-y-2 text-sm">
-								<div className="flex gap-2">
-									<span className="text-muted-foreground">Status:</span>
-									<span className="font-mono text-foreground">{postResponse.status}</span>
+						<div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
+							<div className="grid grid-cols-2 gap-4 text-sm mb-4">
+								<div>
+									<span className="text-white/40">Status:</span>{' '}
+									<span className="text-white font-mono">{postResponse.status}</span>
 								</div>
-								<div className="flex gap-2">
-									<span className="text-muted-foreground">Duration:</span>
-									<span className="font-mono text-foreground">
+								<div>
+									<span className="text-white/40">Duration:</span>{' '}
+									<span className="text-white font-mono">
 										{postResponse.duration?.toFixed(2)}ms
 									</span>
 								</div>
-								{postResponse.requestId && (
-									<div className="flex gap-2">
-										<span className="text-muted-foreground">Request ID:</span>
-										<span className="font-mono text-foreground/70 text-xs">
-											{postResponse.requestId}
-										</span>
-									</div>
-								)}
-								<div className="mt-3 p-3 bg-black/30 overflow-auto">
-									<pre className="text-xs text-muted-foreground">
-										{JSON.stringify(postResponse.data, null, 2)}
-									</pre>
-								</div>
 							</div>
-						</DemoResult>
+							<pre className="text-xs text-white/60 overflow-auto">
+								{JSON.stringify(postResponse.data, null, 2)}
+							</pre>
+						</div>
 					)}
-				</DemoCard>
+				</GlassCard>
 			</div>
 
-			{/* Code example */}
-			<div className="mt-6">
-				<DemoCard
-					title="Code Example"
-					description="How to use vestig in API Routes"
-					icon={<Code className="h-5 w-5" />}
-					code={`import { serverLogger } from '@/lib/logger'
+			{/* Code Example */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Code className="h-5 w-5 text-purple-400" />
+					Code Example
+				</h2>
+				<GlassCard variant="subtle" padding="none">
+					<pre className="p-4 text-sm text-white/80 overflow-x-auto">
+						<code>{`import { serverLogger } from '@/lib/logger'
 import { withContext, createCorrelationContext } from 'vestig'
 
 const log = serverLogger.child('api:users')
@@ -234,65 +221,35 @@ export async function GET(request: Request) {
 
     const data = await fetchData()
 
-    log.info('API response sent', {
-      status: 200,
-      itemCount: data.length,
-    })
-
     return Response.json(data, {
-      headers: {
-        'X-Request-Id': ctx.requestId!,
-      },
+      headers: { 'X-Request-Id': ctx.requestId! },
     })
   })
-}`}
-				/>
+}`}</code>
+					</pre>
+				</GlassCard>
 			</div>
 
-			{/* Key points */}
-			<div className="mt-8 relative p-6 bg-surface border border-white/[0.06] overflow-hidden">
-				<div className="absolute top-0 right-0 w-12 h-12 border-l border-b border-white/[0.04]" />
-				<h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-					<span className="text-white/50">—</span> Key Features
-				</h3>
-				<ul className="text-sm text-white/50 space-y-2">
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Request Lifecycle</strong> — Full tracing from
-							request to response
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Correlation IDs</strong> — Request ID and Trace ID
-							propagation
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Response Headers</strong> — IDs returned for
-							client-side tracing
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Duration Tracking</strong> — Performance metrics
-							logged automatically
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Error Handling</strong> — Errors logged with context
-							preserved
-						</span>
-					</li>
-				</ul>
-			</div>
+			{/* Key Features */}
+			<GlassCard variant="default" padding="lg" className="border-purple-500/20">
+				<h3 className="text-sm font-semibold text-white mb-4">Key Features</h3>
+				<GlassGrid cols={2}>
+					{[
+						{ title: 'Request Lifecycle', desc: 'Full tracing from request to response' },
+						{ title: 'Correlation IDs', desc: 'Request ID and Trace ID propagation' },
+						{ title: 'Response Headers', desc: 'IDs returned for client-side tracing' },
+						{ title: 'Duration Tracking', desc: 'Performance metrics logged automatically' },
+					].map((feature) => (
+						<div key={feature.title} className="flex items-start gap-2">
+							<span className="text-purple-400 mt-0.5">›</span>
+							<div>
+								<span className="text-sm text-white font-medium">{feature.title}</span>
+								<span className="text-sm text-white/40"> — {feature.desc}</span>
+							</div>
+						</div>
+					))}
+				</GlassGrid>
+			</GlassCard>
 		</Container>
 	)
 }

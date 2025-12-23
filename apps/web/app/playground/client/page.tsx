@@ -1,37 +1,23 @@
 'use client'
 
-import { DemoCard, DemoResult } from '@/app/components/demo-card'
-import { FullRuntimeBadge } from '@/app/components/runtime-badge'
-import { Button } from '@/components/ui/button'
+import { GlassCard, GlassButton, GlassGrid } from '@/app/components/glass-card'
+import { Container } from '@/components/layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Container } from '@/components/layout'
-import { Laptop, StatUp, Lock, Code, Play } from 'iconoir-react'
+import { Laptop, Lock, Code, Play, InfoCircle, Bug, WarningTriangle, Xmark } from 'iconoir-react'
 import { useCorrelationContext, useLogger } from '@vestig/next/client'
 import { useEffect, useState } from 'react'
 import { IS_SERVER, RUNTIME, type Runtime } from 'vestig'
 
-/**
- * Client Components Demo Page
- *
- * This page demonstrates logging in React Client Components (browser).
- * All logs are generated in the browser and sent to the server for unified viewing.
- */
 export default function ClientDemoPage() {
-	// Get logger from VestigProvider - no useMemo needed, hook handles stability
 	const log = useLogger('client-demo')
-
-	// Get correlation context from middleware (passed via VestigProvider)
 	const ctx = useCorrelationContext()
 
-	// Runtime detection - use client-side state to avoid hydration mismatch
-	// Server renders placeholder, client updates with actual values in useEffect
 	const [runtimeInfo, setRuntimeInfo] = useState<{
 		runtime: Runtime | 'unknown'
 		isServer: boolean
 	} | null>(null)
 
-	// Form state for PII demo
 	const [formData, setFormData] = useState({
 		email: '',
 		password: '',
@@ -40,12 +26,10 @@ export default function ClientDemoPage() {
 	})
 	const [logCount, setLogCount] = useState(0)
 
-	// Set runtime info on mount (client-side only to avoid hydration mismatch)
 	useEffect(() => {
 		setRuntimeInfo({ runtime: RUNTIME, isServer: IS_SERVER })
 	}, [])
 
-	// Log on mount - include correlation context for tracing
 	useEffect(() => {
 		log.info('Client component mounted', {
 			runtime: RUNTIME,
@@ -59,13 +43,11 @@ export default function ClientDemoPage() {
 		}
 	}, [log, ctx.requestId])
 
-	// Handler for form changes with logging
 	const handleInputChange = (field: string, value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }))
 		log.trace('Form field updated', { field, valueLength: value.length })
 	}
 
-	// Handler for form submission demo
 	const handleSubmit = () => {
 		log.info('Form submitted with sensitive data', {
 			email: formData.email,
@@ -76,7 +58,6 @@ export default function ClientDemoPage() {
 		setLogCount((c) => c + 1)
 	}
 
-	// Demo: Log at different levels
 	const logAtLevel = (level: 'trace' | 'debug' | 'info' | 'warn' | 'error') => {
 		const metadata = {
 			timestamp: new Date().toISOString(),
@@ -97,163 +78,200 @@ export default function ClientDemoPage() {
 				log.warn('This is a warning message', metadata)
 				break
 			case 'error':
-				log.error('This is an error message', {
-					...metadata,
-					error: new Error('Demo error'),
-				})
+				log.error('This is an error message', { ...metadata, error: new Error('Demo error') })
 				break
 		}
 		setLogCount((c) => c + 1)
 	}
 
-	// Demo: Simulate user interaction
 	const simulateUserFlow = async () => {
 		log.info('Starting user flow simulation')
-
 		log.debug('Step 1: User viewing page')
 		await new Promise((r) => setTimeout(r, 200))
-
 		log.debug('Step 2: User filling form')
 		await new Promise((r) => setTimeout(r, 200))
-
-		log.info('Step 3: User submitting form', {
-			formFields: Object.keys(formData),
-		})
+		log.info('Step 3: User submitting form', { formFields: Object.keys(formData) })
 		await new Promise((r) => setTimeout(r, 200))
-
 		log.info('User flow completed successfully')
 		setLogCount((c) => c + 4)
 	}
 
 	return (
-		<Container size="default">
+		<Container size="wide">
 			{/* Header */}
-			<div className="mb-8">
-				<div className="flex items-center gap-3 mb-4">
-					<Laptop className="h-8 w-8 text-foreground" />
-					<h1 className="text-2xl font-bold text-foreground">Client Components</h1>
+			<div className="relative mb-12">
+				<div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-gradient-to-r from-cyan-500/20 via-teal-500/20 to-cyan-500/20 rounded-full blur-[100px] pointer-events-none" />
+
+				<div className="relative">
+					<div className="flex items-center gap-3 mb-4">
+						<div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-teal-500/20 border border-cyan-500/30">
+							<Laptop className="h-6 w-6 text-cyan-400" />
+						</div>
+						<div>
+							<h1 className="text-3xl font-bold text-white">Client Components</h1>
+							<p className="text-white/50 text-sm">Browser-side logging with PII sanitization</p>
+						</div>
+					</div>
+					{runtimeInfo && (
+						<div className="flex items-center gap-2">
+							<span className="px-2 py-1 text-xs bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded">
+								{runtimeInfo.runtime}
+							</span>
+							<span className="px-2 py-1 text-xs bg-white/5 border border-white/10 text-white/50 rounded">
+								{runtimeInfo.isServer ? 'Server' : 'Client'}
+							</span>
+						</div>
+					)}
 				</div>
-				<p className="text-muted-foreground mb-4">
-					Browser-side logging with PII sanitization. Logs are sent to the server for unified
-					viewing.
-				</p>
-				{runtimeInfo ? (
-					<FullRuntimeBadge runtime={runtimeInfo.runtime} isServer={runtimeInfo.isServer} />
-				) : (
-					<span className="text-xs text-muted-foreground">Detecting runtime...</span>
-				)}
 			</div>
 
-			{/* Log level buttons */}
-			<DemoCard
-				title="Log Levels"
-				description="Click buttons to emit logs at different levels"
-				icon={<StatUp className="h-5 w-5" />}
-			>
-				<div className="flex flex-wrap gap-2 mb-4">
-					<Button variant="outline" size="sm" onClick={() => logAtLevel('trace')}>
-						Trace
-					</Button>
-					<Button variant="outline" size="sm" onClick={() => logAtLevel('debug')}>
-						Debug
-					</Button>
-					<Button variant="outline" size="sm" onClick={() => logAtLevel('info')}>
-						Info
-					</Button>
-					<Button variant="outline" size="sm" onClick={() => logAtLevel('warn')}>
-						Warn
-					</Button>
-					<Button variant="outline" size="sm" onClick={() => logAtLevel('error')}>
-						Error
-					</Button>
-				</div>
-				<div className="text-xs text-muted-foreground">
-					Logs emitted: <span className="text-foreground font-mono">{logCount}</span>
-				</div>
-			</DemoCard>
+			{/* Log Level Buttons */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4">Log Levels</h2>
+				<GlassCard variant="default" padding="lg">
+					<p className="text-sm text-white/50 mb-4">
+						Click buttons to emit logs at different levels
+					</p>
+					<div className="flex flex-wrap gap-3 mb-4">
+						<button
+							onClick={() => logAtLevel('trace')}
+							className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 transition-all"
+						>
+							<Bug className="h-4 w-4" /> Trace
+						</button>
+						<button
+							onClick={() => logAtLevel('debug')}
+							className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-gray-400 transition-all"
+						>
+							<Bug className="h-4 w-4" /> Debug
+						</button>
+						<button
+							onClick={() => logAtLevel('info')}
+							className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-blue-400 transition-all"
+						>
+							<InfoCircle className="h-4 w-4" /> Info
+						</button>
+						<button
+							onClick={() => logAtLevel('warn')}
+							className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-amber-400 transition-all"
+						>
+							<WarningTriangle className="h-4 w-4" /> Warn
+						</button>
+						<button
+							onClick={() => logAtLevel('error')}
+							className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-red-400 transition-all"
+						>
+							<Xmark className="h-4 w-4" /> Error
+						</button>
+					</div>
+					<div className="text-xs text-white/40">
+						Logs emitted: <span className="text-cyan-400 font-mono">{logCount}</span>
+					</div>
+				</GlassCard>
+			</div>
 
-			{/* PII Sanitization demo */}
-			<div className="mt-6">
-				<DemoCard
-					title="PII Sanitization Demo"
-					description="Enter sensitive data and watch it get automatically sanitized in the logs"
-					icon={<Lock className="h-5 w-5" />}
-				>
-					<div className="space-y-4 mb-4">
+			{/* PII Sanitization Demo */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Lock className="h-5 w-5 text-cyan-400" />
+					PII Sanitization Demo
+				</h2>
+				<GlassCard variant="glow" padding="lg" className="border-cyan-500/20">
+					<p className="text-sm text-white/50 mb-4">
+						Enter sensitive data and watch it get automatically sanitized in the logs
+					</p>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
 						<div className="space-y-2">
-							<Label htmlFor="email">Email</Label>
+							<Label htmlFor="email" className="text-white/70">
+								Email
+							</Label>
 							<Input
 								id="email"
 								type="email"
 								value={formData.email}
 								onChange={(e) => handleInputChange('email', e.target.value)}
 								placeholder="user@example.com"
+								className="bg-white/5 border-white/10"
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor="password">Password</Label>
+							<Label htmlFor="password" className="text-white/70">
+								Password
+							</Label>
 							<Input
 								id="password"
 								type="password"
 								value={formData.password}
 								onChange={(e) => handleInputChange('password', e.target.value)}
 								placeholder="••••••••"
+								className="bg-white/5 border-white/10"
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor="creditCard">Credit Card</Label>
+							<Label htmlFor="creditCard" className="text-white/70">
+								Credit Card
+							</Label>
 							<Input
 								id="creditCard"
 								type="text"
 								value={formData.creditCard}
 								onChange={(e) => handleInputChange('creditCard', e.target.value)}
 								placeholder="4111 1111 1111 1111"
+								className="bg-white/5 border-white/10"
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor="phone">Phone</Label>
+							<Label htmlFor="phone" className="text-white/70">
+								Phone
+							</Label>
 							<Input
 								id="phone"
 								type="tel"
 								value={formData.phone}
 								onChange={(e) => handleInputChange('phone', e.target.value)}
 								placeholder="+1 (555) 123-4567"
+								className="bg-white/5 border-white/10"
 							/>
 						</div>
 					</div>
-					<Button onClick={handleSubmit} className="w-full">
-						Submit (Watch Logs Below)
-					</Button>
-					<div className="mt-3 p-3 bg-white/5 border border-white/10 text-xs text-white/50">
-						<span className="text-amber-400/80">!</span> Sensitive fields like email, password, and
-						creditCard are automatically sanitized in the log output
+					<GlassButton variant="primary" onClick={handleSubmit} className="w-full">
+						Submit (Watch Dev Overlay)
+					</GlassButton>
+					<div className="mt-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg text-xs text-amber-400/80">
+						⚠️ Sensitive fields are automatically sanitized in the log output
 					</div>
-				</DemoCard>
+				</GlassCard>
 			</div>
 
-			{/* User flow simulation */}
-			<div className="mt-6">
-				<DemoCard
-					title="User Flow Simulation"
-					description="Simulate a typical user interaction flow with multiple log entries"
-					icon={<Play className="h-5 w-5" />}
-					actionLabel="Run Simulation"
-					onAction={simulateUserFlow}
-				/>
+			{/* User Flow Simulation */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Play className="h-5 w-5 text-cyan-400" />
+					User Flow Simulation
+				</h2>
+				<GlassCard variant="default" padding="lg">
+					<p className="text-sm text-white/50 mb-4">
+						Simulate a typical user interaction flow with multiple log entries
+					</p>
+					<GlassButton variant="secondary" onClick={simulateUserFlow}>
+						Run Simulation
+					</GlassButton>
+				</GlassCard>
 			</div>
 
-			{/* Code example */}
-			<div className="mt-6">
-				<DemoCard
-					title="Code Example"
-					description="How to use vestig in Client Components with @vestig/next"
-					icon={<Code className="h-5 w-5" />}
-					code={`'use client'
+			{/* Code Example */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Code className="h-5 w-5 text-cyan-400" />
+					Code Example
+				</h2>
+				<GlassCard variant="subtle" padding="none">
+					<pre className="p-4 text-sm text-white/80 overflow-x-auto">
+						<code>{`'use client'
 import { useEffect } from 'react'
 import { useLogger, useCorrelationContext } from '@vestig/next/client'
 
 export default function MyClientComponent() {
-  // Get logger from VestigProvider - stable reference, no useMemo needed!
   const log = useLogger('my-component')
   const ctx = useCorrelationContext()
 
@@ -269,54 +287,31 @@ export default function MyClientComponent() {
   }
 
   return <button onClick={handleClick}>Click me</button>
-}`}
-				/>
+}`}</code>
+					</pre>
+				</GlassCard>
 			</div>
 
-			{/* Key points */}
-			<div className="mt-8 relative p-6 bg-surface border border-white/[0.06] overflow-hidden">
-				<div className="absolute top-0 right-0 w-12 h-12 border-l border-b border-white/[0.04]" />
-				<h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-					<span className="text-white/50">—</span> Key Features
-				</h3>
-				<ul className="text-sm text-white/50 space-y-2">
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Browser Detection</strong> — Runtime shows as
-							'browser'
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">PII Sanitization</strong> — Email, password, credit
-							cards are redacted
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Unified Logging</strong> — Client logs appear in the
-							same panel as server logs
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Pretty Console</strong> — Colored output in browser
-							devtools
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">No AsyncLocalStorage</strong> — Graceful degradation
-							in browser
-						</span>
-					</li>
-				</ul>
-			</div>
+			{/* Key Features */}
+			<GlassCard variant="default" padding="lg" className="border-cyan-500/20">
+				<h3 className="text-sm font-semibold text-white mb-4">Key Features</h3>
+				<GlassGrid cols={2}>
+					{[
+						{ title: 'Browser Detection', desc: "Runtime shows as 'browser'" },
+						{ title: 'PII Sanitization', desc: 'Email, password, credit cards are redacted' },
+						{ title: 'Unified Logging', desc: 'Client logs appear with server logs' },
+						{ title: 'Pretty Console', desc: 'Colored output in browser devtools' },
+					].map((feature) => (
+						<div key={feature.title} className="flex items-start gap-2">
+							<span className="text-cyan-400 mt-0.5">›</span>
+							<div>
+								<span className="text-sm text-white font-medium">{feature.title}</span>
+								<span className="text-sm text-white/40"> — {feature.desc}</span>
+							</div>
+						</div>
+					))}
+				</GlassGrid>
+			</GlassCard>
 		</Container>
 	)
 }

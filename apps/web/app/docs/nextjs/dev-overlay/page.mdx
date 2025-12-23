@@ -1,0 +1,203 @@
+export const metadata = {
+  title: 'Dev Overlay',
+  description: 'Real-time log viewing and debugging tools for Next.js development.',
+}
+
+# Dev Overlay
+
+A floating panel that displays logs in real-time during development, with filtering, search, and metrics visualization.
+
+## Quick Setup
+
+Add the overlay to your root layout:
+
+```typescript
+// app/layout.tsx
+import { VestigDevOverlay } from '@vestig/next/dev'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        {children}
+        {process.env.NODE_ENV === 'development' && <VestigDevOverlay />}
+      </body>
+    </html>
+  )
+}
+```
+
+The overlay appears as a floating button in the corner of your screen. Click it or press `Cmd+L` (Mac) / `Ctrl+L` (Windows/Linux) to toggle the panel.
+
+## Configuration
+
+<Table>
+  <TableHead>
+    <TableRow>
+      <TableHeader>Prop</TableHeader>
+      <TableHeader>Type</TableHeader>
+      <TableHeader>Default</TableHeader>
+      <TableHeader>Description</TableHeader>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    <TableRow>
+      <TableCell>`position`</TableCell>
+      <TableCell>`'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'`</TableCell>
+      <TableCell>`'bottom-right'`</TableCell>
+      <TableCell>Position of the toggle button and panel</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`endpoint`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>`'/api/vestig/logs'`</TableCell>
+      <TableCell>SSE endpoint for server log streaming</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`toggleKey`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>`'l'`</TableCell>
+      <TableCell>Keyboard shortcut key (used with Cmd/Ctrl)</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`defaultSize`</TableCell>
+      <TableCell>`{ width: number; height: number }`</TableCell>
+      <TableCell>`{ width: 500, height: 400 }`</TableCell>
+      <TableCell>Initial panel dimensions</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`defaultOpen`</TableCell>
+      <TableCell>`boolean`</TableCell>
+      <TableCell>`false`</TableCell>
+      <TableCell>Whether to start with the panel open</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+## Features
+
+### Real-time Log Streaming
+
+The overlay connects to your server via Server-Sent Events (SSE) to display logs in real-time. Both server-side and client-side logs appear in the same panel.
+
+### Filtering & Search
+
+- **By Level**: Filter logs by trace, debug, info, warn, or error
+- **By Namespace**: Show logs from specific parts of your app
+- **By Source**: Toggle between server, client, or all logs
+- **Search**: Full-text search across log messages
+
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd/Ctrl + L` | Toggle overlay |
+| `Esc` | Close overlay |
+
+### Metrics Tab
+
+The overlay includes a Metrics tab showing Core Web Vitals (LCP, CLS, INP, TTFB, FCP) when you have `VestigMetrics` configured.
+
+## SSE Endpoint Setup
+
+Create the log streaming endpoint:
+
+```typescript
+// app/api/vestig/logs/route.ts
+import { createLogsStreamHandler } from '@vestig/next/dev/api'
+
+export const GET = createLogsStreamHandler()
+```
+
+## Programmatic Access
+
+### Using the Log Store
+
+Access the log store directly for custom integrations:
+
+```typescript
+import { logStore, useLogStore } from '@vestig/next/dev'
+
+// Get current logs
+const logs = logStore.getLogs()
+
+// Subscribe to changes (React hook)
+function MyComponent() {
+  const { logs, isOpen, filters } = useLogStore()
+
+  return (
+    <div>
+      {logs.map(log => (
+        <div key={log.id}>{log.message}</div>
+      ))}
+    </div>
+  )
+}
+```
+
+### Custom Hooks
+
+```typescript
+import {
+  useServerLogs,      // Connect to SSE stream
+  useClientLogCapture, // Capture browser logs
+  useDevOverlayShortcuts // Setup keyboard shortcuts
+} from '@vestig/next/dev'
+
+function CustomOverlay() {
+  // Connect to server logs
+  useServerLogs({ endpoint: '/api/vestig/logs', enabled: true })
+
+  // Capture console.log, console.error, etc.
+  useClientLogCapture({ enabled: true })
+
+  // Setup Cmd+L shortcut
+  useDevOverlayShortcuts({ toggleKey: 'l', enabled: true })
+}
+```
+
+## Best Practices
+
+### 1. Development Only
+
+Always wrap the overlay in an environment check:
+
+```typescript
+{process.env.NODE_ENV === 'development' && <VestigDevOverlay />}
+```
+
+### 2. Log Levels
+
+Use appropriate log levels for better filtering:
+
+```typescript
+import { createLogger } from 'vestig'
+
+const log = createLogger({ namespace: 'api' })
+
+log.trace('Detailed debugging info')  // Hidden by default
+log.debug('Development debugging')    // For dev troubleshooting
+log.info('Normal operations')         // General information
+log.warn('Warning conditions')        // Something unexpected
+log.error('Error conditions')         // Something broke
+```
+
+### 3. Namespaces
+
+Use namespaces to organize logs and make filtering easier:
+
+```typescript
+const dbLog = createLogger({ namespace: 'db' })
+const authLog = createLogger({ namespace: 'auth' })
+const apiLog = createLogger({ namespace: 'api' })
+```
+
+## Reconnection Behavior
+
+The overlay automatically reconnects to the SSE stream if the connection drops, using exponential backoff with a maximum of 5 retry attempts.
+
+## Next Steps
+
+- [Web Vitals](/docs/nextjs/web-vitals) — Monitor Core Web Vitals in the Metrics tab
+- [Logging Basics](/docs/core) — Learn about log levels and namespaces
+- [Server Components](/docs/nextjs/server-components) — Logging in RSC

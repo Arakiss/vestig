@@ -94,17 +94,17 @@ export function AnimatedLogs({ className }: { className?: string }) {
 
 	return (
 		<div className={cn('font-mono text-sm', className)}>
-			{/* Terminal header */}
-			<div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-white/[0.02]">
+			{/* Terminal header - Modern minimal style */}
+			<div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-white/[0.02]">
 				<div className="flex gap-1.5">
-					<div className="w-2.5 h-2.5 rounded-full bg-white/20" />
-					<div className="w-2.5 h-2.5 rounded-full bg-white/20" />
-					<div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+					<div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+					<div className="w-3 h-3 rounded-full bg-[#febc2e]" />
+					<div className="w-3 h-3 rounded-full bg-[#28c840]" />
 				</div>
-				<span className="text-xs text-white/40 ml-2">vestig — live logs</span>
+				<span className="text-xs text-white/30 font-medium">vestig — live logs</span>
 				<div className="ml-auto flex items-center gap-2">
-					<span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-					<span className="text-xs text-white/40">streaming</span>
+					<span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+					<span className="text-[10px] text-white/30 uppercase tracking-wider">streaming</span>
 				</div>
 			</div>
 

@@ -1,14 +1,9 @@
-import { DemoCard, DemoResult } from '@/app/components/demo-card'
-import { FullRuntimeBadge } from '@/app/components/runtime-badge'
-import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card'
+import { GlassCard, GlassGrid } from '@/app/components/glass-card'
 import { Container } from '@/components/layout'
 import { Lock, Copy, Code, Search } from 'iconoir-react'
 import { getLogger, getRequestContext } from '@vestig/next'
 import { IS_SERVER, RUNTIME, Sanitizer, PRESETS, type SanitizePreset } from 'vestig'
 
-/**
- * Sample data containing various types of PII
- */
 const sampleData = {
 	user: {
 		name: 'John Doe',
@@ -45,11 +40,15 @@ const presetDescriptions: Record<string, string> = {
 	'pci-dss': 'PCI-DSS compliant - Payment card industry standards',
 }
 
-/**
- * PII Sanitization Demo Page
- *
- * Interactive comparison of all sanitization presets side-by-side.
- */
+const presetColors: Record<string, string> = {
+	none: 'text-gray-400 bg-gray-500/10 border-gray-500/20',
+	minimal: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+	default: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
+	gdpr: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+	hipaa: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+	'pci-dss': 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+}
+
 export default async function SanitizationPage() {
 	const log = await getLogger('sanitization-demo')
 	const ctx = await getRequestContext()
@@ -61,7 +60,6 @@ export default async function SanitizationPage() {
 		requestId: ctx.requestId,
 	})
 
-	// Sanitize the sample data with each preset
 	const sanitizedResults = Object.entries(PRESETS).map(([name]) => {
 		const sanitizer = Sanitizer.fromPreset(name as SanitizePreset)
 		return {
@@ -74,63 +72,68 @@ export default async function SanitizationPage() {
 	return (
 		<Container size="wide">
 			{/* Header */}
-			<div className="mb-8">
-				<div className="flex items-center gap-3 mb-4">
-					<Lock className="h-8 w-8 text-foreground" />
-					<h1 className="text-2xl font-bold text-foreground">PII Sanitization</h1>
+			<div className="relative mb-12">
+				<div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
+
+				<div className="relative">
+					<div className="flex items-center gap-3 mb-4">
+						<div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30">
+							<Lock className="h-6 w-6 text-emerald-400" />
+						</div>
+						<div>
+							<h1 className="text-3xl font-bold text-white">PII Sanitization</h1>
+							<p className="text-white/50 text-sm">Compare sanitization presets side-by-side</p>
+						</div>
+					</div>
 				</div>
-				<p className="text-muted-foreground mb-4">
-					Compare all sanitization presets side-by-side. See how different compliance requirements
-					affect data masking.
-				</p>
-				<FullRuntimeBadge runtime={RUNTIME} isServer={IS_SERVER} />
 			</div>
 
-			{/* Sample data */}
-			<DemoCard
-				title="Sample Data (Unsanitized)"
-				description="This is the raw data that will be sanitized with each preset"
-				icon={<Copy className="h-5 w-5" />}
-			>
-				<DemoResult>
-					<pre className="text-xs text-muted-foreground overflow-x-auto">
+			{/* Sample Data */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Copy className="h-5 w-5 text-emerald-400" />
+					Sample Data (Unsanitized)
+				</h2>
+				<GlassCard variant="default" padding="none">
+					<pre className="p-4 text-xs text-white/60 overflow-x-auto max-h-64 overflow-y-auto">
 						{JSON.stringify(sampleData, null, 2)}
 					</pre>
-				</DemoResult>
-			</DemoCard>
+				</GlassCard>
+			</div>
 
-			{/* Preset comparisons */}
-			<div className="mt-8 space-y-6">
-				<h2 className="text-xl font-semibold text-foreground">Preset Comparison</h2>
-
+			{/* Preset Comparison */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4">Preset Comparison</h2>
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 					{sanitizedResults.map(({ name, description, result }) => (
-						<Card key={name} className="bg-surface overflow-hidden border-white/[0.06]">
-							<CardHeader className="pb-2 bg-white/[0.02]">
-								<div className="flex items-center gap-2">
-									<span className="text-[10px] px-2 py-0.5 bg-white/5 border border-white/10 text-white/60 uppercase tracking-wider">
+						<GlassCard key={name} variant="subtle" padding="none">
+							<div className="p-4 border-b border-white/10">
+								<div className="flex items-center gap-2 mb-1">
+									<span
+										className={`text-xs px-2 py-0.5 rounded uppercase tracking-wider ${presetColors[name]}`}
+									>
 										{name}
 									</span>
 								</div>
-								<CardDescription className="mt-1 text-white/40">{description}</CardDescription>
-							</CardHeader>
-							<CardContent className="pt-4">
-								<pre className="text-xs text-white/50 overflow-x-auto max-h-64 overflow-y-auto font-mono">
-									{JSON.stringify(result, null, 2)}
-								</pre>
-							</CardContent>
-						</Card>
+								<p className="text-xs text-white/40">{description}</p>
+							</div>
+							<pre className="p-4 text-xs text-white/50 overflow-x-auto max-h-48 overflow-y-auto">
+								{JSON.stringify(result, null, 2)}
+							</pre>
+						</GlassCard>
 					))}
 				</div>
 			</div>
 
-			{/* Code example */}
-			<div className="mt-8">
-				<DemoCard
-					title="Code Example"
-					description="How to use sanitization presets in your code"
-					icon={<Code className="h-5 w-5" />}
-					code={`import { createLogger, sanitize } from 'vestig'
+			{/* Code Example */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Code className="h-5 w-5 text-emerald-400" />
+					Code Example
+				</h2>
+				<GlassCard variant="subtle" padding="none">
+					<pre className="p-4 text-sm text-white/80 overflow-x-auto">
+						<code>{`import { createLogger, sanitize } from 'vestig'
 
 // Using preset in logger config
 const log = createLogger({
@@ -145,86 +148,70 @@ log.info('User login', {
 })
 
 // Direct sanitization
-const cleanData = sanitize(userData, { preset: 'hipaa' })`}
-				/>
+const cleanData = sanitize(userData, { preset: 'hipaa' })`}</code>
+					</pre>
+				</GlassCard>
 			</div>
 
-			{/* Field types */}
-			<div className="mt-8">
-				<DemoCard
-					title="Sanitized Field Types"
-					description="Types of data automatically detected and sanitized"
-					icon={<Search className="h-5 w-5" />}
-				>
-					<DemoResult>
-						<div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 text-sm">
-							{[
-								'password',
-								'email',
-								'creditCard',
-								'ssn',
-								'phone',
-								'apiKey',
-								'token',
-								'secret',
-								'address',
-							].map((field) => (
-								<div
-									key={field}
-									className="flex items-center justify-center bg-white/5 px-3 py-2 text-muted-foreground"
-								>
-									{field}
-								</div>
-							))}
+			{/* Field Types */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Search className="h-5 w-5 text-emerald-400" />
+					Sanitized Field Types
+				</h2>
+				<GlassCard variant="default" padding="lg">
+					<div className="flex flex-wrap gap-2">
+						{[
+							'password',
+							'email',
+							'creditCard',
+							'ssn',
+							'phone',
+							'apiKey',
+							'token',
+							'secret',
+							'address',
+						].map((field) => (
+							<span
+								key={field}
+								className="text-xs px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white/60"
+							>
+								{field}
+							</span>
+						))}
+					</div>
+				</GlassCard>
+			</div>
+
+			{/* Key Features */}
+			<GlassCard variant="default" padding="lg" className="border-emerald-500/20">
+				<h3 className="text-sm font-semibold text-white mb-4">Key Features</h3>
+				<GlassGrid cols={2}>
+					{[
+						{
+							title: '6 Built-in Presets',
+							desc: 'From minimal to compliance-ready (GDPR, HIPAA, PCI-DSS)',
+						},
+						{
+							title: 'Automatic Detection',
+							desc: 'Recognizes emails, credit cards, SSNs, tokens, and more',
+						},
+						{
+							title: 'Deep Object Sanitization',
+							desc: 'Recursively sanitizes nested objects and arrays',
+						},
+						{ title: 'Zero Dependencies', desc: 'Lightweight and fast, no external libraries' },
+					].map((feature) => (
+						<div key={feature.title} className="flex items-start gap-2">
+							<span className="text-emerald-400 mt-0.5">›</span>
+							<div>
+								<span className="text-sm text-white font-medium">{feature.title}</span>
+								<span className="text-sm text-white/40"> — {feature.desc}</span>
+							</div>
 						</div>
-					</DemoResult>
-				</DemoCard>
-			</div>
-
-			{/* Key points */}
-			<div className="mt-8 relative p-6 bg-surface border border-white/[0.06] overflow-hidden">
-				<div className="absolute top-0 right-0 w-12 h-12 border-l border-b border-white/[0.04]" />
-				<h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-					<span className="text-white/50">—</span> Key Features
-				</h3>
-				<ul className="text-sm text-white/50 space-y-2">
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">6 Built-in Presets</strong> — From minimal to
-							compliance-ready (GDPR, HIPAA, PCI-DSS)
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Automatic Detection</strong> — Recognizes emails,
-							credit cards, SSNs, tokens, and more
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Deep Object Sanitization</strong> — Recursively
-							sanitizes nested objects and arrays
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Custom Patterns</strong> — Add your own field
-							matchers and regex patterns
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Zero Dependencies</strong> — Lightweight and fast,
-							no external libraries
-						</span>
-					</li>
-				</ul>
-			</div>
+					))}
+				</GlassGrid>
+			</GlassCard>
 		</Container>
 	)
 }

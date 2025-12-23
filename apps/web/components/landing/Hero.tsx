@@ -137,22 +137,8 @@ export function Hero({ content }: HeroProps) {
 							{/* Connection line from terminal */}
 							<div className="absolute -left-4 top-1/2 w-4 h-px bg-gradient-to-r from-brand/0 to-brand/50 hidden lg:block" />
 
-							{/* Terminal Card */}
-							<div className="relative bg-surface border border-brand/10 overflow-hidden">
-								{/* Terminal Header */}
-								<div className="flex items-center justify-between px-4 py-3 bg-surface-elevated border-b border-brand/10">
-									<div className="flex items-center gap-2">
-										<div className="w-3 h-3 rounded-full bg-red-500/60" />
-										<div className="w-3 h-3 rounded-full bg-yellow-500/60" />
-										<div className="w-3 h-3 rounded-full bg-green-500/60" />
-									</div>
-									<div className="flex items-center gap-2">
-										<span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-										<span className="text-xs text-muted-foreground font-mono">live</span>
-									</div>
-								</div>
-
-								{/* Logs */}
+							{/* Terminal Card - Modern Glass Style */}
+							<div className="relative rounded-xl bg-black/40 backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl shadow-black/50">
 								<AnimatedLogs />
 							</div>
 						</div>
@@ -178,7 +164,7 @@ export function Hero({ content }: HeroProps) {
 }
 
 /**
- * Stat Card Component
+ * Stat Card Component - Modern Glass Style
  */
 interface StatCardProps {
 	value: string
@@ -188,17 +174,13 @@ interface StatCardProps {
 
 function StatCard({ value, label, accent = false }: StatCardProps) {
 	return (
-		<div className="relative p-4 bg-surface border border-brand/10 text-center lg:text-left">
-			{/* Corner accent */}
-			<div className="absolute top-0 left-0 w-2 h-2 border-l border-t border-brand/30" />
-			<div className="absolute bottom-0 right-0 w-2 h-2 border-r border-b border-brand/30" />
-
+		<div className="relative p-5 rounded-xl bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] text-center lg:text-left transition-all duration-300 hover:bg-white/[0.05] hover:border-white/[0.1]">
 			<div
-				className={`text-2xl lg:text-3xl font-bold font-display ${accent ? 'text-brand' : 'text-foreground'}`}
+				className={`text-2xl lg:text-3xl font-bold font-display ${accent ? 'text-white' : 'text-white/80'}`}
 			>
 				{value}
 			</div>
-			<div className="text-xs text-muted-foreground uppercase tracking-widest mt-1">{label}</div>
+			<div className="text-[10px] text-white/40 uppercase tracking-widest mt-1">{label}</div>
 		</div>
 	)
 }

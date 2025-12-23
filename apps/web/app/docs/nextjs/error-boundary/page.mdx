@@ -1,0 +1,343 @@
+export const metadata = {
+  title: 'Error Boundary',
+  description: 'Enhanced error handling with breadcrumbs, fingerprinting, and stack trace parsing.',
+}
+
+# Error Boundary
+
+An enhanced React Error Boundary that captures breadcrumbs (actions leading to the error), generates fingerprints for grouping, and provides beautiful development-mode error UI.
+
+## Quick Setup
+
+Wrap your application with the error boundary:
+
+```typescript
+// app/layout.tsx
+import { EnhancedErrorBoundary } from '@vestig/next/error'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        <EnhancedErrorBoundary
+          onError={(err) => console.error('Error caught:', err)}
+        >
+          {children}
+        </EnhancedErrorBoundary>
+      </body>
+    </html>
+  )
+}
+```
+
+## Configuration
+
+<Table>
+  <TableHead>
+    <TableRow>
+      <TableHeader>Prop</TableHeader>
+      <TableHeader>Type</TableHeader>
+      <TableHeader>Default</TableHeader>
+      <TableHeader>Description</TableHeader>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    <TableRow>
+      <TableCell>`fallback`</TableCell>
+      <TableCell>`ReactNode | ((error: EnhancedError) => ReactNode)`</TableCell>
+      <TableCell>Built-in UI</TableCell>
+      <TableCell>Custom error UI</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`onError`</TableCell>
+      <TableCell>`(error: EnhancedError) => void`</TableCell>
+      <TableCell>`undefined`</TableCell>
+      <TableCell>Callback when error is caught</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`maxBreadcrumbs`</TableCell>
+      <TableCell>`number`</TableCell>
+      <TableCell>`50`</TableCell>
+      <TableCell>Maximum breadcrumbs to store</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`showBreadcrumbs`</TableCell>
+      <TableCell>`boolean`</TableCell>
+      <TableCell>`true`</TableCell>
+      <TableCell>Show breadcrumbs in dev UI</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`reportEndpoint`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>`undefined`</TableCell>
+      <TableCell>POST endpoint for error reporting</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+## Breadcrumbs
+
+Breadcrumbs capture user actions leading up to an error, providing context for debugging.
+
+### Automatic Tracking
+
+Enable automatic click and fetch tracking:
+
+```typescript
+'use client'
+
+import { useEffect } from 'react'
+import { setupClickTracking, setupFetchTracking } from '@vestig/next/error'
+
+export function BreadcrumbTracker() {
+  useEffect(() => {
+    const cleanupClick = setupClickTracking()
+    const cleanupFetch = setupFetchTracking()
+
+    return () => {
+      cleanupClick()
+      cleanupFetch()
+    }
+  }, [])
+
+  return null
+}
+```
+
+### Manual Breadcrumbs
+
+Add custom breadcrumbs for important actions:
+
+```typescript
+import {
+  addNavigationBreadcrumb,
+  addClickBreadcrumb,
+  addInputBreadcrumb,
+  addFetchBreadcrumb,
+  addErrorBreadcrumb,
+  addCustomBreadcrumb,
+} from '@vestig/next/error'
+
+// Navigation
+addNavigationBreadcrumb('/dashboard', '/settings')
+
+// User click
+addClickBreadcrumb('Submit button', 'button#submit')
+
+// Form input (automatically redacts sensitive fields)
+addInputBreadcrumb('email', 'user@example.com', 'input#email')
+addInputBreadcrumb('password', '***', 'input#password')  // Redacted
+
+// API call
+addFetchBreadcrumb('GET', '/api/users', 200, 150)
+
+// Non-fatal error
+addErrorBreadcrumb('Failed to load preferences', error)
+
+// Custom event
+addCustomBreadcrumb('Feature flag enabled', { flag: 'dark-mode' })
+```
+
+### Breadcrumb Categories
+
+| Category | Icon | Description |
+|----------|------|-------------|
+| `log` | 📝 | Log messages |
+| `navigation` | 🧭 | Route changes |
+| `click` | 👆 | User clicks |
+| `input` | ⌨️ | Form inputs |
+| `fetch` | 🌐 | API calls |
+| `error` | ❌ | Previous errors |
+| `custom` | 📌 | Custom events |
+
+## Error Fingerprinting
+
+Fingerprints group similar errors together, useful for error aggregation:
+
+```typescript
+import { generateFingerprint, isSameError, groupErrors } from '@vestig/next/error'
+
+// Generate fingerprint from error
+const fingerprint = generateFingerprint(error, stackFrames)
+// 'a1b2c3d4'
+
+// Compare errors
+const same = isSameError(error1, error2)
+
+// Group multiple errors
+const grouped = groupErrors(errors)
+// Map<fingerprint, errors[]>
+```
+
+Fingerprints are based on:
+- Error type/name
+- Normalized error message (UUIDs, IDs, URLs removed)
+- Top stack frames (focusing on app code)
+
+## Stack Trace Parsing
+
+Parse and format stack traces from any browser:
+
+```typescript
+import {
+  parseStackTrace,
+  parseComponentStack,
+  getMostRelevantFrame,
+} from '@vestig/next/error'
+
+// Parse error stack
+const frames = parseStackTrace(error.stack)
+// [{ fileName, lineNumber, columnNumber, functionName, isAppCode }, ...]
+
+// Get React component tree
+const components = parseComponentStack(errorInfo.componentStack)
+// ['App', 'Layout', 'Page', 'BuggyComponent']
+
+// Find the most relevant frame (your code, not node_modules)
+const frame = getMostRelevantFrame(frames)
+```
+
+## Enhanced Error Object
+
+When an error is caught, the callback receives an enhanced error object:
+
+```typescript
+interface EnhancedError {
+  error: Error                    // Original error
+  fingerprint: string             // For grouping
+  frames: StackFrame[]            // Parsed stack
+  componentStack?: string         // React tree
+  breadcrumbs: Breadcrumb[]       // Actions before crash
+  timestamp: string               // ISO timestamp
+  environment: {
+    userAgent: string
+    url: string
+    pathname: string
+  }
+}
+```
+
+## Custom Fallback UI
+
+Provide your own error UI:
+
+```typescript
+<EnhancedErrorBoundary
+  fallback={(error) => (
+    <div className="error-page">
+      <h1>Something went wrong</h1>
+      <p>Error ID: {error.fingerprint}</p>
+      <button onClick={() => window.location.reload()}>
+        Try Again
+      </button>
+    </div>
+  )}
+>
+  {children}
+</EnhancedErrorBoundary>
+```
+
+## Error Reporting
+
+Send errors to your backend:
+
+```typescript
+<EnhancedErrorBoundary
+  reportEndpoint="/api/errors"
+  onError={(err) => {
+    // Also send to Sentry, LogRocket, etc.
+    Sentry.captureException(err.error, {
+      fingerprint: [err.fingerprint],
+      contexts: {
+        breadcrumbs: err.breadcrumbs,
+      },
+    })
+  }}
+>
+  {children}
+</EnhancedErrorBoundary>
+```
+
+### Error API Endpoint
+
+```typescript
+// app/api/errors/route.ts
+import { NextRequest, NextResponse } from 'next/server'
+
+export async function POST(request: NextRequest) {
+  const error = await request.json()
+
+  // Log to your error tracking service
+  await logError({
+    fingerprint: error.fingerprint,
+    message: error.error.message,
+    stack: error.error.stack,
+    breadcrumbs: error.breadcrumbs,
+    timestamp: error.timestamp,
+  })
+
+  return NextResponse.json({ received: true })
+}
+```
+
+## Development vs Production
+
+| Feature | Development | Production |
+|---------|-------------|------------|
+| Error UI | Rich overlay with stack | Simple "Something went wrong" |
+| Breadcrumbs | Shown in overlay | Sent to `reportEndpoint` |
+| Source Maps | Applied to stack | Use sourcemap service |
+| Component Tree | Shown | Hidden |
+
+## Best Practices
+
+### 1. Track Critical User Actions
+
+Add breadcrumbs at key points in your app:
+
+```typescript
+// Before important operations
+addCustomBreadcrumb('Starting checkout', { items: cart.length })
+
+// After API calls
+addFetchBreadcrumb('POST', '/api/checkout', response.status, duration)
+```
+
+### 2. Use Multiple Boundaries
+
+Wrap different sections for granular error handling:
+
+```typescript
+<EnhancedErrorBoundary fallback={<DashboardError />}>
+  <Dashboard />
+</EnhancedErrorBoundary>
+
+<EnhancedErrorBoundary fallback={<SidebarError />}>
+  <Sidebar />
+</EnhancedErrorBoundary>
+```
+
+### 3. Combine with Logging
+
+Log errors along with catching them:
+
+```typescript
+import { createLogger } from 'vestig'
+
+const log = createLogger({ namespace: 'errors' })
+
+<EnhancedErrorBoundary
+  onError={(err) => {
+    log.error('Unhandled error', {
+      fingerprint: err.fingerprint,
+      breadcrumbs: err.breadcrumbs.length,
+    })
+  }}
+>
+```
+
+## Next Steps
+
+- [Dev Overlay](/docs/nextjs/dev-overlay) — See breadcrumbs in real-time
+- [Logging Basics](/docs/core) — Log errors properly
+- [Error Handling](/docs/advanced/error-handling) — Error serialization

@@ -1,18 +1,11 @@
-import { DemoCard, DemoResult } from '@/app/components/demo-card'
-import { FullRuntimeBadge } from '@/app/components/runtime-badge'
+import { GlassCard, GlassGrid } from '@/app/components/glass-card'
 import { Container } from '@/components/layout'
-import { Flash, Search, Settings, Shuffle, PlugTypeA, Check, Xmark } from 'iconoir-react'
+import { Flash, Search, Settings, Code, Check, Xmark } from 'iconoir-react'
 import { getLogger, getRequestContext } from '@vestig/next'
 import { IS_SERVER, RUNTIME, CAPABILITIES, IS_EDGE } from 'vestig'
 
-// Force edge runtime for this page
 export const runtime = 'edge'
 
-/**
- * Edge Runtime Demo Page
- *
- * Demonstrates logging in Edge Runtime (Vercel Edge, Cloudflare Workers).
- */
 export default async function EdgePage() {
 	const log = await getLogger('edge-demo')
 	const ctx = await getRequestContext()
@@ -25,7 +18,6 @@ export default async function EdgePage() {
 		requestId: ctx.requestId,
 	})
 
-	// Log capabilities available in this runtime
 	log.debug('Runtime capabilities', {
 		hasAsyncLocalStorage: CAPABILITIES.hasAsyncLocalStorage,
 		hasProcess: CAPABILITIES.hasProcess,
@@ -35,218 +27,167 @@ export default async function EdgePage() {
 	})
 
 	return (
-		<Container size="default">
+		<Container size="wide">
 			{/* Header */}
-			<div className="mb-8">
-				<div className="flex items-center gap-3 mb-4">
-					<Flash className="h-8 w-8 text-foreground" />
-					<h1 className="text-2xl font-bold text-foreground">Edge Runtime</h1>
-				</div>
-				<p className="text-muted-foreground mb-4">
-					Lightweight logging in Edge Functions and Middleware. Vestig automatically adapts to the
-					edge environment with reduced bundle size.
-				</p>
-				<FullRuntimeBadge runtime={RUNTIME} isServer={IS_SERVER} />
-			</div>
+			<div className="relative mb-12">
+				<div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-yellow-500/20 rounded-full blur-[100px] pointer-events-none" />
 
-			{/* Runtime detection */}
-			<DemoCard
-				title="Runtime Detection"
-				description="Vestig automatically detects the edge environment"
-				icon={<Search className="h-5 w-5" />}
-			>
-				<DemoResult>
-					<div className="grid grid-cols-2 gap-4 text-sm">
-						<div>
-							<span className="text-muted-foreground">Runtime:</span>{' '}
-							<span className="text-foreground font-mono">{RUNTIME}</span>
+				<div className="relative">
+					<div className="flex items-center gap-3 mb-4">
+						<div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-500/30">
+							<Flash className="h-6 w-6 text-yellow-400" />
 						</div>
 						<div>
-							<span className="text-muted-foreground">Is Edge:</span>{' '}
-							<span className="font-mono text-foreground">{IS_EDGE ? 'true' : 'false'}</span>
-						</div>
-						<div>
-							<span className="text-muted-foreground">Request ID:</span>{' '}
-							<span className="text-foreground/70 font-mono text-xs">{ctx.requestId}</span>
-						</div>
-						<div>
-							<span className="text-muted-foreground">Trace ID:</span>{' '}
-							<span className="text-foreground/70 font-mono text-xs">{ctx.traceId}</span>
+							<h1 className="text-3xl font-bold text-white">Edge Runtime</h1>
+							<p className="text-white/50 text-sm">
+								Lightweight logging in Edge Functions and Middleware
+							</p>
 						</div>
 					</div>
-				</DemoResult>
-			</DemoCard>
-
-			{/* Capabilities */}
-			<div className="mt-6">
-				<DemoCard
-					title="Runtime Capabilities"
-					description="APIs available in the current edge environment"
-					icon={<Settings className="h-5 w-5" />}
-				>
-					<DemoResult>
-						<div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-							{Object.entries(CAPABILITIES).map(([key, value]) => (
-								<div
-									key={key}
-									className={`flex items-center gap-2 px-3 py-2 ${
-										value ? 'bg-white/10' : 'bg-white/5'
-									}`}
-								>
-									{value ? (
-										<Check className="h-4 w-4 text-foreground" />
-									) : (
-										<Xmark className="h-4 w-4 text-muted-foreground" />
-									)}
-									<span className={value ? 'text-foreground' : 'text-muted-foreground'}>
-										{key.replace('has', '')}
-									</span>
-								</div>
-							))}
-						</div>
-					</DemoResult>
-				</DemoCard>
+					<div className="flex items-center gap-2">
+						<span className="px-2 py-1 text-xs bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded">
+							{RUNTIME}
+						</span>
+						<span className="px-2 py-1 text-xs bg-white/5 border border-white/10 text-white/50 rounded">
+							Edge: {IS_EDGE ? 'true' : 'false'}
+						</span>
+					</div>
+				</div>
 			</div>
 
-			{/* Edge middleware example */}
-			<div className="mt-6">
-				<DemoCard
-					title="Edge Middleware"
-					description="How to use vestig in Next.js Edge Middleware"
-					icon={<Shuffle className="h-5 w-5" />}
-					code={`// middleware.ts
+			{/* Runtime Detection */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Search className="h-5 w-5 text-yellow-400" />
+					Runtime Detection
+				</h2>
+				<GlassCard variant="glow" padding="lg" className="border-yellow-500/20">
+					<div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+						<div className="text-center">
+							<div className="text-2xl font-bold text-white">{RUNTIME}</div>
+							<div className="text-xs text-white/40 uppercase tracking-wider">Runtime</div>
+						</div>
+						<div className="text-center">
+							<div className="text-2xl font-bold text-white">{IS_EDGE ? 'Yes' : 'No'}</div>
+							<div className="text-xs text-white/40 uppercase tracking-wider">Is Edge</div>
+						</div>
+						<div className="text-center">
+							<div className="text-sm font-mono text-yellow-400 truncate">
+								{ctx.requestId?.slice(0, 12)}...
+							</div>
+							<div className="text-xs text-white/40 uppercase tracking-wider">Request ID</div>
+						</div>
+						<div className="text-center">
+							<div className="text-sm font-mono text-orange-400 truncate">
+								{ctx.traceId?.slice(0, 12)}...
+							</div>
+							<div className="text-xs text-white/40 uppercase tracking-wider">Trace ID</div>
+						</div>
+					</div>
+				</GlassCard>
+			</div>
+
+			{/* Capabilities */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Settings className="h-5 w-5 text-yellow-400" />
+					Runtime Capabilities
+				</h2>
+				<GlassCard variant="default" padding="lg">
+					<div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+						{Object.entries(CAPABILITIES).map(([key, value]) => (
+							<div
+								key={key}
+								className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+									value
+										? 'bg-emerald-500/10 border border-emerald-500/20'
+										: 'bg-white/5 border border-white/10'
+								}`}
+							>
+								{value ? (
+									<Check className="h-4 w-4 text-emerald-400" />
+								) : (
+									<Xmark className="h-4 w-4 text-white/30" />
+								)}
+								<span className={value ? 'text-white' : 'text-white/40'}>
+									{key.replace('has', '')}
+								</span>
+							</div>
+						))}
+					</div>
+				</GlassCard>
+			</div>
+
+			{/* Code Example */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Code className="h-5 w-5 text-yellow-400" />
+					Edge Middleware Example
+				</h2>
+				<GlassCard variant="subtle" padding="none">
+					<pre className="p-4 text-sm text-white/80 overflow-x-auto">
+						<code>{`// middleware.ts
 import { createVestigMiddleware } from '@vestig/next/middleware'
 
 export const middleware = createVestigMiddleware({
-  // Skip static assets and API routes
   skipPaths: ['/_next', '/favicon.ico', '/api/health'],
-
-  // Custom request ID header
   requestIdHeader: 'x-request-id',
-
-  // Log levels for requests/responses
   requestLogLevel: 'debug',
   responseLogLevel: 'info',
 })
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
-}`}
-				/>
+}`}</code>
+					</pre>
+				</GlassCard>
 			</div>
 
-			{/* Edge function example */}
-			<div className="mt-6">
-				<DemoCard
-					title="Edge API Route"
-					description="Logging in Edge API routes with correlation"
-					icon={<PlugTypeA className="h-5 w-5" />}
-					code={`// app/api/edge-example/route.ts
-import { withVestig } from '@vestig/next'
-
-export const runtime = 'edge'
-
-export const GET = withVestig(
-  async (request, { log, ctx }) => {
-    log.info('Edge API request received', {
-      requestId: ctx.requestId,
-      geo: request.geo, // Vercel Edge geo data
-    })
-
-    // Your edge logic here
-    const data = await fetchFromEdgeCache()
-
-    log.debug('Response ready', { cached: !!data })
-
-    return Response.json(data)
-  },
-  { namespace: 'api:edge-example' }
-)`}
-				/>
+			{/* Edge Considerations */}
+			<div className="mb-8">
+				<GlassCard variant="default" padding="lg" className="border-amber-500/20">
+					<h3 className="text-sm font-semibold text-amber-400 mb-4 flex items-center gap-2">
+						⚠️ Edge Considerations
+					</h3>
+					<GlassGrid cols={2}>
+						{[
+							{ title: 'No File System', desc: 'FileTransport is not available in edge runtime' },
+							{ title: 'Limited APIs', desc: 'Some Node.js APIs may be restricted' },
+							{ title: 'Global Context', desc: 'Uses global context instead of AsyncLocalStorage' },
+							{ title: 'Bundle Size', desc: 'Vestig automatically tree-shakes unused features' },
+						].map((item) => (
+							<div key={item.title} className="flex items-start gap-2">
+								<span className="text-amber-400 mt-0.5">›</span>
+								<div>
+									<span className="text-sm text-white font-medium">{item.title}</span>
+									<span className="text-sm text-white/40"> — {item.desc}</span>
+								</div>
+							</div>
+						))}
+					</GlassGrid>
+				</GlassCard>
 			</div>
 
-			{/* Edge considerations */}
-			<div className="mt-8 relative p-6 bg-surface border border-white/[0.06] overflow-hidden">
-				<div className="absolute top-0 right-0 w-12 h-12 border-l border-b border-white/[0.04]" />
-				<h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-					<span className="text-amber-400/80">!</span> Edge Considerations
-				</h3>
-				<ul className="text-sm text-white/50 space-y-2">
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">No File System</strong> — FileTransport is not
-							available in edge runtime
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Limited APIs</strong> — Some Node.js APIs like
-							process.env may be restricted
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Global Context</strong> — Uses global context
-							manager instead of AsyncLocalStorage
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Bundle Size</strong> — Vestig automatically
-							tree-shakes unused features
-						</span>
-					</li>
-				</ul>
-			</div>
-
-			{/* Key points */}
-			<div className="mt-6 relative p-6 bg-surface border border-white/[0.06] overflow-hidden">
-				<div className="absolute top-0 right-0 w-12 h-12 border-l border-b border-white/[0.04]" />
-				<h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-					<span className="text-white/50">—</span> Key Features
-				</h3>
-				<ul className="text-sm text-white/50 space-y-2">
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Zero Config</strong> — Works automatically in Vercel
-							Edge and Cloudflare Workers
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Auto Detection</strong> — Vestig detects edge
-							runtime and adapts accordingly
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Correlation IDs</strong> — Request correlation works
-							across edge and origin
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Minimal Bundle</strong> — Tree-shakeable design
-							keeps edge bundles small
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Same API</strong> — Use the same logging API as
-							server and client
-						</span>
-					</li>
-				</ul>
-			</div>
+			{/* Key Features */}
+			<GlassCard variant="default" padding="lg" className="border-yellow-500/20">
+				<h3 className="text-sm font-semibold text-white mb-4">Key Features</h3>
+				<GlassGrid cols={2}>
+					{[
+						{ title: 'Zero Config', desc: 'Works in Vercel Edge and Cloudflare Workers' },
+						{ title: 'Auto Detection', desc: 'Vestig detects edge runtime and adapts' },
+						{ title: 'Correlation IDs', desc: 'Request correlation across edge and origin' },
+						{ title: 'Same API', desc: 'Use the same logging API as server and client' },
+					].map((feature) => (
+						<div key={feature.title} className="flex items-start gap-2">
+							<span className="text-yellow-400 mt-0.5">›</span>
+							<div>
+								<span className="text-sm text-white font-medium">{feature.title}</span>
+								<span className="text-sm text-white/40"> — {feature.desc}</span>
+							</div>
+						</div>
+					))}
+				</GlassGrid>
+			</GlassCard>
 		</Container>
 	)
 }

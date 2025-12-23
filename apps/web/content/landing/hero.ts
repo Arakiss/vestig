@@ -2,7 +2,7 @@ import type { HeroContent } from '@/lib/content/types'
 
 export const heroContent: HeroContent = {
 	badge: {
-		text: 'v0.7.0 — Deno Support + Sampling',
+		text: 'v0.8.0 — Dev Overlay + WebVitals',
 		href: '/changelog',
 		variant: 'new',
 	},

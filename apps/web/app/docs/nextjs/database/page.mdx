@@ -1,0 +1,350 @@
+export const metadata = {
+  title: 'Database Logging',
+  description: 'Query logging integration for Prisma and Drizzle ORMs.',
+}
+
+# Database Logging
+
+Automatic query logging for Prisma and Drizzle ORMs with slow query detection, parameter sanitization, and correlation ID tracking.
+
+## Prisma Setup
+
+### Basic Setup
+
+Wrap your Prisma client with Vestig logging:
+
+```typescript
+// lib/db.ts
+import { PrismaClient } from '@prisma/client'
+import { withVestigPrisma, createPrismaLogConfig } from '@vestig/next/db'
+import { createLogger } from 'vestig'
+
+const logger = createLogger({ namespace: 'db' })
+
+export const prisma = withVestigPrisma(
+  new PrismaClient({
+    log: createPrismaLogConfig(),  // Required for query events
+  }),
+  { logger }
+)
+```
+
+### Manual Event Handler
+
+For more control, use the event handler directly:
+
+```typescript
+import { PrismaClient } from '@prisma/client'
+import { createPrismaQueryHandler } from '@vestig/next/db'
+import { createLogger } from 'vestig'
+
+const logger = createLogger({ namespace: 'db' })
+
+const prisma = new PrismaClient({
+  log: [{ emit: 'event', level: 'query' }],
+})
+
+prisma.$on('query', createPrismaQueryHandler({ logger }))
+
+export { prisma }
+```
+
+## Drizzle Setup
+
+### Basic Setup
+
+Create a Vestig-compatible logger for Drizzle:
+
+```typescript
+// lib/db.ts
+import { drizzle } from 'drizzle-orm/postgres-js'
+import postgres from 'postgres'
+import { createVestigDrizzleLogger } from '@vestig/next/db'
+import { createLogger } from 'vestig'
+
+const logger = createLogger({ namespace: 'db' })
+const client = postgres(process.env.DATABASE_URL!)
+
+export const db = drizzle(client, {
+  logger: createVestigDrizzleLogger({ logger }),
+})
+```
+
+### With Query Timing
+
+Use `measureQuery` for explicit timing:
+
+```typescript
+import { measureQuery } from '@vestig/next/db'
+
+// Wrap expensive queries
+const users = await measureQuery(
+  () => db.select().from(users).where(eq(users.status, 'active')),
+  'SELECT * FROM users WHERE status = ?',
+  ['active'],
+  { logger }
+)
+```
+
+## Configuration
+
+Both Prisma and Drizzle wrappers accept the same configuration:
+
+<Table>
+  <TableHead>
+    <TableRow>
+      <TableHeader>Option</TableHeader>
+      <TableHeader>Type</TableHeader>
+      <TableHeader>Default</TableHeader>
+      <TableHeader>Description</TableHeader>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    <TableRow>
+      <TableCell>`enabled`</TableCell>
+      <TableCell>`boolean`</TableCell>
+      <TableCell>`true` (dev) / `false` (prod)</TableCell>
+      <TableCell>Enable/disable logging</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`slowQueryThreshold`</TableCell>
+      <TableCell>`number`</TableCell>
+      <TableCell>`100`</TableCell>
+      <TableCell>Threshold in ms for slow query warnings</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`logLevel`</TableCell>
+      <TableCell>`'all' | 'slow' | 'none'`</TableCell>
+      <TableCell>`'all'` (dev) / `'slow'` (prod)</TableCell>
+      <TableCell>Which queries to log</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`sanitizeParams`</TableCell>
+      <TableCell>`boolean`</TableCell>
+      <TableCell>`true`</TableCell>
+      <TableCell>Redact sensitive parameters</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`maxQueryLength`</TableCell>
+      <TableCell>`number`</TableCell>
+      <TableCell>`1000`</TableCell>
+      <TableCell>Truncate long queries</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`namespace`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>`'db'`</TableCell>
+      <TableCell>Logger namespace</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`onQuery`</TableCell>
+      <TableCell>`(entry: QueryLogEntry) => void`</TableCell>
+      <TableCell>`undefined`</TableCell>
+      <TableCell>Custom callback for each query</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+## Query Log Entry
+
+Each logged query produces an entry with this structure:
+
+```typescript
+interface QueryLogEntry {
+  id: string                      // Unique query ID
+  timestamp: string               // ISO timestamp
+  query: string                   // SQL query (sanitized)
+  params?: unknown[]              // Parameters (sanitized)
+  duration: number                // Execution time in ms
+  isSlow: boolean                 // Exceeded threshold?
+  operation: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'OTHER'
+  table?: string                  // Detected table name
+  context?: {
+    requestId?: string            // Correlation ID
+    traceId?: string              // Trace ID
+  }
+}
+```
+
+## Slow Query Detection
+
+Queries exceeding the threshold are flagged and logged at `warn` level:
+
+```typescript
+const prisma = withVestigPrisma(
+  new PrismaClient({ log: createPrismaLogConfig() }),
+  {
+    logger,
+    slowQueryThreshold: 100,  // 100ms
+  }
+)
+```
+
+Output:
+```
+⚠️ [db] Slow query detected (245ms) SELECT * FROM orders JOIN order_items...
+```
+
+## Parameter Sanitization
+
+Sensitive parameters are automatically redacted:
+
+```typescript
+// These patterns are sanitized:
+const sensitivePatterns = [
+  'password',
+  'secret',
+  'token',
+  'api_key',
+  'credit_card',
+  'ssn',
+  'social_security',
+]
+
+// Input
+await prisma.user.create({
+  data: { email: 'test@example.com', password: 'secret123' }
+})
+
+// Logged as
+// INSERT INTO users (email, password) VALUES ($1, $2)
+// params: ['test@example.com', '[REDACTED]']
+```
+
+## Production Configuration
+
+For production, log only slow queries:
+
+```typescript
+const prisma = withVestigPrisma(
+  new PrismaClient({ log: createPrismaLogConfig() }),
+  {
+    logger,
+    logLevel: 'slow',        // Only slow queries
+    slowQueryThreshold: 200, // 200ms threshold
+    enabled: true,           // Keep enabled
+  }
+)
+```
+
+## Custom Query Callbacks
+
+Process queries for custom analytics:
+
+```typescript
+const prisma = withVestigPrisma(
+  new PrismaClient({ log: createPrismaLogConfig() }),
+  {
+    logger,
+    onQuery: (entry) => {
+      // Send to APM
+      apm.recordQuery({
+        query: entry.query,
+        duration: entry.duration,
+        slow: entry.isSlow,
+      })
+
+      // Track in metrics
+      metrics.histogram('db.query.duration', entry.duration, {
+        operation: entry.operation,
+        table: entry.table,
+      })
+    },
+  }
+)
+```
+
+## Correlation with Requests
+
+Queries are automatically correlated with the current request context:
+
+```typescript
+// In a Server Component or API Route
+import { withRequestContext } from '@vestig/next'
+
+export async function GET(request: Request) {
+  return withRequestContext(request, async () => {
+    // This query will include requestId and traceId
+    const users = await prisma.user.findMany()
+    return Response.json(users)
+  })
+}
+```
+
+Log output includes context:
+```json
+{
+  "query": "SELECT * FROM users",
+  "duration": 12,
+  "context": {
+    "requestId": "req_abc123",
+    "traceId": "trace_xyz789"
+  }
+}
+```
+
+## Best Practices
+
+### 1. Use Appropriate Thresholds
+
+Set thresholds based on your application:
+
+```typescript
+// API routes: stricter
+withVestigPrisma(prisma, { slowQueryThreshold: 50 })
+
+// Background jobs: more lenient
+withVestigPrisma(prisma, { slowQueryThreshold: 500 })
+```
+
+### 2. Enable Only Slow Logging in Production
+
+Reduce log volume without missing issues:
+
+```typescript
+withVestigPrisma(prisma, {
+  logLevel: process.env.NODE_ENV === 'production' ? 'slow' : 'all',
+})
+```
+
+### 3. Combine with Dev Overlay
+
+View queries in the Dev Overlay during development:
+
+```typescript
+{process.env.NODE_ENV === 'development' && <VestigDevOverlay />}
+```
+
+### 4. Index Slow Queries
+
+Use the `onQuery` callback to track and address slow queries:
+
+```typescript
+onQuery: (entry) => {
+  if (entry.isSlow) {
+    // Log to a separate channel for review
+    slowQueryLog.warn(`Slow: ${entry.query}`, {
+      duration: entry.duration,
+      table: entry.table,
+    })
+  }
+}
+```
+
+## Supported Databases
+
+Works with any database supported by Prisma or Drizzle:
+- PostgreSQL
+- MySQL
+- SQLite
+- SQL Server
+- MongoDB (Prisma only)
+- PlanetScale
+- Neon
+- Supabase
+
+## Next Steps
+
+- [Dev Overlay](/docs/nextjs/dev-overlay) — View queries in real-time
+- [Tracing](/docs/tracing) — Correlate queries with requests
+- [Server Components](/docs/nextjs/server-components) — Database in RSC

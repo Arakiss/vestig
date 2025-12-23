@@ -143,7 +143,7 @@ export default async function RootLayout({
 								'Zero-dependency TypeScript logging library with automatic PII sanitization, native tracing, and multi-runtime support.',
 							url: 'https://vestig.dev',
 							downloadUrl: 'https://www.npmjs.com/package/vestig',
-							softwareVersion: '0.7.0',
+							softwareVersion: '0.8.0',
 							author: {
 								'@type': 'Person',
 								name: 'Arakiss',

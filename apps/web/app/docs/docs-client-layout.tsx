@@ -13,6 +13,10 @@ import {
 	Cpu,
 	WarningTriangle,
 	Settings,
+	GraphUp,
+	Flash,
+	DatabaseScript,
+	ViewGrid,
 } from 'iconoir-react'
 import { InnerNav, Sidebar, type SidebarSection } from '@/components/layout'
 
@@ -82,7 +86,30 @@ const navigation: SidebarSection[] = [
 				href: '/docs/nextjs/client',
 				icon: <Laptop className="h-4 w-4" />,
 			},
-			{ title: 'Express.js', href: '/docs/express', badge: 'New' },
+			{
+				title: 'Dev Overlay',
+				href: '/docs/nextjs/dev-overlay',
+				icon: <ViewGrid className="h-4 w-4" />,
+				badge: 'New',
+			},
+			{
+				title: 'Web Vitals',
+				href: '/docs/nextjs/web-vitals',
+				icon: <GraphUp className="h-4 w-4" />,
+				badge: 'New',
+			},
+			{
+				title: 'Error Boundary',
+				href: '/docs/nextjs/error-boundary',
+				icon: <Flash className="h-4 w-4" />,
+				badge: 'New',
+			},
+			{
+				title: 'Database Logging',
+				href: '/docs/nextjs/database',
+				icon: <DatabaseScript className="h-4 w-4" />,
+				badge: 'New',
+			},
 		],
 	},
 	{

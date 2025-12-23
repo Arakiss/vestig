@@ -1,5 +1,4 @@
-import { DemoCard, DemoResult } from '@/app/components/demo-card'
-import { FullRuntimeBadge } from '@/app/components/runtime-badge'
+import { GlassCard, GlassCardBadge, GlassGrid } from '@/app/components/glass-card'
 import { Container } from '@/components/layout'
 import { Server, Search, GitFork, Code } from 'iconoir-react'
 import { getLogger, getRequestContext } from '@vestig/next'
@@ -10,7 +9,6 @@ import { IS_SERVER, RUNTIME } from 'vestig'
  */
 async function fetchUser(id: number, log: Awaited<ReturnType<typeof getLogger>>) {
 	log.debug('Fetching user', { userId: id })
-	// Simulate network delay
 	await new Promise((r) => setTimeout(r, 100))
 	const user = {
 		id,
@@ -37,9 +35,7 @@ async function fetchPosts(userId: number, log: Awaited<ReturnType<typeof getLogg
  * Nested async component with context propagation
  */
 async function UserProfile({ userId }: { userId: number }) {
-	// Get a namespaced logger for this component (uses React cache, shares context with parent)
 	const profileLog = await getLogger('server-demo:profile')
-
 	profileLog.trace('UserProfile component rendering', { userId })
 
 	const user = await fetchUser(userId, profileLog)
@@ -51,37 +47,27 @@ async function UserProfile({ userId }: { userId: number }) {
 	})
 
 	return (
-		<div className="bg-surface p-4 border border-white/10">
+		<div className="bg-white/5 rounded-lg p-4 border border-white/10">
 			<div className="flex items-center gap-3 mb-3">
-				<div className="w-10 h-10 bg-white/10 flex items-center justify-center text-foreground font-medium">
+				<div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-white/10 flex items-center justify-center text-indigo-400 font-medium">
 					{user.name[0]}
 				</div>
 				<div>
-					<div className="font-medium text-foreground">{user.name}</div>
-					<div className="text-sm text-muted-foreground">{user.email}</div>
+					<div className="font-medium text-white">{user.name}</div>
+					<div className="text-sm text-white/50">{user.email}</div>
 				</div>
 			</div>
-			<div className="text-sm text-muted-foreground">
+			<div className="text-sm text-white/40">
 				{posts.length} posts · {user.role}
 			</div>
 		</div>
 	)
 }
 
-/**
- * Server Components Demo Page
- *
- * This page demonstrates logging in React Server Components.
- * All logs are generated on the server and streamed to the UI.
- */
 export default async function ServerDemoPage() {
-	// Get a logger for this page - automatically includes correlation context from middleware
 	const log = await getLogger('server-demo')
-
-	// Get the correlation context set by middleware (requestId, traceId, etc.)
 	const ctx = await getRequestContext()
 
-	// Log page render start
 	log.info('Server Component page rendering', {
 		route: '/playground/server',
 		runtime: RUNTIME,
@@ -89,77 +75,85 @@ export default async function ServerDemoPage() {
 		requestId: ctx.requestId,
 	})
 
-	// Simulate some async work
 	await new Promise((r) => setTimeout(r, 50))
-
 	log.trace('Initial render complete, fetching data')
 
 	return (
-		<Container size="default">
+		<Container size="wide">
 			{/* Header */}
-			<div className="mb-8">
-				<div className="flex items-center gap-3 mb-4">
-					<Server className="h-8 w-8 text-foreground" />
-					<h1 className="text-2xl font-bold text-foreground">Server Components</h1>
-				</div>
-				<p className="text-muted-foreground mb-4">
-					Logging in React Server Components with automatic runtime detection and context
-					propagation.
-				</p>
-				<FullRuntimeBadge runtime={RUNTIME} isServer={IS_SERVER} />
-			</div>
+			<div className="relative mb-12">
+				<div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-gradient-to-r from-blue-500/20 via-indigo-500/20 to-blue-500/20 rounded-full blur-[100px] pointer-events-none" />
 
-			{/* Runtime info */}
-			<DemoCard
-				title="Runtime Detection"
-				description="Vestig automatically detects the current runtime environment"
-				icon={<Search className="h-5 w-5" />}
-			>
-				<DemoResult>
-					<div className="grid grid-cols-2 gap-4 text-sm">
-						<div>
-							<span className="text-muted-foreground">Runtime:</span>{' '}
-							<span className="text-foreground font-mono">{RUNTIME}</span>
+				<div className="relative">
+					<div className="flex items-center gap-3 mb-4">
+						<div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30">
+							<Server className="h-6 w-6 text-blue-400" />
 						</div>
 						<div>
-							<span className="text-muted-foreground">Environment:</span>{' '}
-							<span className="text-foreground font-mono">{IS_SERVER ? 'Server' : 'Client'}</span>
-						</div>
-						<div>
-							<span className="text-muted-foreground">Request ID:</span>{' '}
-							<span className="text-foreground/70 font-mono text-xs">{ctx.requestId}</span>
-						</div>
-						<div>
-							<span className="text-muted-foreground">Trace ID:</span>{' '}
-							<span className="text-foreground/70 font-mono text-xs">{ctx.traceId}</span>
+							<h1 className="text-3xl font-bold text-white">Server Components</h1>
+							<p className="text-white/50 text-sm">Logging in React Server Components</p>
 						</div>
 					</div>
-				</DemoResult>
-			</DemoCard>
-
-			{/* Nested component demo */}
-			<div className="mt-6">
-				<DemoCard
-					title="Nested Components with Logging"
-					description="Child components inherit context and create namespaced logs"
-					icon={<GitFork className="h-5 w-5" />}
-				>
-					<DemoResult title="User Profile Component">
-						<UserProfile userId={1} />
-					</DemoResult>
-				</DemoCard>
+				</div>
 			</div>
 
-			{/* Code example */}
-			<div className="mt-6">
-				<DemoCard
-					title="Code Example"
-					description="How to use vestig in Server Components with @vestig/next"
-					icon={<Code className="h-5 w-5" />}
-					code={`import { getLogger, getRequestContext } from '@vestig/next'
+			{/* Runtime Info */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Search className="h-5 w-5 text-blue-400" />
+					Runtime Detection
+				</h2>
+				<GlassCard variant="glow" padding="lg" className="border-blue-500/20">
+					<div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+						<div className="text-center">
+							<div className="text-2xl font-bold text-white">{RUNTIME}</div>
+							<div className="text-xs text-white/40 uppercase tracking-wider">Runtime</div>
+						</div>
+						<div className="text-center">
+							<div className="text-2xl font-bold text-white">{IS_SERVER ? 'Server' : 'Client'}</div>
+							<div className="text-xs text-white/40 uppercase tracking-wider">Environment</div>
+						</div>
+						<div className="text-center">
+							<div className="text-sm font-mono text-blue-400 truncate">
+								{ctx.requestId?.slice(0, 12)}...
+							</div>
+							<div className="text-xs text-white/40 uppercase tracking-wider">Request ID</div>
+						</div>
+						<div className="text-center">
+							<div className="text-sm font-mono text-indigo-400 truncate">
+								{ctx.traceId?.slice(0, 12)}...
+							</div>
+							<div className="text-xs text-white/40 uppercase tracking-wider">Trace ID</div>
+						</div>
+					</div>
+				</GlassCard>
+			</div>
+
+			{/* User Profile Demo */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<GitFork className="h-5 w-5 text-blue-400" />
+					Nested Components with Logging
+				</h2>
+				<GlassCard variant="default" padding="lg">
+					<p className="text-sm text-white/50 mb-4">
+						Child components inherit context and create namespaced logs
+					</p>
+					<UserProfile userId={1} />
+				</GlassCard>
+			</div>
+
+			{/* Code Example */}
+			<div className="mb-8">
+				<h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+					<Code className="h-5 w-5 text-blue-400" />
+					Code Example
+				</h2>
+				<GlassCard variant="subtle" padding="none">
+					<pre className="p-4 text-sm text-white/80 overflow-x-auto">
+						<code>{`import { getLogger, getRequestContext } from '@vestig/next'
 
 export default async function MyServerComponent() {
-  // Get logger with automatic request context from middleware
   const log = await getLogger('my-component')
   const ctx = await getRequestContext()
 
@@ -171,54 +165,31 @@ export default async function MyServerComponent() {
   log.debug('Data fetched', { count: data.length })
 
   return <div>...</div>
-}`}
-				/>
+}`}</code>
+					</pre>
+				</GlassCard>
 			</div>
 
-			{/* Key points */}
-			<div className="mt-8 relative p-6 bg-surface border border-white/[0.06] overflow-hidden">
-				<div className="absolute top-0 right-0 w-12 h-12 border-l border-b border-white/[0.04]" />
-				<h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-					<span className="text-white/50">—</span> Key Features
-				</h3>
-				<ul className="text-sm text-white/50 space-y-2">
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Runtime Detection</strong> — Automatically detects
-							Node.js/Bun environment
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Structured Logging</strong> — JSON output for
-							server-side logs
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Child Loggers</strong> — Namespaced logging for
-							components
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Context Propagation</strong> — Request IDs tracked
-							across async operations
-						</span>
-					</li>
-					<li className="flex gap-2">
-						<span className="text-white/30">›</span>
-						<span>
-							<strong className="text-white/70">Real-time Streaming</strong> — Logs appear in the
-							panel below
-						</span>
-					</li>
-				</ul>
-			</div>
+			{/* Key Features */}
+			<GlassCard variant="default" padding="lg" className="border-blue-500/20">
+				<h3 className="text-sm font-semibold text-white mb-4">Key Features</h3>
+				<GlassGrid cols={2}>
+					{[
+						{ title: 'Runtime Detection', desc: 'Automatically detects Node.js/Bun environment' },
+						{ title: 'Structured Logging', desc: 'JSON output for server-side logs' },
+						{ title: 'Child Loggers', desc: 'Namespaced logging for components' },
+						{ title: 'Context Propagation', desc: 'Request IDs tracked across async operations' },
+					].map((feature) => (
+						<div key={feature.title} className="flex items-start gap-2">
+							<span className="text-blue-400 mt-0.5">›</span>
+							<div>
+								<span className="text-sm text-white font-medium">{feature.title}</span>
+								<span className="text-sm text-white/40"> — {feature.desc}</span>
+							</div>
+						</div>
+					))}
+				</GlassGrid>
+			</GlassCard>
 		</Container>
 	)
 }

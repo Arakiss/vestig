@@ -415,6 +415,116 @@
 	box-shadow: 0 0 10px oklch(0.95 0 0 / 0.08);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Playground Glassmorphism - Indigo/Violet Accents
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Glass Cards with Color */
+@utility glass-card {
+	background: oklch(0.15 0.01 280 / 0.6);
+	backdrop-filter: blur(16px);
+	border: 1px solid oklch(0.95 0 0 / 0.08);
+	box-shadow: 0 8px 32px oklch(0 0 0 / 0.3);
+}
+
+@utility glass-card-hover {
+	transition: all 0.3s ease;
+
+	&:hover {
+		background: oklch(0.18 0.01 280 / 0.7);
+		border-color: oklch(0.95 0 0 / 0.12);
+		box-shadow: 0 12px 40px oklch(0 0 0 / 0.4);
+	}
+}
+
+@utility glass-card-glow {
+	background: oklch(0.15 0.02 275 / 0.6);
+	backdrop-filter: blur(16px);
+	border: 1px solid oklch(0.6 0.2 270 / 0.3);
+	box-shadow: 0 8px 32px oklch(0 0 0 / 0.3), 0 0 30px oklch(0.6 0.2 270 / 0.15);
+}
+
+/* Gradient Backgrounds */
+@utility gradient-indigo-violet {
+	background: linear-gradient(135deg, oklch(0.55 0.2 265) 0%, oklch(0.55 0.2 290) 100%);
+}
+
+@utility gradient-text-indigo {
+	background: linear-gradient(135deg, oklch(0.7 0.2 265) 0%, oklch(0.65 0.2 290) 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+@utility gradient-text-white {
+	background: linear-gradient(135deg, oklch(0.98 0 0) 0%, oklch(0.7 0 0) 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+/* Glow Effects - Colored */
+@utility glow-indigo {
+	box-shadow: 0 4px 20px oklch(0.55 0.2 265 / 0.3), 0 8px 40px oklch(0.55 0.2 265 / 0.15);
+}
+
+@utility glow-indigo-hover {
+	transition: box-shadow 0.3s ease;
+
+	&:hover {
+		box-shadow: 0 4px 25px oklch(0.55 0.2 265 / 0.4), 0 8px 50px oklch(0.55 0.2 265 / 0.2);
+	}
+}
+
+/* Status Colors */
+@utility status-good {
+	color: oklch(0.7 0.2 160);
+}
+
+@utility status-needs-improvement {
+	color: oklch(0.75 0.18 85);
+}
+
+@utility status-poor {
+	color: oklch(0.65 0.22 25);
+}
+
+@utility bg-status-good {
+	background: oklch(0.7 0.2 160 / 0.1);
+	border-color: oklch(0.7 0.2 160 / 0.2);
+}
+
+@utility bg-status-warning {
+	background: oklch(0.75 0.18 85 / 0.1);
+	border-color: oklch(0.75 0.18 85 / 0.2);
+}
+
+@utility bg-status-poor {
+	background: oklch(0.65 0.22 25 / 0.1);
+	border-color: oklch(0.65 0.22 25 / 0.2);
+}
+
+/* Breadcrumb Categories */
+@utility breadcrumb-navigation {
+	color: oklch(0.7 0.15 200);
+}
+
+@utility breadcrumb-click {
+	color: oklch(0.7 0.15 270);
+}
+
+@utility breadcrumb-fetch {
+	color: oklch(0.7 0.2 160);
+}
+
+@utility breadcrumb-error {
+	color: oklch(0.65 0.22 25);
+}
+
+@utility breadcrumb-input {
+	color: oklch(0.75 0.15 85);
+}
+
 /* Pill Buttons */
 @utility pill {
 	border-radius: 9999px;

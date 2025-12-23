@@ -1,4 +1,5 @@
-import { LogPanel } from '@/app/components/log-panel'
+import { VestigDevOverlay } from '@vestig/next/dev'
+import { VestigMetrics } from '@vestig/next/metrics'
 import {
 	HomeSimple,
 	Server,
@@ -8,12 +9,45 @@ import {
 	MediaVideo,
 	Lock,
 	Antenna,
+	ViewGrid,
+	GraphUp,
+	WarningTriangle,
+	DatabaseScript,
 } from 'iconoir-react'
 import { InnerNav, Sidebar, type SidebarSection } from '@/components/layout'
 
 const navigation: SidebarSection[] = [
 	{
-		title: 'Demos',
+		title: 'New in v0.8',
+		items: [
+			{
+				title: 'Dev Overlay',
+				href: '/playground/dev-overlay',
+				icon: <ViewGrid className="h-4 w-4" />,
+				badge: 'New',
+			},
+			{
+				title: 'Web Vitals',
+				href: '/playground/web-vitals',
+				icon: <GraphUp className="h-4 w-4" />,
+				badge: 'New',
+			},
+			{
+				title: 'Error Boundary',
+				href: '/playground/error-boundary',
+				icon: <WarningTriangle className="h-4 w-4" />,
+				badge: 'New',
+			},
+			{
+				title: 'Database Logging',
+				href: '/playground/database',
+				icon: <DatabaseScript className="h-4 w-4" />,
+				badge: 'New',
+			},
+		],
+	},
+	{
+		title: 'Core Demos',
 		items: [
 			{ title: 'Overview', href: '/playground', icon: <HomeSimple className="h-4 w-4" /> },
 			{
@@ -67,12 +101,15 @@ export default function PlaygroundLayout({
 			<Sidebar sections={navigation} />
 
 			{/* Main content */}
-			<main className="lg:pl-64 pt-14 pb-48">
+			<main className="lg:pl-64 pt-14">
 				<div className="p-6">{children}</div>
 			</main>
 
-			{/* Log panel at bottom */}
-			<LogPanel />
+			{/* Web Vitals collection */}
+			<VestigMetrics debug />
+
+			{/* Dev Overlay replaces LogPanel */}
+			<VestigDevOverlay position="bottom-right" />
 		</div>
 	)
 }

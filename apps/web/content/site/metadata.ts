@@ -7,7 +7,7 @@ export const siteConfig: SiteConfig = {
 		description:
 			'Structured logging for modern TypeScript applications with auto PII sanitization, native tracing, and multi-runtime support.',
 		url: 'https://vestig.dev',
-		version: '0.7.0',
+		version: '0.8.0',
 		repository: 'https://github.com/Arakiss/vestig',
 	},
 	seo: {

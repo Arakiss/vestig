@@ -33,12 +33,12 @@
 		"prepare": "node scripts/setup-hooks.js"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.9.0",
+		"@biomejs/biome": "^1.9.4",
 		"@release-it/conventional-changelog": "^10.0.4",
 		"mitata": "^1.0.34",
 		"pino": "^10.1.0",
 		"release-it": "^19.1.0",
-		"typescript": "catalog:",
+		"typescript": "^5.9.3",
 		"winston": "^3.19.0"
 	}
 }
