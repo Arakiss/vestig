@@ -1,8 +1,8 @@
 'use client'
 
+import { cn } from '@/lib/utils'
 import { motion, useInView } from 'framer-motion'
 import { useRef } from 'react'
-import { cn } from '@/lib/utils'
 
 /**
  * LineTitle - Cloudflare Sandbox inspired massive typography with decorative repeated lines
@@ -129,15 +129,17 @@ function generatePath(
 	const width = 800
 
 	switch (variant) {
-		case 'arc':
+		case 'arc': {
 			// Arcs that curve upward (like Cloudflare's "sandbox" title)
 			const arcHeight = 30 + index * 8
 			return `M 0 ${y} Q ${width / 2} ${y - arcHeight} ${width} ${y}`
+		}
 
-		case 'chevron':
+		case 'chevron': {
 			// Chevron/arrow patterns pointing up
 			const chevronHeight = 20 + index * 6
 			return `M 0 ${y} L ${width / 2} ${y - chevronHeight} L ${width} ${y}`
+		}
 
 		case 'parallel':
 			// Simple parallel horizontal lines

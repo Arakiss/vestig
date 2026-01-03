@@ -1,7 +1,7 @@
-import { describe, expect, test, beforeEach } from 'bun:test'
-import { createLogger } from '../../logger'
-import { span, getActiveSpan, clearActiveSpans } from '../../tracing'
+import { beforeEach, describe, expect, test } from 'bun:test'
 import { getContext } from '../../context'
+import { createLogger } from '../../logger'
+import { clearActiveSpans, getActiveSpan, span } from '../../tracing'
 
 describe('Logger.span() integration', () => {
 	beforeEach(() => {
@@ -103,8 +103,8 @@ describe('Tracing and Logging context correlation', () => {
 		})
 
 		expect(contextInsideSpan!).toBeDefined()
-		expect(contextInsideSpan!.traceId).toBeDefined()
-		expect(contextInsideSpan!.spanId).toBeDefined()
+		expect(contextInsideSpan?.traceId).toBeDefined()
+		expect(contextInsideSpan?.spanId).toBeDefined()
 	})
 
 	test('should update spanId for nested spans', async () => {
@@ -112,11 +112,11 @@ describe('Tracing and Logging context correlation', () => {
 
 		await span('outer', async (outer) => {
 			const outerContext = getContext()
-			spanIds.push(outerContext!.spanId!)
+			spanIds.push(outerContext?.spanId!)
 
 			await span('inner', async (inner) => {
 				const innerContext = getContext()
-				spanIds.push(innerContext!.spanId!)
+				spanIds.push(innerContext?.spanId!)
 			})
 		})
 
@@ -128,10 +128,10 @@ describe('Tracing and Logging context correlation', () => {
 		const traceIds: string[] = []
 
 		await span('outer', async () => {
-			traceIds.push(getContext()!.traceId!)
+			traceIds.push(getContext()?.traceId!)
 
 			await span('inner', async () => {
-				traceIds.push(getContext()!.traceId!)
+				traceIds.push(getContext()?.traceId!)
 			})
 		})
 
@@ -183,13 +183,13 @@ describe('Standalone span() and Logger.span() interop', () => {
 		const spanNames: string[] = []
 
 		await span('request', async () => {
-			spanNames.push(getActiveSpan()!.name)
+			spanNames.push(getActiveSpan()?.name)
 
 			await api.span('handler', async () => {
-				spanNames.push(getActiveSpan()!.name)
+				spanNames.push(getActiveSpan()?.name)
 
 				await db.span('query', async () => {
-					spanNames.push(getActiveSpan()!.name)
+					spanNames.push(getActiveSpan()?.name)
 				})
 			})
 		})

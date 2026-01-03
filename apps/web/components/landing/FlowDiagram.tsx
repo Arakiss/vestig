@@ -167,7 +167,7 @@ function FlowStep({ step, index, total, isInView }: FlowStepProps) {
 						<motion.div
 							className="absolute inset-0 rounded-full bg-brand/30"
 							animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-							transition={{ duration: 2, repeat: Infinity }}
+							transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
 						/>
 					)}
 				</motion.div>

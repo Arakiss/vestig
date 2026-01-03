@@ -29,7 +29,7 @@ export function formatBytes(bytes: number, decimals = 2): string {
 
 	const i = Math.floor(Math.log(bytes) / Math.log(k))
 
-	return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+	return `${Number.parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`
 }
 
 /**
@@ -51,7 +51,7 @@ export function capitalize(str: string): string {
  */
 export function truncate(str: string, maxLength: number): string {
 	if (str.length <= maxLength) return str
-	return str.slice(0, maxLength - 3) + '...'
+	return `${str.slice(0, maxLength - 3)}...`
 }
 
 /**

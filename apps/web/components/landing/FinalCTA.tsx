@@ -1,13 +1,13 @@
 'use client'
 
 import { Container, Section } from '@/components/layout'
+import { BlueprintCard, BlueprintSection } from '@/components/ui/blueprint-grid'
 import { LineTitle } from '@/components/ui/line-title'
-import { BlueprintSection, BlueprintCard } from '@/components/ui/blueprint-grid'
 import { PillCTA, PillCTAGroup } from '@/components/ui/pill-cta'
-import { motion, useInView } from 'framer-motion'
-import { useRef, useState, useCallback } from 'react'
-import { Check, Copy, Github, Book } from 'iconoir-react'
 import { cn } from '@/lib/utils'
+import { motion, useInView } from 'framer-motion'
+import { Book, Check, Copy, Github } from 'iconoir-react'
+import { useCallback, useRef, useState } from 'react'
 
 /**
  * FinalCTA - Cloudflare Sandbox inspired final call-to-action
@@ -77,6 +77,7 @@ export function FinalCTA({
 						transition={{ duration: 0.5, delay: 0.3 }}
 					>
 						<button
+							type="button"
 							onClick={handleCopy}
 							className={cn(
 								'inline-flex items-center gap-4 px-8 py-4',

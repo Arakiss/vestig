@@ -1,24 +1,24 @@
 'use client'
 
+import { InnerNav, Sidebar, type SidebarSection } from '@/components/layout'
 import {
+	Antenna,
 	Book,
 	Code,
-	Rocket,
-	Server,
+	Cpu,
+	DatabaseScript,
+	Flash,
+	GitFork,
+	GraphUp,
 	Laptop,
 	Lock,
-	Antenna,
-	GitFork,
-	Timer,
-	Cpu,
-	WarningTriangle,
+	Rocket,
+	Server,
 	Settings,
-	GraphUp,
-	Flash,
-	DatabaseScript,
+	Timer,
 	ViewGrid,
+	WarningTriangle,
 } from 'iconoir-react'
-import { InnerNav, Sidebar, type SidebarSection } from '@/components/layout'
 
 const navigation: SidebarSection[] = [
 	{

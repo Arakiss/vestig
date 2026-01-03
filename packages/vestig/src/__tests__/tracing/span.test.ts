@@ -1,6 +1,6 @@
-import { describe, expect, test, beforeEach } from 'bun:test'
-import { SpanImpl } from '../../tracing/span'
+import { beforeEach, describe, expect, test } from 'bun:test'
 import { clearActiveSpans, pushSpan } from '../../tracing/context'
+import { SpanImpl } from '../../tracing/span'
 
 describe('SpanImpl', () => {
 	beforeEach(() => {
@@ -151,29 +151,29 @@ describe('SpanImpl', () => {
 			span.addEvent('event-name')
 
 			expect(span.events).toHaveLength(1)
-			expect(span.events[0]!.name).toBe('event-name')
-			expect(span.events[0]!.timestamp).toBeDefined()
+			expect(span.events[0]?.name).toBe('event-name')
+			expect(span.events[0]?.timestamp).toBeDefined()
 		})
 
 		test('should add event with attributes', () => {
 			const span = new SpanImpl('test')
 			span.addEvent('event-name', { key: 'value' })
 
-			expect(span.events[0]!.attributes).toEqual({ key: 'value' })
+			expect(span.events[0]?.attributes).toEqual({ key: 'value' })
 		})
 
 		test('should not add attributes if empty object', () => {
 			const span = new SpanImpl('test')
 			span.addEvent('event-name', {})
 
-			expect(span.events[0]!.attributes).toBeUndefined()
+			expect(span.events[0]?.attributes).toBeUndefined()
 		})
 
 		test('should generate ISO timestamp', () => {
 			const span = new SpanImpl('test')
 			span.addEvent('event')
 
-			const timestamp = span.events[0]!.timestamp
+			const timestamp = span.events[0]?.timestamp
 			expect(() => new Date(timestamp)).not.toThrow()
 			expect(new Date(timestamp).toISOString()).toBe(timestamp)
 		})
@@ -195,7 +195,7 @@ describe('SpanImpl', () => {
 			span.addEvent('after')
 
 			expect(span.events).toHaveLength(1)
-			expect(span.events[0]!.name).toBe('before')
+			expect(span.events[0]?.name).toBe('before')
 		})
 
 		test('should return a copy of events (immutable)', () => {
@@ -207,7 +207,7 @@ describe('SpanImpl', () => {
 			;(events as any).push({ name: 'injected', timestamp: '' })
 
 			expect(span.events).toHaveLength(1)
-			expect(span.events[0]!.name).toBe('event')
+			expect(span.events[0]?.name).toBe('event')
 		})
 	})
 

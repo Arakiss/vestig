@@ -1,8 +1,8 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { useState, useCallback } from 'react'
 import { Check, Copy } from 'iconoir-react'
+import { useCallback, useState } from 'react'
 
 /**
  * CodeBlock - Syntax-highlighted code block with Cloudflare-style coloring

@@ -1,12 +1,12 @@
 'use client'
 
-import { Check, Xmark, Minus } from 'iconoir-react'
-import type { ComparisonConfig } from '@/lib/content/types'
 import { Container, Section } from '@/components/layout'
-import { LineTitle } from '@/components/ui/line-title'
 import { BlueprintSection } from '@/components/ui/blueprint-grid'
+import { LineTitle } from '@/components/ui/line-title'
+import type { ComparisonConfig } from '@/lib/content/types'
 import { cn } from '@/lib/utils'
 import { motion, useInView } from 'framer-motion'
+import { Check, Minus, Xmark } from 'iconoir-react'
 import { useRef } from 'react'
 
 /**

@@ -1,19 +1,19 @@
 'use client'
 
 import { Container, Section } from '@/components/layout'
-import { LineTitle } from '@/components/ui/line-title'
 import { BlueprintSection } from '@/components/ui/blueprint-grid'
+import { CodeBlock } from '@/components/ui/code-block'
+import { LineTitle } from '@/components/ui/line-title'
 import { motion, useInView } from 'framer-motion'
 import { useRef } from 'react'
-import {
-	InteractiveFeatureCard,
-	FeatureGrid,
-	PIISanitizationFlow,
-	MultiRuntimeIcons,
-	ContextPropagationFlow,
-} from './InteractiveFeatureCard'
 import { FlowDiagram, type FlowNode } from './FlowDiagram'
-import { CodeBlock } from '@/components/ui/code-block'
+import {
+	ContextPropagationFlow,
+	FeatureGrid,
+	InteractiveFeatureCard,
+	MultiRuntimeIcons,
+	PIISanitizationFlow,
+} from './InteractiveFeatureCard'
 
 /**
  * InteractiveFeatures - Cloudflare Sandbox inspired features section

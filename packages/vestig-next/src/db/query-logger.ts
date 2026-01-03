@@ -104,7 +104,7 @@ function sanitizeParams(params: unknown[], query: string): unknown[] {
  */
 function truncateQuery(query: string, maxLength: number): string {
 	if (query.length <= maxLength) return query
-	return query.slice(0, maxLength) + '... [truncated]'
+	return `${query.slice(0, maxLength)}... [truncated]`
 }
 
 /**

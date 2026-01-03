@@ -1,5 +1,5 @@
-import type { LogEntry, LogLevel } from '../types'
 import { shouldLog } from '../levels'
+import type { LogEntry, LogLevel } from '../types'
 import type {
 	NamespaceSamplerConfig,
 	ProbabilitySamplerConfig,
@@ -76,7 +76,7 @@ export function createNamespaceSampler(config: NamespaceSamplerConfig): Sampler 
 
 			if (namespace.includes('*')) {
 				// Convert wildcard pattern to regex
-				const pattern = new RegExp('^' + namespace.replace(/\./g, '\\.').replace(/\*/g, '.*') + '$')
+				const pattern = new RegExp(`^${namespace.replace(/\./g, '\\.').replace(/\*/g, '.*')}$`)
 				patterns.push({ pattern, sampler })
 			} else {
 				exactSamplers.set(namespace, sampler)

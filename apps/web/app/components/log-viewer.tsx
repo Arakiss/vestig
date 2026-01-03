@@ -2,10 +2,10 @@
 
 import type { DemoLogEntry } from '@/lib/demo-transport'
 import { useLogContext } from '@/lib/log-context'
+import { cn } from '@/lib/utils'
+import { InfoCircle, NavArrowDown, NavArrowRight, WarningTriangle } from 'iconoir-react'
 import { useEffect, useRef, useState } from 'react'
 import type { LogLevel, Runtime } from 'vestig'
-import { NavArrowDown, NavArrowRight, WarningTriangle, InfoCircle } from 'iconoir-react'
-import { cn } from '@/lib/utils'
 
 /**
  * Monochromatic level styling

@@ -1,20 +1,20 @@
-import Link from 'next/link'
+import { Container, Section } from '@/components/layout'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import type { DocsPreviewSection, FeatureIcon } from '@/lib/content/types'
 import {
-	Package,
-	MultiplePages as Layers,
-	Shield,
 	Activity,
-	Link as LinkIcon,
+	ArrowRight,
+	Code,
 	FilterList as Filter,
 	Flash,
-	Code,
+	MultiplePages as Layers,
+	Link as LinkIcon,
+	Package,
 	Server,
+	Shield,
 	Terminal,
-	ArrowRight,
 } from 'iconoir-react'
-import type { DocsPreviewSection, FeatureIcon } from '@/lib/content/types'
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Container, Section } from '@/components/layout'
+import Link from 'next/link'
 import type { ComponentType, SVGProps } from 'react'
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>

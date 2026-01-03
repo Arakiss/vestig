@@ -1,11 +1,11 @@
 'use client'
 
-import Link from 'next/link'
-import { Github, OpenNewWindow } from 'iconoir-react'
-import type { FooterContent } from '@/lib/content/types'
 import { Container } from '@/components/layout'
 import { Wordmark } from '@/components/ui/logo'
+import type { FooterContent } from '@/lib/content/types'
 import { cn } from '@/lib/utils'
+import { Github, OpenNewWindow } from 'iconoir-react'
+import Link from 'next/link'
 
 /**
  * Footer - Cloudflare Sandbox inspired footer

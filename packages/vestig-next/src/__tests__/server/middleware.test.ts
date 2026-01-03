@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import {
+	createMiddlewareMatcher,
+	createProxyMatcher,
 	createVestigMiddleware,
 	createVestigProxy,
 	vestigMiddleware,
 	vestigProxy,
-	createProxyMatcher,
-	createMiddlewareMatcher,
 } from '../../server/middleware'
-import { createMockNextRequest, MockNextResponse } from '../mocks/next-server'
+import { MockNextResponse, createMockNextRequest } from '../mocks/next-server'
 
 // Mock NextResponse since we can't import it directly in tests
 const originalNextResponse = globalThis.NextResponse

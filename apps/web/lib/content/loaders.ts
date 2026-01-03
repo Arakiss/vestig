@@ -1,20 +1,20 @@
-import { siteConfig, navigationConfig } from '@/content/site'
 import {
-	heroContent,
-	features,
 	comparisonConfig,
+	docsPreviewSections,
+	features,
+	footerContent,
+	heroContent,
 	interactiveDemoConfig,
 	playgroundEmbeds,
-	docsPreviewSections,
-	footerContent,
 } from '@/content/landing'
+import { navigationConfig, siteConfig } from '@/content/site'
 import type {
-	SiteConfig,
-	NavigationConfig,
-	LandingContent,
-	DocPage,
-	DocNavSection,
 	DocCategory,
+	DocNavSection,
+	DocPage,
+	LandingContent,
+	NavigationConfig,
+	SiteConfig,
 } from './types'
 
 // ═══════════════════════════════════════════════════════════════════════════

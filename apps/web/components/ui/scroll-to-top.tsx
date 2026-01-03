@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowUp } from 'iconoir-react'
 import { cn } from '@/lib/utils'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowUp } from 'iconoir-react'
+import { useEffect, useState } from 'react'
 
 /**
  * ScrollToTop - Elegant scroll-to-top button

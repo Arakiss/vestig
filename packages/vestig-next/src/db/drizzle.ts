@@ -20,8 +20,8 @@
  */
 
 import type { Logger as VestigLogger } from 'vestig'
+import { createQueryLogEntry, formatDuration, logQuery, mergeConfig } from './query-logger'
 import type { DbLoggerConfig, DrizzleLogger } from './types'
-import { createQueryLogEntry, logQuery, mergeConfig, formatDuration } from './query-logger'
 
 /**
  * Options for Vestig Drizzle logger

@@ -1,13 +1,13 @@
 'use client'
 
-import { type ReactNode, useState } from 'react'
-import Link from 'next/link'
-import { ArrowRight, Play, Copy, Check } from 'iconoir-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
+import { ArrowRight, Check, Copy, Play } from 'iconoir-react'
+import Link from 'next/link'
+import { type ReactNode, useState } from 'react'
 
 /**
  * Terminal-style header with macOS dots
@@ -74,6 +74,7 @@ function TerminalCodeBlock({ code, language = 'typescript' }: { code: string; la
 					</pre>
 				</div>
 				<button
+					type="button"
 					onClick={handleCopy}
 					className={cn(
 						'absolute top-2 right-2 p-1.5',

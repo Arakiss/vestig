@@ -1,9 +1,9 @@
 'use client'
 
 import { useLogPanel } from '@/lib/log-context'
-import { CompactLogViewer } from './log-viewer'
-import { NavArrowDown, NavArrowUp, Erase } from 'iconoir-react'
 import { cn } from '@/lib/utils'
+import { Erase, NavArrowDown, NavArrowUp } from 'iconoir-react'
+import { CompactLogViewer } from './log-viewer'
 
 /**
  * Terminal-style header with macOS dots and streaming indicator

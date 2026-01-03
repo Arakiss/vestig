@@ -1,5 +1,5 @@
-import { describe, expect, test, beforeEach, afterEach, mock } from 'bun:test'
-import React from 'react'
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import type React from 'react'
 
 // Mock fetch globally for transport tests
 const originalFetch = globalThis.fetch

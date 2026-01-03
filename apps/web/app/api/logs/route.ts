@@ -1,4 +1,4 @@
-import { createLogStream, logStore, getSubscriberCount } from '@/lib/demo-transport'
+import { createLogStream, getSubscriberCount, logStore } from '@/lib/demo-transport'
 import { withVestig } from '@vestig/next'
 
 // Maximum concurrent SSE connections to prevent resource exhaustion

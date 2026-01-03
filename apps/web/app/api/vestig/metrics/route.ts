@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
 import { withVestig } from '@vestig/next'
+import { NextResponse } from 'next/server'
 
 /**
  * Web Vitals metrics endpoint

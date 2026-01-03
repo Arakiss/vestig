@@ -1,14 +1,14 @@
 'use client'
 
-import { cn } from '@/lib/utils'
 import { Container, Section } from '@/components/layout'
-import { LineTitle } from '@/components/ui/line-title'
-import { BlueprintSection, BlueprintCard } from '@/components/ui/blueprint-grid'
+import { BlueprintCard, BlueprintSection } from '@/components/ui/blueprint-grid'
 import { CodeBlock, OutputBlock } from '@/components/ui/code-block'
+import { LineTitle } from '@/components/ui/line-title'
+import { cn } from '@/lib/utils'
+import { AnimatePresence, motion, useInView } from 'framer-motion'
+import { ArrowRight, Check, Play } from 'iconoir-react'
+import { useRef, useState } from 'react'
 import { SimpleFlowIndicator } from './FlowDiagram'
-import { motion, AnimatePresence, useInView } from 'framer-motion'
-import { useState, useRef } from 'react'
-import { ArrowRight, Play, Check } from 'iconoir-react'
 
 /**
  * InteractiveExamples - Cloudflare Sandbox inspired examples section

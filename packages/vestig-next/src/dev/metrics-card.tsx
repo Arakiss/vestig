@@ -1,13 +1,13 @@
 'use client'
 
-import { memo, type CSSProperties } from 'react'
-import type { MetricEntry, MetricRating, WebVitalName } from '../metrics/types'
+import { type CSSProperties, memo } from 'react'
 import {
 	RATING_COLORS,
+	THRESHOLDS,
 	formatMetricValue,
 	getMetricDescription,
-	THRESHOLDS,
 } from '../metrics/thresholds'
+import type { MetricEntry, MetricRating, WebVitalName } from '../metrics/types'
 
 interface MetricsCardProps {
 	name: WebVitalName

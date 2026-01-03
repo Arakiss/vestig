@@ -1,11 +1,11 @@
 import { cn } from '@/lib/utils'
 import {
-	InfoCircle,
-	WarningTriangle,
-	WarningCircle,
 	CheckCircle,
-	LightBulb,
 	Flash,
+	InfoCircle,
+	LightBulb,
+	WarningCircle,
+	WarningTriangle,
 } from 'iconoir-react'
 import type { ReactNode } from 'react'
 

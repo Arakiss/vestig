@@ -1,7 +1,7 @@
 'use client'
 
 import { Component, type ErrorInfo, type ReactNode } from 'react'
-import type { Logger, LogEntry } from 'vestig'
+import type { LogEntry, Logger } from 'vestig'
 import { useVestigContext } from './provider'
 
 /**

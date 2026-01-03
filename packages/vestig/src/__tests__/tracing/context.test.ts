@@ -1,15 +1,15 @@
-import { describe, expect, test, beforeEach } from 'bun:test'
+import { beforeEach, describe, expect, test } from 'bun:test'
+import { getContext } from '../../context'
 import {
-	pushSpan,
-	popSpan,
-	getActiveSpan,
 	clearActiveSpans,
+	getActiveSpan,
 	getActiveSpanStackDepth,
+	popSpan,
+	pushSpan,
 	withSpanContext,
 	withSpanContextAsync,
 } from '../../tracing/context'
 import { SpanImpl } from '../../tracing/span'
-import { getContext } from '../../context'
 
 describe('Span Context Management', () => {
 	beforeEach(() => {

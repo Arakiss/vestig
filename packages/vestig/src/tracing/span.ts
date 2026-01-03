@@ -1,7 +1,7 @@
 import { getContext } from '../context'
 import { generateSpanId, generateTraceId } from '../context/correlation'
-import type { Span, SpanEvent, SpanOptions, SpanStatus } from './types'
 import { getActiveSpan } from './context'
+import type { Span, SpanEvent, SpanOptions, SpanStatus } from './types'
 
 /**
  * Internal implementation of the Span interface

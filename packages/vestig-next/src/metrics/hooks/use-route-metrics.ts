@@ -9,11 +9,11 @@
 
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { MetricsReporter } from '../reporter'
 import { metricsStore } from '../store'
 import type { MetricEntry, RouteMetric } from '../types'
-import { MetricsReporter } from '../reporter'
 
 /**
  * Options for useRouteMetrics hook

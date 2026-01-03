@@ -1,5 +1,5 @@
 import { parseLogLevel } from './levels'
-import type { LogContext, LogLevel, ResolvedLoggerConfig, LoggerConfig } from './types'
+import type { LogContext, LogLevel, LoggerConfig, ResolvedLoggerConfig } from './types'
 
 /**
  * Environment variable names

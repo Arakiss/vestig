@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type CSSProperties } from 'react'
+import { type CSSProperties, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Filters } from './filters'
 import { LogViewer } from './log-viewer'

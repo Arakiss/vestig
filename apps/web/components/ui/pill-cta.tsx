@@ -1,9 +1,9 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { ArrowUpRight, ArrowRight } from 'iconoir-react'
-import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { ArrowRight, ArrowUpRight } from 'iconoir-react'
+import Link from 'next/link'
 
 /**
  * PillCTA - Cloudflare-style pill-shaped call-to-action buttons

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect, type ReactNode, type ReactElement } from 'react'
-import { Copy, Check } from 'iconoir-react'
 import { cn } from '@/lib/utils'
+import { Check, Copy } from 'iconoir-react'
+import { type ReactElement, type ReactNode, useEffect, useRef, useState } from 'react'
 import { codeToHtml } from 'shiki'
 
 interface PreWrapperProps {
@@ -45,7 +45,8 @@ export function PreWrapper({
 		if (typeof node === 'number') return String(node)
 		if (Array.isArray(node)) return node.map(extractText).join('')
 		if (node && typeof node === 'object' && 'props' in node) {
-			return extractText((node as any).props.children)
+			const element = node as ReactElement<{ children?: ReactNode }>
+			return extractText(element.props.children)
 		}
 		return ''
 	}
@@ -69,7 +70,7 @@ export function PreWrapper({
 				const lang = langMap[language] || language
 
 				const html = await codeToHtml(rawCode, {
-					lang: lang as any,
+					lang,
 					theme: 'github-dark',
 				})
 

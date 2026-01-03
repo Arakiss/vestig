@@ -1,20 +1,35 @@
+import { InnerNav, Sidebar, type SidebarSection } from '@/components/layout'
 import { VestigDevOverlay } from '@vestig/next/dev'
 import { VestigMetrics } from '@vestig/next/metrics'
 import {
-	HomeSimple,
-	Server,
-	Laptop,
-	PlugTypeA,
-	Flash,
-	MediaVideo,
-	Lock,
 	Antenna,
-	ViewGrid,
-	GraphUp,
-	WarningTriangle,
 	DatabaseScript,
+	Flash,
+	GraphUp,
+	HomeSimple,
+	Laptop,
+	Lock,
+	MediaVideo,
+	PlugTypeA,
+	Server,
+	ViewGrid,
+	WarningTriangle,
 } from 'iconoir-react'
-import { InnerNav, Sidebar, type SidebarSection } from '@/components/layout'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+	title: {
+		template: '%s | Vestig Playground',
+		default: 'Playground',
+	},
+	description:
+		'Interactive playground to explore vestig logging capabilities across Next.js runtimes.',
+	openGraph: {
+		title: 'Vestig Playground',
+		description: 'Interactive demos for vestig logging library',
+		type: 'website',
+	},
+}
 
 const navigation: SidebarSection[] = [
 	{

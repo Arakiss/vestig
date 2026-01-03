@@ -1,11 +1,11 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import { useState, useCallback, useEffect } from 'react'
-import { Check, Copy, Github, Menu, Xmark, Book, Play, Code } from 'iconoir-react'
-import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Wordmark } from '@/components/ui/logo'
+import { cn } from '@/lib/utils'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Book, Check, Code, Copy, Github, Menu, Play, Xmark } from 'iconoir-react'
+import Link from 'next/link'
+import { useCallback, useEffect, useState } from 'react'
 
 /**
  * StickyNav - Cloudflare Sandbox inspired sticky navigation
@@ -42,9 +42,14 @@ export function StickyNav({
 	}, [])
 
 	const handleCopy = useCallback(async () => {
-		await navigator.clipboard.writeText(installCommand)
-		setCopied(true)
-		setTimeout(() => setCopied(false), 2000)
+		try {
+			await navigator.clipboard.writeText(installCommand)
+			setCopied(true)
+			setTimeout(() => setCopied(false), 2000)
+		} catch {
+			// Clipboard API may fail in some contexts
+			console.warn('Failed to copy to clipboard')
+		}
 	}, [installCommand])
 
 	return (
@@ -87,12 +92,15 @@ export function StickyNav({
 						{/* Center-Right: Install Command */}
 						<div className="hidden sm:flex items-center gap-4">
 							<button
+								type="button"
 								onClick={handleCopy}
+								aria-label={copied ? 'Copied to clipboard' : 'Copy install command'}
 								className={cn(
 									'flex items-center gap-3 px-4 py-2',
 									'font-mono text-sm',
 									'bg-surface border border-brand/20 rounded-full',
 									'hover:border-brand/40 transition-all duration-200',
+									'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
 									'group',
 								)}
 							>
@@ -126,6 +134,7 @@ export function StickyNav({
 
 						{/* Mobile Menu Button */}
 						<button
+							type="button"
 							onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
 							className="md:hidden p-2 text-foreground"
 							aria-label="Toggle menu"
@@ -165,11 +174,13 @@ export function StickyNav({
 							{/* Install Command */}
 							<button
 								onClick={handleCopy}
+								aria-label={copied ? 'Copied to clipboard' : 'Copy install command'}
 								className={cn(
 									'w-full flex items-center justify-between px-4 py-3',
 									'font-mono text-sm',
 									'bg-surface border border-brand/20',
 									'hover:border-brand/40 transition-all duration-200',
+									'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50',
 								)}
 							>
 								<div className="flex items-center gap-2">

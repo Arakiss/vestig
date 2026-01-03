@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
-import { vestigAction, createVestigAction } from '../../server/server-action'
-import { setMockHeaders, clearMockHeaders, headers as mockHeaders } from '../mocks/next-headers'
 import type { Span } from 'vestig'
+import { createVestigAction, vestigAction } from '../../server/server-action'
+import { clearMockHeaders, headers as mockHeaders, setMockHeaders } from '../mocks/next-headers'
 
 // Mock next/headers module
 mock.module('next/headers', () => ({

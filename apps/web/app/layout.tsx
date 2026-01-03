@@ -1,8 +1,9 @@
+import { SkipLink } from '@/components/ui/skip-link'
 import { LogProvider } from '@/lib/log-context'
 import { getRequestContext } from '@vestig/next'
 import { VestigProvider } from '@vestig/next/client'
 import type { Metadata } from 'next'
-import { Hanken_Grotesk, DM_Sans, JetBrains_Mono, Outfit } from 'next/font/google'
+import { DM_Sans, Hanken_Grotesk, JetBrains_Mono, Outfit } from 'next/font/google'
 import './globals.css'
 
 // Display font for headings
@@ -175,6 +176,7 @@ export default async function RootLayout({
 				/>
 			</head>
 			<body className="min-h-screen bg-background font-sans antialiased">
+				<SkipLink />
 				<VestigProvider initialContext={ctx} endpoint="/api/vestig" namespace="client">
 					<LogProvider>{children}</LogProvider>
 				</VestigProvider>

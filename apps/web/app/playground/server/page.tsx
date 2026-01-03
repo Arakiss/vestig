@@ -1,8 +1,15 @@
 import { GlassCard, GlassCardBadge, GlassGrid } from '@/app/components/glass-card'
 import { Container } from '@/components/layout'
-import { Server, Search, GitFork, Code } from 'iconoir-react'
 import { getLogger, getRequestContext } from '@vestig/next'
+import { Code, GitFork, Search, Server } from 'iconoir-react'
+import type { Metadata } from 'next'
 import { IS_SERVER, RUNTIME } from 'vestig'
+
+export const metadata: Metadata = {
+	title: 'Server Components',
+	description:
+		'Logging in React Server Components with automatic runtime detection and async context.',
+}
 
 /**
  * Simulated async data fetching with logging

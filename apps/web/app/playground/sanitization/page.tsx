@@ -1,8 +1,15 @@
 import { GlassCard, GlassGrid } from '@/app/components/glass-card'
 import { Container } from '@/components/layout'
-import { Lock, Copy, Code, Search } from 'iconoir-react'
 import { getLogger, getRequestContext } from '@vestig/next'
-import { IS_SERVER, RUNTIME, Sanitizer, PRESETS, type SanitizePreset } from 'vestig'
+import { Code, Copy, Lock, Search } from 'iconoir-react'
+import type { Metadata } from 'next'
+import { IS_SERVER, PRESETS, RUNTIME, type SanitizePreset, Sanitizer } from 'vestig'
+
+export const metadata: Metadata = {
+	title: 'PII Sanitization',
+	description:
+		'Interactive demo of all PII sanitization presets including GDPR, HIPAA, and PCI-DSS compliance.',
+}
 
 const sampleData = {
 	user: {

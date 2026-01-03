@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
-import { withVestig, createRouteHandlers } from '../../server/route-handler'
-import { createMockNextRequest, createMockRouteContext } from '../mocks/next-server'
 import type { Span } from 'vestig'
+import { createRouteHandlers, withVestig } from '../../server/route-handler'
+import { createMockNextRequest, createMockRouteContext } from '../mocks/next-server'
 
 describe('withVestig', () => {
 	describe('basic functionality', () => {
@@ -467,7 +467,7 @@ describe('createRouteHandlers', () => {
 		const request = createMockNextRequest('https://example.com/api/users', {
 			method: 'GET',
 		})
-		const response = await handlers.GET!(request as never)
+		const response = await handlers.GET?.(request as never)
 
 		expect(response).toBeInstanceOf(Response)
 		const data = await response.json()
@@ -483,7 +483,7 @@ describe('createRouteHandlers', () => {
 			method: 'POST',
 			body: { name: 'John' },
 		})
-		const response = await handlers.POST!(request as never)
+		const response = await handlers.POST?.(request as never)
 
 		expect(response.status).toBe(201)
 	})
@@ -504,7 +504,7 @@ describe('createRouteHandlers', () => {
 		const request = createMockNextRequest('https://example.com/api/test', {
 			method: 'GET',
 		})
-		await handlers.GET!(request as never)
+		await handlers.GET?.(request as never)
 
 		expect(loggerNamespace).toBe('captured')
 	})
@@ -523,8 +523,8 @@ describe('createRouteHandlers', () => {
 			method: 'POST',
 		})
 
-		const getRes = await handlers.GET!(getReq as never)
-		const postRes = await handlers.POST!(postReq as never)
+		const getRes = await handlers.GET?.(getReq as never)
+		const postRes = await handlers.POST?.(postReq as never)
 
 		expect(getRes).toBeInstanceOf(Response)
 		expect(postRes).toBeInstanceOf(Response)
@@ -568,7 +568,7 @@ describe('createRouteHandlers', () => {
 		const request = createMockNextRequest('https://example.com/api/test', {
 			method: 'GET',
 		})
-		await handlers.GET!(request as never)
+		await handlers.GET?.(request as never)
 
 		expect(contextValid).toBe(true)
 	})
@@ -586,7 +586,7 @@ describe('createRouteHandlers', () => {
 			method: 'GET',
 		})
 		const routeContext = createMockRouteContext({ id: '456' })
-		await handlers.GET!(request as never, routeContext)
+		await handlers.GET?.(request as never, routeContext)
 
 		expect(receivedId).toBe('456')
 	})
@@ -602,7 +602,7 @@ describe('createRouteHandlers', () => {
 			method: 'DELETE',
 		})
 
-		await expect(handlers.DELETE!(request as never)).rejects.toThrow('Delete failed')
+		await expect(handlers.DELETE?.(request as never)).rejects.toThrow('Delete failed')
 	})
 
 	test('should return empty object when no handlers provided', () => {
@@ -885,7 +885,7 @@ describe('integration scenarios', () => {
 		const getReq = createMockNextRequest('https://example.com/api/items', {
 			method: 'GET',
 		})
-		const getRes = await handlers.GET!(getReq as never)
+		const getRes = await handlers.GET?.(getReq as never)
 		const allItems = await getRes.json()
 		expect(allItems.items.length).toBe(1)
 
@@ -894,7 +894,7 @@ describe('integration scenarios', () => {
 			method: 'POST',
 			body: { name: 'Item 2' },
 		})
-		const postRes = await handlers.POST!(postReq as never)
+		const postRes = await handlers.POST?.(postReq as never)
 		expect(postRes.status).toBe(201)
 		const newItem = await postRes.json()
 		expect(newItem.name).toBe('Item 2')
@@ -904,14 +904,14 @@ describe('integration scenarios', () => {
 			method: 'DELETE',
 		})
 		const routeContext = createMockRouteContext({ id: '1' })
-		const deleteRes = await handlers.DELETE!(deleteReq as never, routeContext)
+		const deleteRes = await handlers.DELETE?.(deleteReq as never, routeContext)
 		expect(deleteRes.status).toBe(204)
 
 		// Verify deletion
 		const getReq2 = createMockNextRequest('https://example.com/api/items', {
 			method: 'GET',
 		})
-		const getRes2 = await handlers.GET!(getReq2 as never)
+		const getRes2 = await handlers.GET?.(getReq2 as never)
 		const remainingItems = await getRes2.json()
 		expect(remainingItems.items.length).toBe(1)
 		expect(remainingItems.items[0].name).toBe('Item 2')

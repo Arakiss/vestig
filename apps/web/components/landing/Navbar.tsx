@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { Menu, Xmark, OpenNewWindow } from 'iconoir-react'
-import type { NavLink } from '@/lib/content/types'
+import { Container } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Wordmark } from '@/components/ui/logo'
-import { Container } from '@/components/layout'
+import type { NavLink } from '@/lib/content/types'
 import { cn } from '@/lib/utils'
+import { Menu, OpenNewWindow, Xmark } from 'iconoir-react'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 interface NavbarProps {
 	links: NavLink[]
@@ -72,6 +72,7 @@ export function Navbar({
 
 					{/* Mobile Menu Button */}
 					<button
+						type="button"
 						className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
 						onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
 						aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}

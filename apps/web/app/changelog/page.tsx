@@ -1,7 +1,7 @@
+import { InnerNav } from '@/components/layout'
+import { ArrowLeft, Calendar, GitCommit, OpenNewWindow } from 'iconoir-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowLeft, GitCommit, Calendar, OpenNewWindow } from 'iconoir-react'
-import { InnerNav } from '@/components/layout'
 
 export const metadata: Metadata = {
 	title: 'Changelog',

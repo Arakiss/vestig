@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import {
-	parseTracestate,
-	createTracestate,
-	getTracestateValue,
-	setTracestateValue,
-	deleteTracestateKey,
 	type TracestateEntry,
+	createTracestate,
+	deleteTracestateKey,
+	getTracestateValue,
+	parseTracestate,
+	setTracestateValue,
 } from '../context/correlation'
 
 describe('parseTracestate', () => {
@@ -80,20 +80,20 @@ describe('parseTracestate', () => {
 		test('should skip entries without equals sign', () => {
 			const result = parseTracestate('vestig=abc,invalid,dd=xyz')
 			expect(result).toHaveLength(2)
-			expect(result[0]!.key).toBe('vestig')
-			expect(result[1]!.key).toBe('dd')
+			expect(result[0]?.key).toBe('vestig')
+			expect(result[1]?.key).toBe('dd')
 		})
 
 		test('should skip entries with uppercase keys', () => {
 			const result = parseTracestate('VESTIG=abc,dd=xyz')
 			expect(result).toHaveLength(1)
-			expect(result[0]!.key).toBe('dd')
+			expect(result[0]?.key).toBe('dd')
 		})
 
 		test('should skip entries with numeric first char in key', () => {
 			const result = parseTracestate('123vendor=abc,dd=xyz')
 			expect(result).toHaveLength(1)
-			expect(result[0]!.key).toBe('dd')
+			expect(result[0]?.key).toBe('dd')
 		})
 
 		test('should skip empty entries', () => {
@@ -104,13 +104,13 @@ describe('parseTracestate', () => {
 		test('should skip entries with empty values', () => {
 			const result = parseTracestate('vestig=,dd=xyz')
 			expect(result).toHaveLength(1)
-			expect(result[0]!.key).toBe('dd')
+			expect(result[0]?.key).toBe('dd')
 		})
 
 		test('should skip entries with empty keys', () => {
 			const result = parseTracestate('=value,dd=xyz')
 			expect(result).toHaveLength(1)
-			expect(result[0]!.key).toBe('dd')
+			expect(result[0]?.key).toBe('dd')
 		})
 	})
 

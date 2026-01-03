@@ -1,13 +1,13 @@
-import { describe, expect, test, beforeEach } from 'bun:test'
+import { beforeEach, describe, expect, test } from 'bun:test'
+import { clearActiveSpans, getActiveSpanStackDepth } from '../../tracing/context'
 import {
+	endSpan,
+	getActiveSpan,
 	span,
 	spanSync,
 	startSpan,
-	endSpan,
-	getActiveSpan,
 	withActiveSpan,
 } from '../../tracing/functions'
-import { clearActiveSpans, getActiveSpanStackDepth } from '../../tracing/context'
 
 describe('span() - async wrapper', () => {
 	beforeEach(() => {
@@ -57,8 +57,8 @@ describe('span() - async wrapper', () => {
 			}),
 		).rejects.toThrow('Something failed')
 
-		expect(capturedSpan!.status).toBe('error')
-		expect(capturedSpan!.statusMessage).toBe('Something failed')
+		expect(capturedSpan?.status).toBe('error')
+		expect(capturedSpan?.statusMessage).toBe('Something failed')
 	})
 
 	test('should end span after completion', async () => {
@@ -68,8 +68,8 @@ describe('span() - async wrapper', () => {
 			capturedSpan = s
 		})
 
-		expect(capturedSpan!.ended).toBe(true)
-		expect(capturedSpan!.endTime).toBeDefined()
+		expect(capturedSpan?.ended).toBe(true)
+		expect(capturedSpan?.endTime).toBeDefined()
 	})
 
 	test('should end span even on error', async () => {
@@ -84,7 +84,7 @@ describe('span() - async wrapper', () => {
 			// Expected
 		}
 
-		expect(capturedSpan!.ended).toBe(true)
+		expect(capturedSpan?.ended).toBe(true)
 	})
 
 	test('should set span as active during execution', async () => {
@@ -95,7 +95,7 @@ describe('span() - async wrapper', () => {
 		})
 
 		expect(activeInsideSpan).toBeDefined()
-		expect(activeInsideSpan!.name).toBe('operation')
+		expect(activeInsideSpan?.name).toBe('operation')
 	})
 
 	test('should restore context after completion', async () => {
@@ -144,7 +144,7 @@ describe('span() - async wrapper', () => {
 			// Even though we succeed, status should stay as error
 		})
 
-		expect(capturedSpan!.status).toBe('error')
+		expect(capturedSpan?.status).toBe('error')
 	})
 
 	test('should apply initial attributes from options', async () => {
@@ -195,8 +195,8 @@ describe('spanSync() - sync wrapper', () => {
 			})
 		}).toThrow('Sync failure')
 
-		expect(capturedSpan!.status).toBe('error')
-		expect(capturedSpan!.statusMessage).toBe('Sync failure')
+		expect(capturedSpan?.status).toBe('error')
+		expect(capturedSpan?.statusMessage).toBe('Sync failure')
 	})
 
 	test('should end span after completion', () => {
@@ -206,7 +206,7 @@ describe('spanSync() - sync wrapper', () => {
 			capturedSpan = s
 		})
 
-		expect(capturedSpan!.ended).toBe(true)
+		expect(capturedSpan?.ended).toBe(true)
 	})
 
 	test('should set span as active during execution', () => {
@@ -217,7 +217,7 @@ describe('spanSync() - sync wrapper', () => {
 		})
 
 		expect(activeInsideSpan).toBeDefined()
-		expect(activeInsideSpan!.name).toBe('operation')
+		expect(activeInsideSpan?.name).toBe('operation')
 	})
 
 	test('should restore context after completion', () => {
@@ -371,15 +371,15 @@ describe('Nested spans with span()', () => {
 		const depths: number[] = []
 
 		await span('level-0', async () => {
-			names.push(getActiveSpan()!.name)
+			names.push(getActiveSpan()?.name)
 			depths.push(getActiveSpanStackDepth())
 
 			await span('level-1', async () => {
-				names.push(getActiveSpan()!.name)
+				names.push(getActiveSpan()?.name)
 				depths.push(getActiveSpanStackDepth())
 
 				await span('level-2', async () => {
-					names.push(getActiveSpan()!.name)
+					names.push(getActiveSpan()?.name)
 					depths.push(getActiveSpanStackDepth())
 				})
 			})

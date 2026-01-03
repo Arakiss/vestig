@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, type CSSProperties } from 'react'
+import { type CSSProperties, memo, useState } from 'react'
 import type { DevLogEntry } from './store'
 
 /**

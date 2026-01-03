@@ -7,8 +7,8 @@
  * This runs via the "prepare" script in package.json.
  */
 
-const fs = require('fs')
-const path = require('path')
+const fs = require('node:fs')
+const path = require('node:path')
 
 const HOOKS_DIR = path.join(__dirname, '..', '.git', 'hooks')
 

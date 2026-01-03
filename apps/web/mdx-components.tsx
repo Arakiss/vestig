@@ -1,28 +1,28 @@
-import type { MDXComponents } from 'mdx/types'
 import {
-	mdxComponents,
+	ApiTable,
 	Callout,
-	Steps,
-	Step,
 	Card,
 	CardGrid,
 	CodeBlock,
-	ApiTable,
-	FeatureList,
 	Feature,
+	FeatureList,
+	Step,
+	Steps,
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
 	Tabs,
+	TabsContent,
 	TabsList,
 	TabsTrigger,
-	TabsContent,
-	Table,
-	TableHead,
-	TableBody,
-	TableRow,
-	TableHeader,
-	TableCell,
+	mdxComponents,
 } from '@/components/mdx'
-import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import type { MDXComponents } from 'mdx/types'
+import Link from 'next/link'
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
 	return {

@@ -1,6 +1,6 @@
+import { ArrowRight, Calendar, Clock } from 'iconoir-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Calendar, Clock, ArrowRight } from 'iconoir-react'
 
 export const metadata: Metadata = {
 	title: 'Blog',

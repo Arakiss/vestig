@@ -1,8 +1,15 @@
 import { GlassCard, GlassGrid } from '@/app/components/glass-card'
 import { Container } from '@/components/layout'
-import { Flash, Search, Settings, Code, Check, Xmark } from 'iconoir-react'
 import { getLogger, getRequestContext } from '@vestig/next'
-import { IS_SERVER, RUNTIME, CAPABILITIES, IS_EDGE } from 'vestig'
+import { Check, Code, Flash, Search, Settings, Xmark } from 'iconoir-react'
+import type { Metadata } from 'next'
+import { CAPABILITIES, IS_EDGE, IS_SERVER, RUNTIME } from 'vestig'
+
+export const metadata: Metadata = {
+	title: 'Edge Runtime',
+	description:
+		'Lightweight logging in Edge functions with automatic runtime detection and capability-aware features.',
+}
 
 export const runtime = 'edge'
 

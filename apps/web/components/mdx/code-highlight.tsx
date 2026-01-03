@@ -1,4 +1,4 @@
-import { createHighlighter, type Highlighter } from 'shiki'
+import { type Highlighter, createHighlighter } from 'shiki'
 
 let highlighter: Highlighter | null = null
 
@@ -45,7 +45,8 @@ export async function CodeHighlight({ code, language = 'typescript' }: CodeHighl
 	const lang = langMap[language] || language
 
 	// Check if language is supported, fallback to text
-	const supportedLang = hl.getLoadedLanguages().includes(lang as any) ? lang : 'text'
+	const loadedLangs = hl.getLoadedLanguages()
+	const supportedLang = loadedLangs.includes(lang) ? lang : 'text'
 
 	const html = hl.codeToHtml(code.trim(), {
 		lang: supportedLang,

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
-import { ClientHTTPTransport } from '../../client/transport'
 import type { LogEntry } from 'vestig'
+import { ClientHTTPTransport } from '../../client/transport'
 
 // Mock fetch globally
 const originalFetch = globalThis.fetch

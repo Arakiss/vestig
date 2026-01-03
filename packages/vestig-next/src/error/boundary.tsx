@@ -1,15 +1,15 @@
 'use client'
 
-import { Component, type ErrorInfo, type ReactNode, type CSSProperties } from 'react'
+import { type CSSProperties, Component, type ErrorInfo, type ReactNode } from 'react'
+import { breadcrumbStore, getCategoryIcon } from './breadcrumbs'
+import { generateFingerprint } from './fingerprint'
+import { getMostRelevantFrame, parseComponentStack, parseStackTrace } from './stack-parser'
 import type {
 	EnhancedError,
 	EnhancedErrorBoundaryProps,
 	EnhancedErrorBoundaryState,
 	StackFrame,
 } from './types'
-import { parseStackTrace, parseComponentStack, getMostRelevantFrame } from './stack-parser'
-import { generateFingerprint } from './fingerprint'
-import { breadcrumbStore, getCategoryIcon } from './breadcrumbs'
 
 /**
  * Create an enhanced error object with all context

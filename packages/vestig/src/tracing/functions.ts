@@ -1,6 +1,6 @@
-import type { Span, SpanCallback, SpanOptions, SpanSyncCallback } from './types'
+import { getActiveSpan, popSpan, pushSpan, withSpanContext, withSpanContextAsync } from './context'
 import { SpanImpl } from './span'
-import { getActiveSpan, pushSpan, popSpan, withSpanContext, withSpanContextAsync } from './context'
+import type { Span, SpanCallback, SpanOptions, SpanSyncCallback } from './types'
 
 // Re-export for convenience
 export { getActiveSpan } from './context'

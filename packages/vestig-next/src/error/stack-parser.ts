@@ -49,8 +49,8 @@ function parseStackLine(line: string): StackFrame | null {
 		return {
 			functionName: functionName?.trim(),
 			fileName: fileName,
-			lineNumber: parseInt(lineNumber ?? '0', 10),
-			columnNumber: parseInt(columnNumber ?? '0', 10),
+			lineNumber: Number.parseInt(lineNumber ?? '0', 10),
+			columnNumber: Number.parseInt(columnNumber ?? '0', 10),
 			isNodeModule: isNodeModulePath(fileName ?? ''),
 			isAppCode: isAppCodePath(fileName ?? ''),
 		}
@@ -63,8 +63,8 @@ function parseStackLine(line: string): StackFrame | null {
 		return {
 			functionName: functionName?.trim(),
 			fileName: fileName,
-			lineNumber: parseInt(lineNumber ?? '0', 10),
-			columnNumber: parseInt(columnNumber ?? '0', 10),
+			lineNumber: Number.parseInt(lineNumber ?? '0', 10),
+			columnNumber: Number.parseInt(columnNumber ?? '0', 10),
 			isNodeModule: isNodeModulePath(fileName ?? ''),
 			isAppCode: isAppCodePath(fileName ?? ''),
 		}

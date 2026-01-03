@@ -29,9 +29,9 @@
 
 'use client'
 
-import type { VestigMetricsConfig } from './types'
-import { useWebVitals } from './hooks/use-web-vitals'
 import { useRouteMetrics } from './hooks/use-route-metrics'
+import { useWebVitals } from './hooks/use-web-vitals'
+import type { VestigMetricsConfig } from './types'
 
 /**
  * Props for VestigMetrics component

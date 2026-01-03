@@ -1,7 +1,7 @@
 'use client'
 
-import { type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import type { ReactNode } from 'react'
 
 interface GlassCardProps {
 	children: ReactNode
@@ -199,6 +199,7 @@ export function GlassButton({
 
 	return (
 		<button
+			type="button"
 			onClick={onClick}
 			disabled={disabled || loading}
 			className={cn(

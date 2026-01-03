@@ -1,8 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { logStore, type DevLogEntry, type LogFilters, type LogStoreState } from '../store'
 import type { LogLevel } from 'vestig'
+import { type DevLogEntry, type LogFilters, type LogStoreState, logStore } from '../store'
 
 /**
  * Hook to subscribe to log store
@@ -143,7 +143,7 @@ export function useServerLogs(options: {
 
 				if (reconnectAttempts.current < maxReconnectAttempts) {
 					reconnectAttempts.current++
-					const delay = reconnectDelay * Math.pow(2, reconnectAttempts.current - 1)
+					const delay = reconnectDelay * 2 ** (reconnectAttempts.current - 1)
 
 					reconnectTimeoutRef.current = setTimeout(() => {
 						connect()

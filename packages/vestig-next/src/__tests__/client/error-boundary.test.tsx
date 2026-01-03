@@ -1,12 +1,12 @@
-import { describe, expect, test, beforeEach, mock, afterEach } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import React, { createElement } from 'react'
 import {
-	VestigErrorBoundary,
-	addBreadcrumb,
-	getBreadcrumbs,
-	clearBreadcrumbs,
 	type Breadcrumb,
+	VestigErrorBoundary,
 	type VestigErrorBoundaryProps,
+	addBreadcrumb,
+	clearBreadcrumbs,
+	getBreadcrumbs,
 } from '../../client/error-boundary'
 
 describe('Breadcrumb management', () => {
@@ -23,8 +23,8 @@ describe('Breadcrumb management', () => {
 
 		const crumbs = getBreadcrumbs()
 		expect(crumbs.length).toBe(1)
-		expect(crumbs[0]!.message).toBe('Test message')
-		expect(crumbs[0]!.level).toBe('info')
+		expect(crumbs[0]?.message).toBe('Test message')
+		expect(crumbs[0]?.level).toBe('info')
 	})
 
 	test('should add multiple breadcrumbs in order', () => {
@@ -34,17 +34,17 @@ describe('Breadcrumb management', () => {
 
 		const crumbs = getBreadcrumbs()
 		expect(crumbs.length).toBe(3)
-		expect(crumbs[0]!.message).toBe('First')
-		expect(crumbs[1]!.message).toBe('Second')
-		expect(crumbs[2]!.message).toBe('Third')
+		expect(crumbs[0]?.message).toBe('First')
+		expect(crumbs[1]?.message).toBe('Second')
+		expect(crumbs[2]?.message).toBe('Third')
 	})
 
 	test('should use defaults for missing fields', () => {
 		addBreadcrumb({ message: 'Test' })
 
 		const crumbs = getBreadcrumbs()
-		expect(crumbs[0]!.level).toBe('info')
-		expect(crumbs[0]!.timestamp).toBeDefined()
+		expect(crumbs[0]?.level).toBe('info')
+		expect(crumbs[0]?.timestamp).toBeDefined()
 	})
 
 	test('should clear breadcrumbs', () => {
@@ -66,8 +66,8 @@ describe('Breadcrumb management', () => {
 		const crumbs = getBreadcrumbs()
 		expect(crumbs.length).toBe(20)
 		// Should have the latest 20 (5-24)
-		expect(crumbs[0]!.message).toBe('Message 5')
-		expect(crumbs[19]!.message).toBe('Message 24')
+		expect(crumbs[0]?.message).toBe('Message 5')
+		expect(crumbs[19]?.message).toBe('Message 24')
 	})
 
 	test('should preserve namespace in breadcrumbs', () => {
@@ -77,14 +77,14 @@ describe('Breadcrumb management', () => {
 		})
 
 		const crumbs = getBreadcrumbs()
-		expect(crumbs[0]!.namespace).toBe('auth:login')
+		expect(crumbs[0]?.namespace).toBe('auth:login')
 	})
 
 	test('should handle undefined namespace', () => {
 		addBreadcrumb({ message: 'Test' })
 
 		const crumbs = getBreadcrumbs()
-		expect(crumbs[0]!.namespace).toBeUndefined()
+		expect(crumbs[0]?.namespace).toBeUndefined()
 	})
 
 	test('should return readonly array', () => {
@@ -280,8 +280,8 @@ describe('VestigErrorBoundary integration', () => {
 		// Breadcrumbs should still be available
 		const crumbs = getBreadcrumbs()
 		expect(crumbs.length).toBe(2)
-		expect(crumbs[0]!.message).toBe('App mounted')
-		expect(crumbs[1]!.message).toBe('User navigated to page')
+		expect(crumbs[0]?.message).toBe('App mounted')
+		expect(crumbs[1]?.message).toBe('User navigated to page')
 	})
 
 	test('should work without VestigProvider (component creation)', () => {

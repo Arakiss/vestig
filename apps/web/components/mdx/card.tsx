@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils'
-import Link from 'next/link'
 import { ArrowRight } from 'iconoir-react'
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 interface CardProps {

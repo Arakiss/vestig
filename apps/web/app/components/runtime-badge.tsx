@@ -1,6 +1,6 @@
-import type { Runtime } from 'vestig'
-import { Server, Laptop, Globe, Flash, Settings, HelpCircle } from 'iconoir-react'
 import { cn } from '@/lib/utils'
+import { Flash, Globe, HelpCircle, Laptop, Server, Settings } from 'iconoir-react'
+import type { Runtime } from 'vestig'
 
 /**
  * Runtime configuration for display (monochromatic)

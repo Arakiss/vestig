@@ -1,8 +1,8 @@
 'use client'
 
-import * as React from 'react'
-import { OTPInput, OTPInputContext } from 'input-otp'
 import { Minus } from 'iconoir-react'
+import { OTPInput, OTPInputContext } from 'input-otp'
+import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 

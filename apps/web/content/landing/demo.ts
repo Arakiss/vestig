@@ -1,7 +1,7 @@
 import type {
+	DocsPreviewSection,
 	InteractiveDemoConfig,
 	PlaygroundEmbed,
-	DocsPreviewSection,
 } from '@/lib/content/types'
 
 export const interactiveDemoConfig: InteractiveDemoConfig = {

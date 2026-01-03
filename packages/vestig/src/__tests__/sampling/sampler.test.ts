@@ -1,9 +1,9 @@
-import { describe, expect, it, beforeEach } from 'bun:test'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
+	createCompositeSampler,
+	createNamespaceSampler,
 	createProbabilitySampler,
 	createRateLimitSampler,
-	createNamespaceSampler,
-	createCompositeSampler,
 	createSampler,
 	createSamplerFromConfig,
 } from '../../sampling'
@@ -270,7 +270,7 @@ describe('createSampler', () => {
 		})
 
 		expect(sampler).not.toBeNull()
-		expect(sampler!.shouldSample(createEntry())).toBe(true)
+		expect(sampler?.shouldSample(createEntry())).toBe(true)
 	})
 
 	it('should respect alwaysSampleErrors option', () => {
@@ -284,8 +284,8 @@ describe('createSampler', () => {
 			error: { name: 'Error', message: 'test' },
 		})
 
-		expect(sampler!.shouldSample(errorEntry)).toBe(true)
-		expect(sampler!.shouldSample(createEntry())).toBe(false)
+		expect(sampler?.shouldSample(errorEntry)).toBe(true)
+		expect(sampler?.shouldSample(createEntry())).toBe(false)
 	})
 
 	it('should respect bypassLevel option', () => {
@@ -295,7 +295,7 @@ describe('createSampler', () => {
 			bypassLevel: 'warn',
 		})
 
-		expect(sampler!.shouldSample(createEntry({ level: 'warn' }))).toBe(true)
-		expect(sampler!.shouldSample(createEntry({ level: 'info' }))).toBe(false)
+		expect(sampler?.shouldSample(createEntry({ level: 'warn' }))).toBe(true)
+		expect(sampler?.shouldSample(createEntry({ level: 'info' }))).toBe(false)
 	})
 })

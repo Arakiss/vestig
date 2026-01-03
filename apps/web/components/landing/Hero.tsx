@@ -1,14 +1,14 @@
 'use client'
 
-import Link from 'next/link'
-import { ArrowRight, Copy, Check } from 'iconoir-react'
-import { useState, useCallback } from 'react'
-import { motion } from 'framer-motion'
-import type { HeroContent } from '@/lib/content/types'
 import { Container } from '@/components/layout'
-import { AnimatedLogs } from './AnimatedLogs'
 import { LineTitle } from '@/components/ui/line-title'
 import { PillCTA, PillCTAGroup } from '@/components/ui/pill-cta'
+import type { HeroContent } from '@/lib/content/types'
+import { motion } from 'framer-motion'
+import { ArrowRight, Check, Copy } from 'iconoir-react'
+import Link from 'next/link'
+import { useCallback, useState } from 'react'
+import { AnimatedLogs } from './AnimatedLogs'
 
 /**
  * Hero - Cloudflare Sandbox inspired epic hero section
@@ -29,9 +29,14 @@ export function Hero({ content }: HeroProps) {
 	const [copied, setCopied] = useState(false)
 
 	const handleCopy = useCallback(async () => {
-		await navigator.clipboard.writeText(content.installCommand)
-		setCopied(true)
-		setTimeout(() => setCopied(false), 2000)
+		try {
+			await navigator.clipboard.writeText(content.installCommand)
+			setCopied(true)
+			setTimeout(() => setCopied(false), 2000)
+		} catch {
+			// Clipboard API may fail in some contexts (e.g., insecure origins)
+			console.warn('Failed to copy to clipboard')
+		}
 	}, [content.installCommand])
 
 	return (
@@ -112,8 +117,10 @@ export function Hero({ content }: HeroProps) {
 						transition={{ duration: 0.5, delay: 0.7 }}
 					>
 						<button
+							type="button"
 							onClick={handleCopy}
-							className="inline-flex items-center gap-3 px-6 py-3 font-mono text-sm bg-surface border border-brand/20 rounded-full hover:border-brand/40 transition-all duration-200 group"
+							aria-label={copied ? 'Copied to clipboard' : 'Copy install command'}
+							className="inline-flex items-center gap-3 px-6 py-3 font-mono text-sm bg-surface border border-brand/20 rounded-full hover:border-brand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-all duration-200 group"
 						>
 							<span className="text-brand">$</span>
 							<span className="text-foreground">{content.installCommand}</span>

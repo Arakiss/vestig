@@ -2,16 +2,16 @@ import { mergeConfig } from './config'
 import { getContext } from './context'
 import { LOG_LEVELS, shouldLog } from './levels'
 import { RUNTIME } from './runtime'
-import { createSampler, type Sampler } from './sampling'
-import { ConsoleTransport } from './transports/console'
+import { type Sampler, createSampler } from './sampling'
 import {
-	span as spanFn,
-	spanSync as spanSyncFn,
 	type Span,
 	type SpanCallback,
 	type SpanOptions,
 	type SpanSyncCallback,
+	span as spanFn,
+	spanSync as spanSyncFn,
 } from './tracing'
+import { ConsoleTransport } from './transports/console'
 import type {
 	LogContext,
 	LogEntry,

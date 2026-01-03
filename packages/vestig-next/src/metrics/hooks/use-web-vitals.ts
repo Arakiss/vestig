@@ -12,9 +12,9 @@
 import { useEffect, useState } from 'react'
 import type { Metric } from 'web-vitals'
 import { onCLS, onFCP, onINP, onLCP, onTTFB } from 'web-vitals'
+import { MetricsReporter } from '../reporter'
 import { metricsStore } from '../store'
 import type { MetricEntry, MetricSummary, NavigationType, WebVitalName } from '../types'
-import { MetricsReporter } from '../reporter'
 
 /**
  * Options for useWebVitals hook

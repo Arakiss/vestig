@@ -1,8 +1,8 @@
 'use client'
 
 import { InnerNav } from '@/components/layout'
-import Link from 'next/link'
 import { ArrowLeft } from 'iconoir-react'
+import Link from 'next/link'
 
 export function BlogClientLayout({ children }: { children: React.ReactNode }) {
 	return (

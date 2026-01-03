@@ -1,13 +1,13 @@
 'use client'
 
+import { BlueprintCard } from '@/components/ui/blueprint-grid'
+import { CodeBlock } from '@/components/ui/code-block'
 import { cn } from '@/lib/utils'
 import { motion, useInView } from 'framer-motion'
-import { useRef } from 'react'
 import { ArrowRight } from 'iconoir-react'
 import Link from 'next/link'
+import { useRef } from 'react'
 import { FlowDiagram, type FlowNode } from './FlowDiagram'
-import { CodeBlock } from '@/components/ui/code-block'
-import { BlueprintCard } from '@/components/ui/blueprint-grid'
 
 /**
  * InteractiveFeatureCard - 2-column feature card with visualization

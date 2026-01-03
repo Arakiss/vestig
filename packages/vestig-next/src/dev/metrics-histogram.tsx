@@ -1,8 +1,8 @@
 'use client'
 
-import { memo, type CSSProperties } from 'react'
+import { type CSSProperties, memo } from 'react'
+import { RATING_COLORS, THRESHOLDS } from '../metrics/thresholds'
 import type { HistogramBucket, WebVitalName } from '../metrics/types'
-import { THRESHOLDS, RATING_COLORS } from '../metrics/thresholds'
 
 interface MetricsHistogramProps {
 	name: WebVitalName

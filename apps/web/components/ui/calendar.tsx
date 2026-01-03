@@ -1,15 +1,15 @@
 'use client'
 
-import * as React from 'react'
 import {
 	NavArrowDown as ChevronDownIcon,
 	NavArrowLeft as ChevronLeftIcon,
 	NavArrowRight as ChevronRightIcon,
 } from 'iconoir-react'
-import { DayButton, DayPicker, getDefaultClassNames } from 'react-day-picker'
+import * as React from 'react'
+import { type DayButton, DayPicker, getDefaultClassNames } from 'react-day-picker'
 
-import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 function Calendar({
 	className,

@@ -14,9 +14,9 @@
  *   1 = Validation failed
  */
 
-const fs = require('fs')
-const { execSync } = require('child_process')
-const path = require('path')
+const fs = require('node:fs')
+const { execSync } = require('node:child_process')
+const path = require('node:path')
 
 // Configuration
 const PACKAGES = ['packages/vestig/package.json', 'packages/vestig-next/package.json']
@@ -55,9 +55,9 @@ function parseVersion(version) {
 	const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/)
 	if (!match) return null
 	return {
-		major: parseInt(match[1], 10),
-		minor: parseInt(match[2], 10),
-		patch: parseInt(match[3], 10),
+		major: Number.parseInt(match[1], 10),
+		minor: Number.parseInt(match[2], 10),
+		patch: Number.parseInt(match[3], 10),
 		prerelease: match[4] || null,
 		raw: version,
 	}
@@ -71,7 +71,7 @@ function getPackageVersions() {
 
 	// Root package
 	const rootPkg = JSON.parse(fs.readFileSync(ROOT_PACKAGE, 'utf8'))
-	versions['root'] = rootPkg.version
+	versions.root = rootPkg.version
 
 	// Sub-packages
 	for (const pkgPath of PACKAGES) {
@@ -232,7 +232,7 @@ function validate() {
 	}
 
 	// Summary
-	log('\n' + '━'.repeat(50))
+	log(`\n${'━'.repeat(50)}`)
 	if (hasErrors) {
 		log(colors.red(colors.bold('\n❌ Validation FAILED\n')))
 		log('Please fix the version issues before releasing.')

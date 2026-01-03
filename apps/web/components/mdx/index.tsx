@@ -10,17 +10,22 @@ export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs'
 export { ApiTable } from './api-table'
 export { FeatureList, Feature } from './feature-list'
 
+import { Callout } from './callout'
+import { Card, CardGrid } from './card'
 // MDX Component mappings for automatic use
 import { CodeBlock, InlineCode } from './code-block'
 import { PreWrapper } from './pre-wrapper'
-import { Callout } from './callout'
-import { Steps, Step } from './steps'
-import { Card, CardGrid } from './card'
-import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from './table'
+import { Step, Steps } from './steps'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './table'
+
+interface CodeProps {
+	children?: React.ReactNode
+	className?: string
+}
 
 export const mdxComponents = {
 	// Override default elements - shiki handles syntax highlighting
-	code: ({ children, className, ...props }: any) => {
+	code: ({ children, className, ...props }: CodeProps & React.HTMLAttributes<HTMLElement>) => {
 		// If it's inside a pre (code block), let it pass through styled
 		if (className?.includes('language-')) {
 			return (

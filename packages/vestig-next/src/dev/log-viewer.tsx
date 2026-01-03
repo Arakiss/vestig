@@ -1,8 +1,8 @@
 'use client'
 
-import { memo, useEffect, useRef, type CSSProperties } from 'react'
-import type { DevLogEntry } from './store'
+import { type CSSProperties, memo, useEffect, useRef } from 'react'
 import { LogEntry } from './log-entry'
+import type { DevLogEntry } from './store'
 
 interface LogViewerProps {
 	logs: DevLogEntry[]

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Copy, Check, Terminal } from 'iconoir-react'
 import { cn } from '@/lib/utils'
+import { Check, Copy, Terminal } from 'iconoir-react'
+import { useState } from 'react'
 
 interface CodeBlockProps {
 	children: string

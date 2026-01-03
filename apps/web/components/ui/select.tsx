@@ -1,8 +1,8 @@
 'use client'
 
-import * as React from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
 import { Check, NavArrowDown as ChevronDown, NavArrowUp as ChevronUp } from 'iconoir-react'
+import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 

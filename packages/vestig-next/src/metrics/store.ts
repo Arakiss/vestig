@@ -7,6 +7,7 @@
  * @packageDocumentation
  */
 
+import { THRESHOLDS, getRating } from './thresholds'
 import type {
 	HistogramBucket,
 	MetricEntry,
@@ -15,7 +16,6 @@ import type {
 	MetricsState,
 	WebVitalName,
 } from './types'
-import { getRating, THRESHOLDS } from './thresholds'
 
 /**
  * Create a unique ID for metrics

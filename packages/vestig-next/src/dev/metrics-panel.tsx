@@ -1,8 +1,8 @@
 'use client'
 
-import { memo, useState, type CSSProperties } from 'react'
-import { useWebVitalsData, useWebVitalsSummary } from '../metrics/hooks/use-web-vitals'
+import { type CSSProperties, memo, useState } from 'react'
 import { useRouteMetricsData } from '../metrics/hooks/use-route-metrics'
+import { useWebVitalsData, useWebVitalsSummary } from '../metrics/hooks/use-web-vitals'
 import { metricsStore } from '../metrics/store'
 import type { WebVitalName } from '../metrics/types'
 import { MetricsCard } from './metrics-card'

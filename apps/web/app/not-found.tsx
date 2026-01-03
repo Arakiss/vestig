@@ -1,5 +1,15 @@
+import { ArrowRight, Book, Home, Play } from 'iconoir-react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Home, Book, Play, ArrowRight } from 'iconoir-react'
+
+export const metadata: Metadata = {
+	title: 'Page Not Found',
+	description: 'The page you are looking for does not exist or has been moved.',
+	robots: {
+		index: false,
+		follow: false,
+	},
+}
 
 export default function NotFound() {
 	return (

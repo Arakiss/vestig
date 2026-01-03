@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, type CSSProperties } from 'react'
+import { type CSSProperties, memo } from 'react'
 import type { LogLevel } from 'vestig'
 import type { LogFilters } from './store'
 

@@ -17,8 +17,8 @@
  */
 
 import type { Logger } from 'vestig'
-import type { DbLoggerConfig, PrismaQueryEvent } from './types'
 import { createQueryLogEntry, logQuery, mergeConfig } from './query-logger'
+import type { DbLoggerConfig, PrismaQueryEvent } from './types'
 
 /**
  * Type for Prisma Client with query events

@@ -1,8 +1,15 @@
 import { GlassCard, GlassGrid } from '@/app/components/glass-card'
 import { Container } from '@/components/layout'
-import { Antenna, Terminal, Globe, Folder, Database, Shuffle, Settings } from 'iconoir-react'
 import { getLogger, getRequestContext } from '@vestig/next'
+import { Antenna, Database, Folder, Globe, Settings, Shuffle, Terminal } from 'iconoir-react'
+import type { Metadata } from 'next'
 import { IS_SERVER, RUNTIME } from 'vestig'
+
+export const metadata: Metadata = {
+	title: 'Transports',
+	description:
+		'Multi-transport configuration demo showing Console, HTTP, File, and Datadog transports.',
+}
 
 const transports = [
 	{

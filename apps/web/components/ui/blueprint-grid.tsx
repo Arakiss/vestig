@@ -56,7 +56,7 @@ export function BlueprintGrid({
 					}}
 					transition={{
 						duration: 3,
-						repeat: Infinity,
+						repeat: Number.POSITIVE_INFINITY,
 						ease: 'linear',
 					}}
 				/>

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
+import { useEffect, useRef, useState } from 'react'
 
 interface LogEntry {
 	id: number
@@ -96,13 +96,13 @@ export function AnimatedLogs({ className }: { className?: string }) {
 		<div className={cn('font-mono text-sm', className)}>
 			{/* Terminal header - Modern minimal style */}
 			<div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-white/[0.02]">
-				<div className="flex gap-1.5">
+				<div className="flex gap-1.5" aria-hidden="true">
 					<div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
 					<div className="w-3 h-3 rounded-full bg-[#febc2e]" />
 					<div className="w-3 h-3 rounded-full bg-[#28c840]" />
 				</div>
 				<span className="text-xs text-white/30 font-medium">vestig — live logs</span>
-				<div className="ml-auto flex items-center gap-2">
+				<div className="ml-auto flex items-center gap-2" aria-hidden="true">
 					<span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
 					<span className="text-[10px] text-white/30 uppercase tracking-wider">streaming</span>
 				</div>
