@@ -262,7 +262,9 @@ describe('FileTransport', () => {
 		test('should batch multiple entries before writing', async () => {
 			const transport = new FileTransport({
 				path: TEST_LOG_PATH,
-				batchSize: 5,
+				// Use batchSize > entries count to avoid triggering auto-flush
+				// Auto-flush is async and causes race conditions in tests
+				batchSize: 10,
 			})
 
 			await transport.init()
