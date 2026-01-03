@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.10.2](https://github.com/Arakiss/vestig/compare/v0.10.1...v0.10.2) (2026-01-03)
+
+### 🐛 Bug Fixes
+
+* **web:** add error handling and focus styles to app components ([4465d35](https://github.com/Arakiss/vestig/commit/4465d358ad94534c915478d093203534676bff88))
+
 ## [0.10.1](https://github.com/Arakiss/vestig/compare/v0.10.0...v0.10.1) (2026-01-03)
 
 ### 🐛 Bug Fixes
