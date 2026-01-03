@@ -1,4 +1,5 @@
 import { SkipLink } from '@/components/ui/skip-link'
+import { GITHUB_AUTHOR_URL, GITHUB_URL, NPM_URL, SITE_URL } from '@/lib/constants'
 import { LogProvider } from '@/lib/log-context'
 import { getRequestContext } from '@vestig/next'
 import { VestigProvider } from '@vestig/next/client'
@@ -40,10 +41,8 @@ const jetbrainsMono = JetBrains_Mono({
 	weight: ['400'], // Explicitly set to avoid loading all weights
 })
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vestig.dev'
-
 export const metadata: Metadata = {
-	metadataBase: new URL(siteUrl),
+	metadataBase: new URL(SITE_URL),
 	title: {
 		default: 'Vestig — Leave a trace',
 		template: '%s | Vestig',
@@ -66,7 +65,7 @@ export const metadata: Metadata = {
 		'observability',
 		'context propagation',
 	],
-	authors: [{ name: 'Arakiss', url: 'https://github.com/Arakiss' }],
+	authors: [{ name: 'Arakiss', url: GITHUB_AUTHOR_URL }],
 	creator: 'Arakiss',
 	publisher: 'Vestig',
 	icons: {
@@ -77,7 +76,7 @@ export const metadata: Metadata = {
 	openGraph: {
 		type: 'website',
 		locale: 'en_US',
-		url: siteUrl,
+		url: SITE_URL,
 		siteName: 'Vestig',
 		title: 'Vestig — Zero-dependency TypeScript Logging',
 		description:
@@ -111,7 +110,7 @@ export const metadata: Metadata = {
 		},
 	},
 	alternates: {
-		canonical: siteUrl,
+		canonical: SITE_URL,
 	},
 	category: 'technology',
 }
@@ -146,13 +145,13 @@ export default async function RootLayout({
 							operatingSystem: 'Cross-platform',
 							description:
 								'Zero-dependency TypeScript logging library with automatic PII sanitization, native tracing, and multi-runtime support.',
-							url: 'https://vestig.dev',
-							downloadUrl: 'https://www.npmjs.com/package/vestig',
+							url: SITE_URL,
+							downloadUrl: NPM_URL,
 							softwareVersion: VESTIG_VERSION,
 							author: {
 								'@type': 'Person',
 								name: 'Arakiss',
-								url: 'https://github.com/Arakiss',
+								url: GITHUB_AUTHOR_URL,
 							},
 							offers: {
 								'@type': 'Offer',
@@ -173,9 +172,9 @@ export default async function RootLayout({
 							'@context': 'https://schema.org',
 							'@type': 'Organization',
 							name: 'Vestig',
-							url: 'https://vestig.dev',
-							logo: 'https://vestig.dev/logo.svg',
-							sameAs: ['https://github.com/Arakiss/vestig'],
+							url: SITE_URL,
+							logo: `${SITE_URL}/logo.svg`,
+							sameAs: [GITHUB_URL],
 						}),
 					}}
 				/>

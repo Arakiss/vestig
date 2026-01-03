@@ -2,6 +2,7 @@
 
 import { Container } from '@/components/layout'
 import { Wordmark } from '@/components/ui/logo'
+import { GITHUB_URL } from '@/lib/constants'
 import type { FooterContent } from '@/lib/content/types'
 import { cn } from '@/lib/utils'
 import { Github, OpenNewWindow } from 'iconoir-react'
@@ -46,6 +47,7 @@ export function Footer({ content }: FooterProps) {
 											className={cn(
 												'text-sm text-muted-foreground',
 												'hover:text-brand transition-colors',
+												'focus-visible:outline-none focus-visible:text-brand focus-visible:underline',
 												'inline-flex items-center gap-1',
 											)}
 										>
@@ -67,7 +69,10 @@ export function Footer({ content }: FooterProps) {
 
 					{/* Logo and tagline */}
 					<div className="flex items-center gap-6 mb-4 md:mb-0">
-						<Link href="/" className="hover:opacity-80 transition-opacity">
+						<Link
+							href="/"
+							className="hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded"
+						>
 							<Wordmark size="sm" className="text-foreground" />
 						</Link>
 						<span className="text-sm text-muted-foreground hidden sm:inline">
@@ -79,10 +84,10 @@ export function Footer({ content }: FooterProps) {
 					<div className="flex items-center gap-6 text-sm text-muted-foreground">
 						<span>{content.copyright}</span>
 						<Link
-							href="https://github.com/Arakiss/vestig"
+							href={GITHUB_URL}
 							target="_blank"
 							rel="noopener noreferrer"
-							className="hover:text-brand transition-colors p-1"
+							className="hover:text-brand transition-colors p-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
 							aria-label="GitHub"
 						>
 							<Github className="h-5 w-5" />

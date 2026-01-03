@@ -10,6 +10,7 @@
  */
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://vestig.dev'
 export const GITHUB_URL = 'https://github.com/Arakiss/vestig'
+export const GITHUB_AUTHOR_URL = 'https://github.com/Arakiss'
 export const GITHUB_REPO = 'Arakiss/vestig'
 export const NPM_URL = 'https://www.npmjs.com/package/vestig'
 
