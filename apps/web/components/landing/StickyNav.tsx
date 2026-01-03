@@ -173,6 +173,7 @@ export function StickyNav({
 						>
 							{/* Install Command */}
 							<button
+								type="button"
 								onClick={handleCopy}
 								aria-label={copied ? 'Copied to clipboard' : 'Copy install command'}
 								className={cn(

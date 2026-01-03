@@ -130,8 +130,12 @@ export const Filters = memo(function Filters({
 					value={filters.search}
 					onChange={(e) => onSetSearch(e.target.value)}
 					style={searchInputStyle}
-					onFocus={(e) => (e.target.style.borderColor = '#4f46e5')}
-					onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')}
+					onFocus={(e) => {
+						e.target.style.borderColor = '#4f46e5'
+					}}
+					onBlur={(e) => {
+						e.target.style.borderColor = '#e5e7eb'
+					}}
 				/>
 
 				<div style={buttonGroupStyle}>

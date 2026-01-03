@@ -63,6 +63,7 @@ export function CodeBlock({
 					{title && <span className="text-sm font-mono text-muted-foreground">{title}</span>}
 					{copyable && (
 						<button
+							type="button"
 							onClick={handleCopy}
 							className={cn(
 								'p-1.5 rounded transition-all duration-200',
@@ -305,6 +306,7 @@ export function TerminalBlock({ commands, className }: TerminalBlockProps) {
 					<div className="w-3 h-3 rounded-full bg-green-500/60" />
 				</div>
 				<button
+					type="button"
 					onClick={handleCopy}
 					className={cn(
 						'p-1.5 rounded transition-all duration-200',

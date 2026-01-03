@@ -91,6 +91,7 @@ export function InnerNav({ section, links = [], showDevelopmentBadge = false }: 
 
 					{/* Mobile Menu Button */}
 					<button
+						type="button"
 						className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
 						onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
 						aria-label="Toggle menu"

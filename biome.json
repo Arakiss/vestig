@@ -28,16 +28,27 @@
 				"useButtonType": "warn",
 				"useKeyWithClickEvents": "warn",
 				"useSemanticElements": "warn",
-				"noLabelWithoutControl": "warn"
+				"noLabelWithoutControl": "warn",
+				"useFocusableInteractive": "warn",
+				"noSvgWithoutTitle": "warn"
 			},
 			"style": {
 				"noNonNullAssertion": "warn"
 			},
 			"complexity": {
-				"noForEach": "warn"
+				"noForEach": "warn",
+				"noBannedTypes": "warn"
 			},
 			"correctness": {
-				"useExhaustiveDependencies": "warn"
+				"useExhaustiveDependencies": "warn",
+				"noChildrenProp": "warn"
+			},
+			"suspicious": {
+				"noArrayIndexKey": "warn",
+				"noExplicitAny": "warn"
+			},
+			"security": {
+				"noDangerouslySetInnerHtml": "warn"
 			}
 		}
 	},
