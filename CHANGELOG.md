@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.10.0](https://github.com/Arakiss/vestig/compare/v0.9.1...v0.10.0) (2026-01-03)
+
+### ✨ Features
+
+* **web:** add error boundary, loading states, and constants ([d301b86](https://github.com/Arakiss/vestig/commit/d301b861760c60d45978a4d4934f11b0fe681cfe))
+
 ## [0.9.1](https://github.com/Arakiss/vestig/compare/v0.9.0...v0.9.1) (2026-01-03)
 
 ### ⚡ Performance
