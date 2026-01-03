@@ -21,7 +21,7 @@
 		"@types/mdx": "^2.0.13"
 	},
 	"scripts": {
-		"build": "bun run --filter '*' build",
+		"build": "bun run --filter 'vestig' build && bun run --filter '@vestig/next' build && bun run --filter '@vestig/web' build",
 		"test": "bun run --filter '*' test",
 		"lint": "biome check .",
 		"format": "biome format --write .",
