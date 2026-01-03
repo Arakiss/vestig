@@ -36,7 +36,7 @@ const jetbrainsMono = JetBrains_Mono({
 	variable: '--font-mono',
 })
 
-const siteUrl = 'https://vestig.dev'
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://vestig.dev'
 
 export const metadata: Metadata = {
 	metadataBase: new URL(siteUrl),
@@ -80,7 +80,7 @@ export const metadata: Metadata = {
 			'Modern structured logging with automatic PII sanitization, native tracing, and multi-runtime support. Works everywhere.',
 		images: [
 			{
-				url: '/og-image.png',
+				url: '/og-image.svg',
 				width: 1200,
 				height: 630,
 				alt: 'Vestig - Leave a trace. Zero-dependency TypeScript logging.',
@@ -92,7 +92,7 @@ export const metadata: Metadata = {
 		title: 'Vestig — Zero-dependency TypeScript Logging',
 		description:
 			'Modern structured logging with automatic PII sanitization, native tracing, and multi-runtime support.',
-		images: ['/og-image.png'],
+		images: ['/og-image.svg'],
 		creator: '@vestig_dev',
 	},
 	robots: {

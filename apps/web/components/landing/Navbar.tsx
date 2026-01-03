@@ -74,7 +74,9 @@ export function Navbar({
 					<button
 						className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
 						onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-						aria-label="Toggle menu"
+						aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+						aria-expanded={isMobileMenuOpen}
+						aria-controls="mobile-navigation-menu"
 					>
 						{isMobileMenuOpen ? <Xmark className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
 					</button>
@@ -82,7 +84,11 @@ export function Navbar({
 
 				{/* Mobile Menu */}
 				{isMobileMenuOpen && (
-					<div className="md:hidden py-4 border-t border-white/6 animate-slide-in-from-top">
+					<nav
+						id="mobile-navigation-menu"
+						className="md:hidden py-4 border-t border-white/6 animate-slide-in-from-top"
+						aria-label="Mobile navigation"
+					>
 						<div className="flex flex-col gap-4">
 							{links.map((link) => (
 								<Link
@@ -103,7 +109,7 @@ export function Navbar({
 								</Link>
 							</Button>
 						</div>
-					</div>
+					</nav>
 				)}
 			</Container>
 		</header>
