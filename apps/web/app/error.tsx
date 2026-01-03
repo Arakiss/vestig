@@ -9,11 +9,11 @@ import { useEffect } from 'react'
  * Catches unhandled errors in the application and provides
  * a graceful fallback UI with recovery options.
  */
-export default function Error({
+export default function ErrorPage({
 	error,
 	reset,
 }: {
-	error: Error & { digest?: string }
+	error: globalThis.Error & { digest?: string }
 	reset: () => void
 }) {
 	useEffect(() => {
@@ -60,6 +60,7 @@ export default function Error({
 				{/* Recovery actions */}
 				<div className="flex flex-col sm:flex-row items-center justify-center gap-4">
 					<button
+						type="button"
 						onClick={reset}
 						className="px-6 py-3 bg-brand text-white font-medium rounded-lg hover:bg-brand/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 					>
