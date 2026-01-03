@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Wordmark } from '@/components/ui/logo'
+import { GITHUB_URL } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { Menu, OpenNewWindow, Xmark } from 'iconoir-react'
 import Link from 'next/link'
@@ -37,7 +38,7 @@ export function InnerNav({ section, links = [], showDevelopmentBadge = false }: 
 	const defaultLinks: NavLink[] = [
 		{ label: 'Docs', href: '/docs' },
 		{ label: 'Playground', href: '/playground' },
-		{ label: 'GitHub', href: 'https://github.com/Arakiss/vestig', external: true },
+		{ label: 'GitHub', href: GITHUB_URL, external: true },
 	]
 
 	const navLinks = links.length > 0 ? links : defaultLinks
