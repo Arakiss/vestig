@@ -1,4 +1,8 @@
-import { createLogStream, logStore } from '@/lib/demo-transport'
+import { createLogStream, logStore, getSubscriberCount } from '@/lib/demo-transport'
+import { withVestig } from '@vestig/next'
+
+// Maximum concurrent SSE connections to prevent resource exhaustion
+const MAX_SUBSCRIBERS = 50
 
 /**
  * GET /api/logs - Server-Sent Events stream for real-time logs
@@ -9,17 +13,51 @@ import { createLogStream, logStore } from '@/lib/demo-transport'
  * Note: Client logs are now sent to /api/vestig via @vestig/next.
  * This endpoint is only for the SSE stream to the log viewer UI.
  */
-export async function GET() {
-	const stream = createLogStream()
+export async function GET(request: Request) {
+	const subscriberCount = getSubscriberCount()
 
-	return new Response(stream, {
-		headers: {
-			'Content-Type': 'text/event-stream',
-			'Cache-Control': 'no-cache, no-transform',
-			Connection: 'keep-alive',
-			'X-Accel-Buffering': 'no', // Disable nginx buffering
-		},
-	})
+	// Check subscriber limit to prevent resource exhaustion
+	if (subscriberCount >= MAX_SUBSCRIBERS) {
+		console.warn(`[api:logs] SSE subscriber limit reached: ${subscriberCount}/${MAX_SUBSCRIBERS}`)
+		return new Response(
+			JSON.stringify({
+				error: 'Too many connections',
+				code: 'MAX_SUBSCRIBERS_REACHED',
+			}),
+			{
+				status: 503,
+				headers: { 'Content-Type': 'application/json' },
+			},
+		)
+	}
+
+	console.info(`[api:logs] SSE connection opened. Subscribers: ${subscriberCount + 1}`)
+
+	try {
+		const stream = createLogStream()
+
+		return new Response(stream, {
+			headers: {
+				'Content-Type': 'text/event-stream',
+				'Cache-Control': 'no-cache, no-transform',
+				Connection: 'keep-alive',
+				'X-Accel-Buffering': 'no', // Disable nginx buffering
+			},
+		})
+	} catch (error) {
+		console.error('[api:logs] Failed to create SSE stream:', error)
+
+		return new Response(
+			JSON.stringify({
+				error: 'Failed to create stream',
+				code: 'STREAM_ERROR',
+			}),
+			{
+				status: 500,
+				headers: { 'Content-Type': 'application/json' },
+			},
+		)
+	}
 }
 
 /**
@@ -27,7 +65,38 @@ export async function GET() {
  *
  * Useful for demo purposes to reset the log viewer
  */
-export async function DELETE() {
-	logStore.clear()
-	return Response.json({ success: true, message: 'Logs cleared' })
-}
+export const DELETE = withVestig(
+	async (request, { log, ctx }) => {
+		const logCount = logStore.getSize()
+
+		try {
+			logStore.clear()
+
+			log.info('Logs cleared', {
+				clearedCount: logCount,
+				userAgent: request.headers.get('user-agent')?.slice(0, 100),
+			})
+
+			return Response.json({
+				success: true,
+				message: 'Logs cleared',
+				clearedCount: logCount,
+				requestId: ctx.requestId,
+			})
+		} catch (error) {
+			log.error('Failed to clear logs', {
+				error: error instanceof Error ? error.message : String(error),
+			})
+
+			return Response.json(
+				{
+					success: false,
+					error: 'Failed to clear logs',
+					code: 'CLEAR_ERROR',
+				},
+				{ status: 500 },
+			)
+		}
+	},
+	{ namespace: 'api:logs' },
+)
