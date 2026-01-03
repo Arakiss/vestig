@@ -2,4 +2,4 @@
  * Vestig library version
  * This is automatically updated during the release process
  */
-export const VERSION = '0.8.1'
+export const VERSION = '0.9.0'

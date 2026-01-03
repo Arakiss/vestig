@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.9.0](https://github.com/Arakiss/vestig/compare/v0.8.1...v0.9.0) (2026-01-03)
+
+### ✨ Features
+
+* automate version display in web app ([2ef6041](https://github.com/Arakiss/vestig/commit/2ef6041d3598037d4e81570dfe9d6a1c3bb97bc5))
+
+### 🐛 Bug Fixes
+
+* **ci:** remove duplicate tests from release-it hooks ([f85c70b](https://github.com/Arakiss/vestig/commit/f85c70b896863c683e8db4b05ad804009cd7b762))
+* ensure sequential package builds for CI ([0f5eb49](https://github.com/Arakiss/vestig/commit/0f5eb4978d2ff7ba0fe97677f93c7f42dd0d9016))
+* resolve all Biome lint errors for CI pass ([08f56a0](https://github.com/Arakiss/vestig/commit/08f56a0b14d1119f17bf65e1c4cbeb848238b817))
+* **test:** make FileTransport batching test deterministic ([c68dc21](https://github.com/Arakiss/vestig/commit/c68dc210a38e5a3dc9d21f79cc75da306741118f))
+* **web:** fix remaining lint issues for CI pass ([341c83e](https://github.com/Arakiss/vestig/commit/341c83e6851067ebde6fc2d78a3bc354b93752c8))
+* **web:** resolve biome linting and accessibility issues ([2a6e935](https://github.com/Arakiss/vestig/commit/2a6e9358af83eb6ebb381a1f669b90d7189ffc56))
+
 ## [0.8.0](https://github.com/Arakiss/vestig/compare/v0.7.0...v0.8.0) (2025-12-23)
 
 ### ✨ Features
