@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0f"/>
+      <stop offset="100%" style="stop-color:#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f97316"/>
+      <stop offset="100%" style="stop-color:#fb923c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Grid pattern -->
+  <g opacity="0.1">
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="1"/>
+    </pattern>
+    <rect width="1200" height="630" fill="url(#grid)"/>
+  </g>
+
+  <!-- Logo mark (stylized V) -->
+  <g transform="translate(520, 180)">
+    <path d="M80 0 L160 200 L80 160 L0 200 Z" fill="url(#accent)"/>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="440" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="white">
+    Vestig
+  </text>
+
+  <!-- Tagline -->
+  <text x="600" y="500" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="#a1a1aa">
+    Leave a trace. Zero-dependency TypeScript logging.
+  </text>
+
+  <!-- Bottom accent line -->
+  <rect x="400" y="560" width="400" height="4" rx="2" fill="url(#accent)"/>
+</svg>
