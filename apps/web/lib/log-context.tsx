@@ -6,9 +6,12 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useReducer,
+	useRef,
 } from 'react'
 import type { LogLevel, Runtime } from 'vestig'
+import { API_LIMITS } from './constants'
 import type { DemoLogEntry } from './demo-transport'
 
 /**
@@ -78,15 +81,10 @@ const initialState: LogState = {
 	connectionStatus: 'disconnected',
 	isPanelOpen: false,
 	autoScroll: true,
-	maxLogs: 500,
+	maxLogs: API_LIMITS.MAX_LOGS,
 	reconnectAttempts: 0,
 	lastError: null,
 }
-
-// Maximum reconnection attempts before giving up
-const MAX_RECONNECT_ATTEMPTS = 10
-// Base delay for exponential backoff (ms)
-const BASE_RECONNECT_DELAY = 1000
 
 /**
  * Reducer for log state management
@@ -137,8 +135,48 @@ function logReducer(state: LogState, action: LogAction): LogState {
 	}
 }
 
+// ============================================================================
+// SPLIT CONTEXTS FOR PERFORMANCE
+// ============================================================================
+
 /**
- * Context value interface
+ * Context for log data (changes frequently)
+ */
+interface LogDataContextValue {
+	logs: DemoLogEntry[]
+	filteredLogs: DemoLogEntry[]
+	filter: LogFilter
+	autoScroll: boolean
+}
+
+/**
+ * Context for stable action callbacks (rarely changes)
+ */
+interface LogActionsContextValue {
+	addLog: (log: DemoLogEntry) => void
+	clearLogs: () => void
+	setFilter: (filter: Partial<LogFilter>) => void
+	toggleLevel: (level: LogLevel) => void
+	toggleRuntime: (runtime: Runtime | 'unknown') => void
+	setSearch: (search: string) => void
+	toggleAutoScroll: () => void
+	clearServerLogs: () => Promise<void>
+}
+
+/**
+ * Context for panel state (changes less frequently than logs)
+ */
+interface LogPanelContextValue {
+	isPanelOpen: boolean
+	connectionStatus: ConnectionStatus
+	lastError: string | null
+	reconnectAttempts: number
+	togglePanel: () => void
+	setPanelOpen: (open: boolean) => void
+}
+
+/**
+ * Legacy context value interface (for backwards compatibility)
  */
 interface LogContextValue {
 	state: LogState
@@ -155,60 +193,77 @@ interface LogContextValue {
 	clearServerLogs: () => Promise<void>
 }
 
+// Create separate contexts
+const LogDataContext = createContext<LogDataContextValue | null>(null)
+const LogActionsContext = createContext<LogActionsContextValue | null>(null)
+const LogPanelContext = createContext<LogPanelContextValue | null>(null)
+
+// Legacy context for backwards compatibility
 const LogContext = createContext<LogContextValue | null>(null)
 
 /**
  * Log provider component
  * Wraps the app and provides log state + SSE connection
+ *
+ * Uses split contexts for performance:
+ * - LogDataContext: frequently changing log data
+ * - LogActionsContext: stable action callbacks
+ * - LogPanelContext: panel and connection state
  */
 export function LogProvider({ children }: { children: ReactNode }) {
 	const [state, dispatch] = useReducer(logReducer, initialState)
 
-	// Memoized filter function
-	const filteredLogs = state.logs.filter((log) => {
-		// Level filter
-		if (!state.filter.levels.has(log.level)) return false
-		// Runtime filter
-		if (!state.filter.runtimes.has(log.runtime)) return false
-		// Namespace filter
-		if (
-			state.filter.namespace &&
-			log.namespace &&
-			!log.namespace.includes(state.filter.namespace)
-		) {
-			return false
-		}
-		// Search filter
-		if (state.filter.search) {
-			const searchLower = state.filter.search.toLowerCase()
-			const messageMatch = log.message.toLowerCase().includes(searchLower)
-			const metadataMatch =
-				log.metadata && JSON.stringify(log.metadata).toLowerCase().includes(searchLower)
-			if (!messageMatch && !metadataMatch) return false
-		}
-		return true
-	})
+	// Memoized filter function - avoids expensive JSON.stringify on every render
+	const filteredLogs = useMemo(() => {
+		return state.logs.filter((log) => {
+			// Level filter
+			if (!state.filter.levels.has(log.level)) return false
+			// Runtime filter
+			if (!state.filter.runtimes.has(log.runtime)) return false
+			// Namespace filter
+			if (
+				state.filter.namespace &&
+				log.namespace &&
+				!log.namespace.includes(state.filter.namespace)
+			) {
+				return false
+			}
+			// Search filter
+			if (state.filter.search) {
+				const searchLower = state.filter.search.toLowerCase()
+				const messageMatch = log.message.toLowerCase().includes(searchLower)
+				const metadataMatch =
+					log.metadata && JSON.stringify(log.metadata).toLowerCase().includes(searchLower)
+				if (!messageMatch && !metadataMatch) return false
+			}
+			return true
+		})
+	}, [state.logs, state.filter])
+
+	// Track reconnect attempts with ref to avoid stale closure issues
+	const reconnectAttemptsRef = useRef(state.reconnectAttempts)
+	reconnectAttemptsRef.current = state.reconnectAttempts
 
 	// Connect to SSE stream with exponential backoff reconnection
 	useEffect(() => {
 		let eventSource: EventSource | null = null
 		let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
-		let isMounted = true
+		const abortController = new AbortController()
 
 		const connect = () => {
-			if (!isMounted) return
+			if (abortController.signal.aborted) return
 
 			dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' })
 			eventSource = new EventSource('/api/logs')
 
 			eventSource.onopen = () => {
-				if (!isMounted) return
+				if (abortController.signal.aborted) return
 				dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
 				dispatch({ type: 'RESET_RECONNECT' })
 			}
 
 			eventSource.onmessage = (event) => {
-				if (!isMounted) return
+				if (abortController.signal.aborted) return
 				try {
 					const log = JSON.parse(event.data) as DemoLogEntry
 					dispatch({ type: 'ADD_LOG', payload: log })
@@ -220,8 +275,8 @@ export function LogProvider({ children }: { children: ReactNode }) {
 				}
 			}
 
-			eventSource.onerror = (error) => {
-				if (!isMounted) return
+			eventSource.onerror = () => {
+				if (abortController.signal.aborted) return
 
 				// Close current connection
 				eventSource?.close()
@@ -230,12 +285,18 @@ export function LogProvider({ children }: { children: ReactNode }) {
 				dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
 				dispatch({ type: 'INCREMENT_RECONNECT' })
 
+				// Use ref to get current reconnect attempts (avoids stale closure)
+				const currentAttempts = reconnectAttemptsRef.current
+
 				// Check if we should retry
-				if (state.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-					// Calculate delay with exponential backoff (max 30s)
-					const delay = Math.min(BASE_RECONNECT_DELAY * 2 ** state.reconnectAttempts, 30000)
+				if (currentAttempts < API_LIMITS.MAX_RECONNECT_ATTEMPTS) {
+					// Calculate delay with exponential backoff
+					const delay = Math.min(
+						API_LIMITS.BASE_RECONNECT_DELAY * 2 ** currentAttempts,
+						API_LIMITS.MAX_RECONNECT_DELAY,
+					)
 					console.warn(
-						`[LogProvider] Connection lost. Reconnecting in ${delay}ms (attempt ${state.reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`,
+						`[LogProvider] Connection lost. Reconnecting in ${delay}ms (attempt ${currentAttempts + 1}/${API_LIMITS.MAX_RECONNECT_ATTEMPTS})`,
 					)
 					reconnectTimeout = setTimeout(connect, delay)
 				} else {
@@ -251,7 +312,7 @@ export function LogProvider({ children }: { children: ReactNode }) {
 		connect()
 
 		return () => {
-			isMounted = false
+			abortController.abort()
 			if (reconnectTimeout) {
 				clearTimeout(reconnectTimeout)
 			}
@@ -260,9 +321,16 @@ export function LogProvider({ children }: { children: ReactNode }) {
 			}
 			dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
 		}
-	}, [state.reconnectAttempts])
+	}, []) // Empty deps - effect runs once, uses ref for current values
 
-	// Action creators
+	// Stable refs for callbacks that need current filter state
+	const filterRef = useRef(state.filter)
+	filterRef.current = state.filter
+
+	// ============================================================================
+	// ACTION CREATORS (stable references via useCallback)
+	// ============================================================================
+
 	const addLog = useCallback((log: DemoLogEntry) => {
 		dispatch({ type: 'ADD_LOG', payload: log })
 	}, [])
@@ -275,31 +343,25 @@ export function LogProvider({ children }: { children: ReactNode }) {
 		dispatch({ type: 'SET_FILTER', payload: filter })
 	}, [])
 
-	const toggleLevel = useCallback(
-		(level: LogLevel) => {
-			const newLevels = new Set(state.filter.levels)
-			if (newLevels.has(level)) {
-				newLevels.delete(level)
-			} else {
-				newLevels.add(level)
-			}
-			dispatch({ type: 'SET_FILTER', payload: { levels: newLevels } })
-		},
-		[state.filter.levels],
-	)
+	const toggleLevel = useCallback((level: LogLevel) => {
+		const newLevels = new Set(filterRef.current.levels)
+		if (newLevels.has(level)) {
+			newLevels.delete(level)
+		} else {
+			newLevels.add(level)
+		}
+		dispatch({ type: 'SET_FILTER', payload: { levels: newLevels } })
+	}, [])
 
-	const toggleRuntime = useCallback(
-		(runtime: Runtime | 'unknown') => {
-			const newRuntimes = new Set(state.filter.runtimes)
-			if (newRuntimes.has(runtime)) {
-				newRuntimes.delete(runtime)
-			} else {
-				newRuntimes.add(runtime)
-			}
-			dispatch({ type: 'SET_FILTER', payload: { runtimes: newRuntimes } })
-		},
-		[state.filter.runtimes],
-	)
+	const toggleRuntime = useCallback((runtime: Runtime | 'unknown') => {
+		const newRuntimes = new Set(filterRef.current.runtimes)
+		if (newRuntimes.has(runtime)) {
+			newRuntimes.delete(runtime)
+		} else {
+			newRuntimes.add(runtime)
+		}
+		dispatch({ type: 'SET_FILTER', payload: { runtimes: newRuntimes } })
+	}, [])
 
 	const setSearch = useCallback((search: string) => {
 		dispatch({ type: 'SET_FILTER', payload: { search } })
@@ -336,26 +398,157 @@ export function LogProvider({ children }: { children: ReactNode }) {
 		}
 	}, [])
 
-	const value: LogContextValue = {
-		state,
-		filteredLogs,
-		addLog,
-		clearLogs,
-		setFilter,
-		toggleLevel,
-		toggleRuntime,
-		setSearch,
-		togglePanel,
-		setPanelOpen,
-		toggleAutoScroll,
-		clearServerLogs,
-	}
+	// ============================================================================
+	// MEMOIZED CONTEXT VALUES (split for performance)
+	// ============================================================================
 
-	return <LogContext.Provider value={value}>{children}</LogContext.Provider>
+	// Log data context - changes when logs or filter change
+	const logDataValue = useMemo<LogDataContextValue>(
+		() => ({
+			logs: state.logs,
+			filteredLogs,
+			filter: state.filter,
+			autoScroll: state.autoScroll,
+		}),
+		[state.logs, filteredLogs, state.filter, state.autoScroll],
+	)
+
+	// Actions context - stable references, rarely changes
+	const logActionsValue = useMemo<LogActionsContextValue>(
+		() => ({
+			addLog,
+			clearLogs,
+			setFilter,
+			toggleLevel,
+			toggleRuntime,
+			setSearch,
+			toggleAutoScroll,
+			clearServerLogs,
+		}),
+		[
+			addLog,
+			clearLogs,
+			setFilter,
+			toggleLevel,
+			toggleRuntime,
+			setSearch,
+			toggleAutoScroll,
+			clearServerLogs,
+		],
+	)
+
+	// Panel context - changes less frequently than logs
+	const logPanelValue = useMemo<LogPanelContextValue>(
+		() => ({
+			isPanelOpen: state.isPanelOpen,
+			connectionStatus: state.connectionStatus,
+			lastError: state.lastError,
+			reconnectAttempts: state.reconnectAttempts,
+			togglePanel,
+			setPanelOpen,
+		}),
+		[
+			state.isPanelOpen,
+			state.connectionStatus,
+			state.lastError,
+			state.reconnectAttempts,
+			togglePanel,
+			setPanelOpen,
+		],
+	)
+
+	// Legacy combined context for backwards compatibility
+	const legacyValue = useMemo<LogContextValue>(
+		() => ({
+			state,
+			filteredLogs,
+			addLog,
+			clearLogs,
+			setFilter,
+			toggleLevel,
+			toggleRuntime,
+			setSearch,
+			togglePanel,
+			setPanelOpen,
+			toggleAutoScroll,
+			clearServerLogs,
+		}),
+		[
+			state,
+			filteredLogs,
+			addLog,
+			clearLogs,
+			setFilter,
+			toggleLevel,
+			toggleRuntime,
+			setSearch,
+			togglePanel,
+			setPanelOpen,
+			toggleAutoScroll,
+			clearServerLogs,
+		],
+	)
+
+	return (
+		<LogContext.Provider value={legacyValue}>
+			<LogDataContext.Provider value={logDataValue}>
+				<LogActionsContext.Provider value={logActionsValue}>
+					<LogPanelContext.Provider value={logPanelValue}>{children}</LogPanelContext.Provider>
+				</LogActionsContext.Provider>
+			</LogDataContext.Provider>
+		</LogContext.Provider>
+	)
+}
+
+// ============================================================================
+// HOOKS - SPLIT FOR PERFORMANCE
+// ============================================================================
+
+/**
+ * Hook to access log data (logs, filtered logs, filter state)
+ * Use this when you need to display logs
+ */
+export function useLogData() {
+	const context = useContext(LogDataContext)
+	if (!context) {
+		throw new Error('useLogData must be used within a LogProvider')
+	}
+	return context
 }
 
 /**
- * Hook to access log context
+ * Hook to access log actions (addLog, clearLogs, setFilter, etc.)
+ * Use this when you need to modify log state
+ * This won't re-render when logs change
+ */
+export function useLogActions() {
+	const context = useContext(LogActionsContext)
+	if (!context) {
+		throw new Error('useLogActions must be used within a LogProvider')
+	}
+	return context
+}
+
+/**
+ * Hook to access panel state (isOpen, connection status)
+ * Use this for panel UI components
+ * This won't re-render when logs change
+ */
+export function useLogPanelState() {
+	const context = useContext(LogPanelContext)
+	if (!context) {
+		throw new Error('useLogPanelState must be used within a LogProvider')
+	}
+	return context
+}
+
+// ============================================================================
+// LEGACY HOOKS (backwards compatibility)
+// ============================================================================
+
+/**
+ * Hook to access full log context (legacy - for backwards compatibility)
+ * Consider using useLogData, useLogActions, or useLogPanelState for better performance
  */
 export function useLogContext() {
 	const context = useContext(LogContext)
@@ -369,7 +562,7 @@ export function useLogContext() {
  * Hook for just the filtered logs (common use case)
  */
 export function useLogs() {
-	const { filteredLogs } = useLogContext()
+	const { filteredLogs } = useLogData()
 	return filteredLogs
 }
 
@@ -377,15 +570,17 @@ export function useLogs() {
  * Hook for log panel state
  */
 export function useLogPanel() {
-	const { state, togglePanel, setPanelOpen, filteredLogs } = useLogContext()
+	const panelState = useLogPanelState()
+	const { filteredLogs } = useLogData()
+
 	return {
-		isOpen: state.isPanelOpen,
-		toggle: togglePanel,
-		setOpen: setPanelOpen,
+		isOpen: panelState.isPanelOpen,
+		toggle: panelState.togglePanel,
+		setOpen: panelState.setPanelOpen,
 		logCount: filteredLogs.length,
-		isConnected: state.connectionStatus === 'connected',
-		connectionStatus: state.connectionStatus,
-		lastError: state.lastError,
-		reconnectAttempts: state.reconnectAttempts,
+		isConnected: panelState.connectionStatus === 'connected',
+		connectionStatus: panelState.connectionStatus,
+		lastError: panelState.lastError,
+		reconnectAttempts: panelState.reconnectAttempts,
 	}
 }
