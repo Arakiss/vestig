@@ -22,6 +22,8 @@ interface VestigContextValue {
 	context: LogContext
 	/** Whether client is connected to server */
 	isConnected: boolean
+	/** Error that occurred during transport initialization */
+	initError: Error | null
 }
 
 const VestigContext = createContext<VestigContextValue | null>(null)
@@ -86,6 +88,7 @@ export function VestigProvider({
 	context: staticContext,
 }: VestigProviderProps) {
 	const [isConnected, setIsConnected] = useState(false)
+	const [initError, setInitError] = useState<Error | null>(null)
 	const transportRef = useRef<ClientHTTPTransport | null>(null)
 	const loggerRef = useRef<Logger | null>(null)
 
@@ -139,7 +142,19 @@ export function VestigProvider({
 
 	// Initialize transport on mount
 	useEffect(() => {
-		transport.init().then(() => setIsConnected(true))
+		transport
+			.init()
+			.then(() => {
+				setIsConnected(true)
+				setInitError(null)
+			})
+			.catch((err: unknown) => {
+				const error = err instanceof Error ? err : new Error(String(err))
+				setInitError(error)
+				setIsConnected(false)
+				// Log to console since transport failed
+				console.error('[vestig] Transport initialization failed:', error)
+			})
 
 		// Flush on page unload
 		const handleUnload = () => {
@@ -168,8 +183,9 @@ export function VestigProvider({
 			logger,
 			context,
 			isConnected,
+			initError,
 		}),
-		[logger, context, isConnected],
+		[logger, context, isConnected, initError],
 	)
 
 	return <VestigContext.Provider value={value}>{children}</VestigContext.Provider>
