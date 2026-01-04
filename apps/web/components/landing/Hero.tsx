@@ -32,11 +32,23 @@ export function Hero({ content }: HeroProps) {
 
 	return (
 		<section className="relative pt-8 pb-16 md:pt-12 md:pb-24 overflow-hidden blueprint-grid-sparse">
-			{/* Corner markers */}
-			<div className="absolute top-8 left-8 w-8 h-8 border-l border-t border-brand/20 hidden lg:block" />
-			<div className="absolute top-8 right-8 w-8 h-8 border-r border-t border-brand/20 hidden lg:block" />
-			<div className="absolute bottom-8 left-8 w-8 h-8 border-l border-b border-brand/20 hidden lg:block" />
-			<div className="absolute bottom-8 right-8 w-8 h-8 border-r border-b border-brand/20 hidden lg:block" />
+			{/* Corner markers - decorative */}
+			<div
+				className="absolute top-8 left-8 w-8 h-8 border-l border-t border-brand/20 hidden lg:block"
+				aria-hidden="true"
+			/>
+			<div
+				className="absolute top-8 right-8 w-8 h-8 border-r border-t border-brand/20 hidden lg:block"
+				aria-hidden="true"
+			/>
+			<div
+				className="absolute bottom-8 left-8 w-8 h-8 border-l border-b border-brand/20 hidden lg:block"
+				aria-hidden="true"
+			/>
+			<div
+				className="absolute bottom-8 right-8 w-8 h-8 border-r border-b border-brand/20 hidden lg:block"
+				aria-hidden="true"
+			/>
 
 			<Container size="wide" className="relative">
 				{/* Main Content - Centered */}
@@ -64,7 +76,7 @@ export function Hero({ content }: HeroProps) {
 							{content.headline.primary}
 						</LineTitle>
 						<motion.p
-							className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-white/40"
+							className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-white/60"
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ duration: 0.5, delay: 0.4 }}

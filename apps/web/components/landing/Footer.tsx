@@ -7,6 +7,7 @@ import type { FooterContent } from '@/lib/content/types'
 import { cn } from '@/lib/utils'
 import { Github, OpenNewWindow } from 'iconoir-react'
 import Link from 'next/link'
+import { memo } from 'react'
 
 /**
  * Footer - Cloudflare Sandbox inspired footer
@@ -22,14 +23,20 @@ interface FooterProps {
 	content: FooterContent
 }
 
-export function Footer({ content }: FooterProps) {
+export const Footer = memo(function Footer({ content }: FooterProps) {
 	return (
 		<footer className="relative border-t border-brand/10 bg-background">
-			{/* Subtle blueprint grid background */}
-			<div className="absolute inset-0 blueprint-grid-sparse opacity-30 pointer-events-none" />
+			{/* Subtle blueprint grid background - decorative */}
+			<div
+				className="absolute inset-0 blueprint-grid-sparse opacity-30 pointer-events-none"
+				aria-hidden="true"
+			/>
 
 			{/* Top decorative line */}
-			<div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-brand/50 to-transparent" />
+			<div
+				className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-brand/50 to-transparent"
+				aria-hidden="true"
+			/>
 
 			<Container className="py-16 md:py-20 relative">
 				{/* Footer links grid */}
@@ -97,6 +104,6 @@ export function Footer({ content }: FooterProps) {
 			</Container>
 		</footer>
 	)
-}
+})
 
 export default Footer

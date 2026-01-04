@@ -155,7 +155,7 @@ export function BentoFeatures({
 									</h3>
 									<p
 										className={cn(
-											'text-white/40 leading-relaxed',
+											'text-white/60 leading-relaxed',
 											isHero
 												? 'mt-4 text-base max-w-sm'
 												: isWide
@@ -172,7 +172,7 @@ export function BentoFeatures({
 									<Link
 										href={feature.link.href}
 										className={cn(
-											'inline-flex items-center text-sm text-white/40 hover:text-white transition-colors group/link',
+											'inline-flex items-center text-sm text-white/60 hover:text-white transition-colors group/link',
 											isHero ? 'mt-8' : 'mt-4',
 										)}
 									>

@@ -106,15 +106,22 @@ export function Comparison({ config }: ComparisonProps) {
 							<div className="absolute bottom-0 left-0 w-4 h-4 border-l-2 border-b-2 border-brand/40" />
 							<div className="absolute bottom-0 right-0 w-4 h-4 border-r-2 border-b-2 border-brand/40" />
 
-							<table className="min-w-full">
+							<table
+								className="min-w-full"
+								aria-label="Feature comparison between Vestig and other logging libraries"
+							>
 								<thead className="bg-surface-elevated">
 									<tr>
-										<th className="px-6 py-4 text-left text-sm font-semibold text-foreground">
+										<th
+											scope="col"
+											className="px-6 py-4 text-left text-sm font-semibold text-foreground"
+										>
 											Feature
 										</th>
 										{libraries.map((lib) => (
 											<th
 												key={lib}
+												scope="col"
 												className={cn(
 													'px-6 py-4 text-center text-sm font-semibold relative',
 													lib === 'vestig' ? 'text-brand bg-brand/5' : 'text-muted-foreground',
@@ -143,9 +150,12 @@ export function Comparison({ config }: ComparisonProps) {
 											animate={isTableInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
 											transition={{ duration: 0.3, delay: 0.1 + index * 0.05 }}
 										>
-											<td className="px-6 py-4 text-sm font-medium text-foreground whitespace-nowrap">
+											<th
+												scope="row"
+												className="px-6 py-4 text-sm font-medium text-foreground whitespace-nowrap text-left"
+											>
 												{row.feature}
-											</td>
+											</th>
 											{libraries.map((lib) => {
 												const value = row[lib]
 												const isVestig = lib === 'vestig'

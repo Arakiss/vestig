@@ -10,6 +10,8 @@ interface GlassCardProps {
 	hover?: boolean
 	padding?: 'none' | 'sm' | 'md' | 'lg'
 	onClick?: () => void
+	/** Required when onClick is provided for accessibility */
+	ariaLabel?: string
 }
 
 const paddingClasses = {
@@ -29,6 +31,7 @@ export function GlassCard({
 	hover = true,
 	padding = 'md',
 	onClick,
+	ariaLabel,
 }: GlassCardProps) {
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (onClick && (e.key === 'Enter' || e.key === ' ')) {
@@ -43,6 +46,7 @@ export function GlassCard({
 			onKeyDown={onClick ? handleKeyDown : undefined}
 			role={onClick ? 'button' : undefined}
 			tabIndex={onClick ? 0 : undefined}
+			aria-label={onClick ? ariaLabel : undefined}
 			className={cn(
 				// Base glass styles
 				'relative overflow-hidden rounded-2xl',

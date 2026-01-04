@@ -18,6 +18,8 @@ export function LogoIcon({ size = 32, className }: LogoIconProps) {
 			width={size}
 			height={size}
 			className={className}
+			aria-hidden="true"
+			focusable="false"
 		>
 			{/* Ghost/trace - the mark left behind */}
 			<rect x="3" y="9" width="11" height="14" fill="currentColor" fillOpacity="0.3" />

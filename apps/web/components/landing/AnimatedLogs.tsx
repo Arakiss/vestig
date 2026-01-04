@@ -42,14 +42,14 @@ const levelColors = {
 	info: 'text-white',
 	warn: 'text-amber-400',
 	error: 'text-red-400',
-	debug: 'text-white/40',
+	debug: 'text-white/60',
 }
 
 const levelBadgeColors = {
 	info: 'bg-white/10 text-white/70',
 	warn: 'bg-amber-500/10 text-amber-400',
 	error: 'bg-red-500/10 text-red-400',
-	debug: 'bg-white/5 text-white/40',
+	debug: 'bg-white/5 text-white/60',
 }
 
 function formatTime(): string {
@@ -93,7 +93,17 @@ export function AnimatedLogs({ className }: { className?: string }) {
 	}, [])
 
 	return (
-		<div className={cn('font-mono text-sm', className)}>
+		<div
+			className={cn('font-mono text-sm', className)}
+			role="region"
+			aria-label="Live log streaming demonstration"
+		>
+			{/* Screen reader description */}
+			<p className="sr-only">
+				This is a visual demonstration of Vestig's real-time log streaming. It shows sample log
+				entries with timestamps, log levels like info, warn, and error, and log messages.
+			</p>
+
 			{/* Terminal header - Modern minimal style */}
 			<div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-white/[0.02]">
 				<div className="flex gap-1.5" aria-hidden="true">
@@ -101,15 +111,20 @@ export function AnimatedLogs({ className }: { className?: string }) {
 					<div className="w-3 h-3 rounded-full bg-[#febc2e]" />
 					<div className="w-3 h-3 rounded-full bg-[#28c840]" />
 				</div>
-				<span className="text-xs text-white/30 font-medium">vestig — live logs</span>
+				<span className="text-xs text-white/50 font-medium">vestig — live logs</span>
 				<div className="ml-auto flex items-center gap-2" aria-hidden="true">
 					<span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-					<span className="text-[10px] text-white/30 uppercase tracking-wider">streaming</span>
+					<span className="text-[10px] text-white/50 uppercase tracking-wider">streaming</span>
 				</div>
 			</div>
 
 			{/* Log entries */}
-			<div className="p-4 space-y-2 min-h-[240px]">
+			<div
+				className="p-4 space-y-2 min-h-[240px]"
+				role="log"
+				aria-live="polite"
+				aria-atomic="false"
+			>
 				{logs.map((log, index) => (
 					<div
 						key={log.id}
@@ -121,7 +136,7 @@ export function AnimatedLogs({ className }: { className?: string }) {
 						)}
 					>
 						{/* Timestamp */}
-						<span className="text-white/30 shrink-0">{log.timestamp}</span>
+						<span className="text-white/50 shrink-0">{log.timestamp}</span>
 
 						{/* Level badge */}
 						<span
@@ -138,7 +153,7 @@ export function AnimatedLogs({ className }: { className?: string }) {
 
 						{/* Meta */}
 						{log.meta && (
-							<span className="text-white/30 truncate">
+							<span className="text-white/50 truncate">
 								{Object.entries(log.meta)
 									.map(([k, v]) => `${k}=${v}`)
 									.join(' ')}

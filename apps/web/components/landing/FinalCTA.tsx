@@ -77,6 +77,11 @@ export function FinalCTA({
 						<button
 							type="button"
 							onClick={handleCopy}
+							aria-label={
+								copied
+									? 'Copied install command to clipboard'
+									: `Copy install command: ${installCommand}`
+							}
 							className={cn(
 								'inline-flex items-center gap-4 px-8 py-4',
 								'font-mono text-lg',
