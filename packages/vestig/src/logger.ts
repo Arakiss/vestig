@@ -22,6 +22,7 @@ import type {
 	ResolvedLoggerConfig,
 	Transport,
 } from './types'
+import { Deduplicator } from './utils/dedupe'
 import { isError, serializeError } from './utils/error'
 import { sanitize } from './utils/sanitize'
 
@@ -99,6 +100,7 @@ export class LoggerImpl implements Logger {
 	private children: Map<string, WeakRef<LoggerImpl>> = new Map()
 	private initialized = false
 	private sampler: Sampler | null = null
+	private deduplicator: Deduplicator | null = null
 
 	constructor(config?: LoggerConfig) {
 		this.config = mergeConfig(config)
@@ -106,6 +108,11 @@ export class LoggerImpl implements Logger {
 		// Initialize sampler if configured
 		if (this.config.sampling) {
 			this.sampler = createSampler(this.config.sampling)
+		}
+
+		// Initialize deduplicator if configured
+		if (this.config.dedupe?.enabled) {
+			this.deduplicator = new Deduplicator(this.config.dedupe)
 		}
 
 		// Add default console transport
@@ -158,6 +165,35 @@ export class LoggerImpl implements Logger {
 		// Apply sampling if configured
 		if (this.sampler && !this.sampler.shouldSample(entry)) {
 			return
+		}
+
+		// Apply deduplication if configured
+		if (this.deduplicator) {
+			const dedupeResult = this.deduplicator.shouldSuppress(message, level, this.config.namespace)
+
+			if (dedupeResult.suppressed) {
+				return
+			}
+
+			// If this is a flush after suppression, emit summary first
+			if (dedupeResult.isFlush && dedupeResult.suppressedCount) {
+				const summaryEntry: LogEntry = {
+					timestamp: new Date().toISOString(),
+					level,
+					message: `[dedupe] Previous message repeated ${dedupeResult.suppressedCount} time${dedupeResult.suppressedCount > 1 ? 's' : ''}`,
+					metadata: { originalMessage: message },
+					runtime: RUNTIME,
+					namespace: this.config.namespace || undefined,
+				}
+
+				// Send summary to transports
+				for (const transport of this.transports) {
+					if (transport.config.enabled === false) continue
+					if (transport.config.level && !shouldLog(level, transport.config.level)) continue
+					if (transport.config.filter && !transport.config.filter(summaryEntry)) continue
+					transport.log(summaryEntry)
+				}
+			}
 		}
 
 		// Send to all enabled transports
@@ -368,6 +404,12 @@ export class LoggerImpl implements Logger {
 	 * Destroy all transports (call on shutdown)
 	 */
 	async destroy(): Promise<void> {
+		// Clean up deduplicator
+		if (this.deduplicator) {
+			this.deduplicator.destroy()
+			this.deduplicator = null
+		}
+
 		await Promise.all(this.transports.map((t) => t.destroy?.()))
 		this.transports = []
 		this.initialized = false

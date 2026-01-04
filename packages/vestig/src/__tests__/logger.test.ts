@@ -722,3 +722,127 @@ describe('initLogger', () => {
 		await expect(initLogger(logger)).rejects.toThrow('Init failed')
 	})
 })
+
+describe('deduplication', () => {
+	const originalConsole = {
+		info: console.info,
+		warn: console.warn,
+	}
+
+	let consoleOutput: Array<{ method: string; output: string }> = []
+
+	beforeEach(() => {
+		consoleOutput = []
+		console.info = mock((...args: unknown[]) => {
+			consoleOutput.push({ method: 'info', output: String(args[0]) })
+		})
+		console.warn = mock((...args: unknown[]) => {
+			consoleOutput.push({ method: 'warn', output: String(args[0]) })
+		})
+	})
+
+	afterEach(() => {
+		console.info = originalConsole.info
+		console.warn = originalConsole.warn
+	})
+
+	test('should suppress duplicate logs when dedupe is enabled', async () => {
+		const logger = new LoggerImpl({
+			dedupe: { enabled: true, windowMs: 100 },
+			structured: true,
+		})
+
+		logger.info('Same message')
+		logger.info('Same message')
+		logger.info('Same message')
+
+		// Only first should be logged
+		expect(consoleOutput).toHaveLength(1)
+
+		await logger.destroy()
+	})
+
+	test('should log different messages', async () => {
+		const logger = new LoggerImpl({
+			dedupe: { enabled: true, windowMs: 100 },
+			structured: true,
+		})
+
+		logger.info('Message 1')
+		logger.info('Message 2')
+		logger.info('Message 3')
+
+		expect(consoleOutput).toHaveLength(3)
+
+		await logger.destroy()
+	})
+
+	test('should emit summary after window expires', async () => {
+		const logger = new LoggerImpl({
+			dedupe: { enabled: true, windowMs: 100 },
+			structured: true,
+		})
+
+		logger.info('Repeated message')
+		logger.info('Repeated message')
+		logger.info('Repeated message')
+
+		// Only first logged
+		expect(consoleOutput).toHaveLength(1)
+
+		// Wait for window to expire
+		await new Promise((resolve) => setTimeout(resolve, 120))
+
+		// Log same message again - should trigger summary
+		logger.info('Repeated message')
+
+		// Should now have 3 outputs: original, summary, new occurrence
+		expect(consoleOutput).toHaveLength(3)
+
+		// Check summary message
+		const summaryOutput = JSON.parse(consoleOutput[1].output)
+		expect(summaryOutput.message).toContain('[dedupe]')
+		expect(summaryOutput.message).toContain('repeated 2 time')
+
+		await logger.destroy()
+	})
+
+	test('should work without dedupe config', () => {
+		const logger = new LoggerImpl({ structured: true })
+
+		logger.info('Same message')
+		logger.info('Same message')
+		logger.info('Same message')
+
+		// All should be logged when dedupe is not enabled
+		expect(consoleOutput).toHaveLength(3)
+	})
+
+	test('should treat different levels as different messages by default', async () => {
+		const logger = new LoggerImpl({
+			dedupe: { enabled: true, windowMs: 100 },
+			structured: true,
+		})
+
+		logger.info('Same message')
+		logger.warn('Same message')
+
+		// Both should be logged
+		expect(consoleOutput).toHaveLength(2)
+
+		await logger.destroy()
+	})
+
+	test('should clean up deduplicator on destroy', async () => {
+		const logger = new LoggerImpl({
+			dedupe: { enabled: true, windowMs: 1000 },
+		})
+
+		logger.info('Test message')
+
+		await logger.destroy()
+
+		// Should not throw after destroy
+		expect(() => logger.info('Another message')).not.toThrow()
+	})
+})

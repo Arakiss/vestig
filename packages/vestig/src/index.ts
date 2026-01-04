@@ -25,6 +25,8 @@ export type {
 	SanitizePattern,
 	SanitizeConfig,
 	SanitizePreset,
+	// Deduplication types
+	DedupeConfig,
 	// Tracing types (re-exported from types.ts)
 	Span,
 	SpanCallback,
@@ -94,6 +96,8 @@ export {
 } from './utils/sanitize'
 export { CircularBuffer } from './utils/buffer'
 export type { CircularBufferConfig } from './utils/buffer'
+export { Deduplicator } from './utils/dedupe'
+export type { DedupeResult } from './utils/dedupe'
 
 // Transports
 export { ConsoleTransport } from './transports/console'

@@ -107,6 +107,49 @@ export type {
 } from './sampling/types'
 
 /**
+ * Duplicate log suppression configuration
+ *
+ * When enabled, identical logs within a time window are suppressed.
+ * A summary log is emitted when the window expires showing how many
+ * duplicates were suppressed.
+ */
+export interface DedupeConfig {
+	/**
+	 * Enable duplicate suppression (default: true when config provided)
+	 */
+	enabled?: boolean
+
+	/**
+	 * Time window in milliseconds for suppression (default: 1000)
+	 *
+	 * Logs with the same signature within this window are deduplicated.
+	 */
+	windowMs?: number
+
+	/**
+	 * Maximum unique log signatures to track (default: 1000)
+	 *
+	 * When exceeded, oldest entries are evicted. This prevents
+	 * unbounded memory growth from unique log messages.
+	 */
+	maxSize?: number
+
+	/**
+	 * Include level in deduplication key (default: true)
+	 *
+	 * When true, same message at different levels are treated as different.
+	 */
+	includeLevel?: boolean
+
+	/**
+	 * Include namespace in deduplication key (default: true)
+	 *
+	 * When true, same message from different namespaces are treated as different.
+	 */
+	includeNamespace?: boolean
+}
+
+/**
  * Logger configuration options
  */
 export interface LoggerConfig {
@@ -151,14 +194,37 @@ export interface LoggerConfig {
 	 * ```
 	 */
 	sampling?: import('./sampling/types').SamplingConfig
+
+	/**
+	 * Duplicate log suppression configuration.
+	 *
+	 * Prevents flooding from identical repeated log messages.
+	 *
+	 * @example
+	 * ```typescript
+	 * // Suppress duplicates within 1 second (default)
+	 * createLogger({ dedupe: { enabled: true } })
+	 *
+	 * // Custom window and size
+	 * createLogger({
+	 *   dedupe: {
+	 *     enabled: true,
+	 *     windowMs: 5000,  // 5 second window
+	 *     maxSize: 500     // Track up to 500 unique messages
+	 *   }
+	 * })
+	 * ```
+	 */
+	dedupe?: DedupeConfig
 }
 
 /**
  * Resolved logger configuration with all required fields populated.
- * Note: `sampling` remains optional as it's disabled by default.
+ * Note: `sampling` and `dedupe` remain optional as they're disabled by default.
  */
-export type ResolvedLoggerConfig = Required<Omit<LoggerConfig, 'sampling'>> & {
+export type ResolvedLoggerConfig = Required<Omit<LoggerConfig, 'sampling' | 'dedupe'>> & {
 	sampling?: import('./sampling/types').SamplingConfig
+	dedupe?: DedupeConfig
 }
 
 /**

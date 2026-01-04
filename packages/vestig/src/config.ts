@@ -68,6 +68,7 @@ export function getDefaultConfig(): ResolvedLoggerConfig {
 		context: getEnvContext(),
 		namespace: '',
 		sampling: undefined,
+		dedupe: undefined,
 	}
 }
 
@@ -86,5 +87,6 @@ export function mergeConfig(userConfig?: LoggerConfig): ResolvedLoggerConfig {
 		context: { ...defaults.context, ...userConfig?.context },
 		namespace: userConfig?.namespace ?? defaults.namespace,
 		sampling: userConfig?.sampling ?? defaults.sampling,
+		dedupe: userConfig?.dedupe ?? defaults.dedupe,
 	}
 }
