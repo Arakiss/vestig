@@ -233,6 +233,129 @@ describe('createMiddlewareMatcher (deprecated alias)', () => {
 	})
 })
 
+describe('error handling', () => {
+	test('should handle malformed traceparent header gracefully', () => {
+		const middleware = createVestigMiddleware()
+
+		// Invalid traceparent format
+		const request = createMockNextRequest('https://example.com/api/users', {
+			headers: { traceparent: 'invalid-traceparent-format' },
+		})
+
+		// Should not throw
+		const response = middleware(request as never)
+
+		// Should still work and generate new IDs
+		expect(response).toBeDefined()
+		expect(response.headers.get('x-request-id')).toBeDefined()
+		expect(response.headers.get('x-trace-id')).toBeDefined()
+	})
+
+	test('should handle empty traceparent header', () => {
+		const middleware = createVestigMiddleware()
+
+		const request = createMockNextRequest('https://example.com/api/users', {
+			headers: { traceparent: '' },
+		})
+
+		const response = middleware(request as never)
+
+		expect(response).toBeDefined()
+		expect(response.headers.get('x-request-id')).toBeDefined()
+	})
+
+	test('should handle traceparent with invalid version', () => {
+		const middleware = createVestigMiddleware()
+
+		// Version "ff" is invalid (reserved for future)
+		const request = createMockNextRequest('https://example.com/api/users', {
+			headers: {
+				traceparent: 'ff-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01',
+			},
+		})
+
+		const response = middleware(request as never)
+
+		// Should fallback to generated trace ID
+		expect(response).toBeDefined()
+		expect(response.headers.get('x-trace-id')).toBeDefined()
+	})
+
+	test('should handle very long header values', () => {
+		const middleware = createVestigMiddleware()
+
+		const request = createMockNextRequest('https://example.com/api/users', {
+			headers: {
+				'x-request-id': 'a'.repeat(1000), // Very long request ID
+			},
+		})
+
+		const response = middleware(request as never)
+
+		// Should still work
+		expect(response).toBeDefined()
+	})
+
+	test('should handle special characters in headers', () => {
+		const middleware = createVestigMiddleware()
+
+		const request = createMockNextRequest('https://example.com/api/users', {
+			headers: {
+				'x-request-id': 'request-id-with-<script>alert(1)</script>',
+			},
+		})
+
+		const response = middleware(request as never)
+
+		// Should not crash and should preserve the header
+		expect(response).toBeDefined()
+	})
+
+	test('should handle missing user-agent gracefully', () => {
+		const middleware = createVestigMiddleware()
+
+		// Create request without user-agent
+		const request = createMockNextRequest('https://example.com/api/users', {
+			method: 'GET',
+		})
+
+		const response = middleware(request as never)
+
+		expect(response).toBeDefined()
+		expect(response.headers.get('x-request-id')).toBeDefined()
+	})
+
+	test('should handle request with no headers', () => {
+		const middleware = createVestigMiddleware()
+
+		// Minimal request
+		const request = createMockNextRequest('https://example.com/api/users')
+
+		const response = middleware(request as never)
+
+		expect(response).toBeDefined()
+		expect(response.headers.get('x-request-id')).toBeDefined()
+		expect(response.headers.get('x-trace-id')).toBeDefined()
+	})
+
+	test('should handle truncated traceparent header', () => {
+		const middleware = createVestigMiddleware()
+
+		// Truncated traceparent (missing parts)
+		const request = createMockNextRequest('https://example.com/api/users', {
+			headers: {
+				traceparent: '00-0af7651916cd43dd8448eb211c80319c',
+			},
+		})
+
+		const response = middleware(request as never)
+
+		// Should generate new trace context
+		expect(response).toBeDefined()
+		expect(response.headers.get('x-trace-id')).toBeDefined()
+	})
+})
+
 describe('middleware options', () => {
 	test('should respect enabled=false', () => {
 		const middleware = createVestigMiddleware({
