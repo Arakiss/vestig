@@ -1,6 +1,6 @@
 export const metadata = {
   title: 'Transports',
-  description: 'Configure Vestig log destinations. Console, HTTP, file transports. Send logs to Datadog, Splunk, or custom endpoints.',
+  description: 'Configure Vestig log destinations. Console, HTTP, file transports. Send logs to Datadog, Sentry, or custom endpoints.',
 }
 
 # Transports
@@ -9,9 +9,9 @@ Configure where your logs are sent.
 
 ## Overview
 
-Transports define log destinations. Vestig includes four built-in transports:
+Transports define log destinations. Vestig includes five built-in transports:
 
-<Table><TableHead><TableRow><TableHeader>Transport</TableHeader><TableHeader>Description</TableHeader><TableHeader>Best For</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>`ConsoleTransport`</TableCell><TableCell>Output to console with colors</TableCell><TableCell>Development, debugging</TableCell></TableRow><TableRow><TableCell>`HTTPTransport`</TableCell><TableCell>Send to HTTP endpoint</TableCell><TableCell>Log aggregation services</TableCell></TableRow><TableRow><TableCell>`FileTransport`</TableCell><TableCell>Write to files with rotation</TableCell><TableCell>Server-side persistence</TableCell></TableRow><TableRow><TableCell>`DatadogTransport`</TableCell><TableCell>Direct Datadog integration</TableCell><TableCell>Datadog Log Management</TableCell></TableRow></TableBody></Table>
+<Table><TableHead><TableRow><TableHeader>Transport</TableHeader><TableHeader>Description</TableHeader><TableHeader>Best For</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>`ConsoleTransport`</TableCell><TableCell>Output to console with colors</TableCell><TableCell>Development, debugging</TableCell></TableRow><TableRow><TableCell>`HTTPTransport`</TableCell><TableCell>Send to HTTP endpoint</TableCell><TableCell>Log aggregation services</TableCell></TableRow><TableRow><TableCell>`FileTransport`</TableCell><TableCell>Write to files with rotation</TableCell><TableCell>Server-side persistence</TableCell></TableRow><TableRow><TableCell>`DatadogTransport`</TableCell><TableCell>Direct Datadog integration</TableCell><TableCell>Datadog Log Management</TableCell></TableRow><TableRow><TableCell>`SentryTransport`</TableCell><TableCell>Direct Sentry integration</TableCell><TableCell>Error tracking, alerting</TableCell></TableRow></TableBody></Table>
 
 ## Using Multiple Transports
 
@@ -230,6 +230,53 @@ new DatadogTransport({
   flushInterval: 5000
 })
 ```
+
+## SentryTransport
+
+Direct integration with Sentry for error tracking and monitoring:
+
+```typescript
+import { SentryTransport } from 'vestig'
+
+new SentryTransport({
+  // Required: Sentry DSN
+  dsn: process.env.SENTRY_DSN,
+
+  // Environment and release tracking
+  environment: 'production',
+  release: 'my-app@1.2.3',
+
+  // Service identification
+  service: 'api-server',
+  serverName: 'api-01',
+
+  // Tags for filtering in Sentry
+  tags: {
+    team: 'backend',
+    region: 'eu-west'
+  },
+
+  // Minimum level to send (default: 'warn')
+  // Reduces noise by filtering out info/debug logs
+  minLevel: 'warn',
+
+  // Batching
+  batchSize: 10,
+  flushInterval: 2000
+})
+```
+
+### Key Features
+
+- **DSN Parsing**: Supports both Sentry cloud and self-hosted instances
+- **Level Filtering**: Only sends `warn` and `error` by default (configurable via `minLevel`)
+- **Error Serialization**: Automatically converts errors to Sentry exception format with stack traces
+- **Trace Context**: Propagates `traceId` and `spanId` for distributed tracing
+- **Tags**: Key-value pairs for filtering and searching in Sentry
+
+### Configuration Options
+
+<Table><TableHead><TableRow><TableHeader>Option</TableHeader><TableHeader>Type</TableHeader><TableHeader>Description</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>`dsn`</TableCell><TableCell>`string`</TableCell><TableCell>**Required.** Sentry DSN from your project settings</TableCell></TableRow><TableRow><TableCell>`environment`</TableCell><TableCell>`string`</TableCell><TableCell>Environment name (e.g., 'production', 'staging')</TableCell></TableRow><TableRow><TableCell>`release`</TableCell><TableCell>`string`</TableCell><TableCell>Application version for release tracking</TableCell></TableRow><TableRow><TableCell>`service`</TableCell><TableCell>`string`</TableCell><TableCell>Service name (added as tag)</TableCell></TableRow><TableRow><TableCell>`serverName`</TableCell><TableCell>`string`</TableCell><TableCell>Server hostname identifier</TableCell></TableRow><TableRow><TableCell>`tags`</TableCell><TableCell>`Record<string, string>`</TableCell><TableCell>Additional tags for filtering</TableCell></TableRow><TableRow><TableCell>`minLevel`</TableCell><TableCell>`LogLevel`</TableCell><TableCell>Minimum level to send (default: 'warn')</TableCell></TableRow></TableBody></Table>
 
 ## Creating Custom Transports
 

@@ -78,7 +78,7 @@ log.info('User login', {
 Send logs to multiple destinations simultaneously:
 
 ```typescript
-import { createLogger, ConsoleTransport, HTTPTransport, DatadogTransport } from 'vestig'
+import { createLogger, HTTPTransport, DatadogTransport, SentryTransport } from 'vestig'
 
 const log = createLogger()
 
@@ -97,10 +97,19 @@ log.addTransport(new DatadogTransport({
   tags: ['env:production'],
 }))
 
+// Add Sentry for error tracking
+log.addTransport(new SentryTransport({
+  name: 'sentry',
+  dsn: process.env.SENTRY_DSN,
+  environment: 'production',
+  release: 'my-app@1.0.0',
+  minLevel: 'warn', // Only send warn/error to Sentry
+}))
+
 // Initialize transports (starts flush timers)
 await log.init()
 
-// All logs go to console, HTTP endpoint, and Datadog
+// All logs go to console, HTTP endpoint, Datadog, and Sentry
 log.info('Server started', { port: 3000 })
 ```
 
@@ -112,6 +121,7 @@ log.info('Server started', { port: 3000 })
 | `HTTPTransport` | Send to any HTTP endpoint | Custom log aggregation |
 | `FileTransport` | Write to files with rotation | Server-side logging |
 | `DatadogTransport` | Datadog Log Management | Production observability |
+| `SentryTransport` | Sentry error tracking | Error monitoring, alerting |
 
 ### PII Sanitization with Presets
 
