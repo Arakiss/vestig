@@ -259,6 +259,121 @@ describe('BatchTransport', () => {
 			expect(stats.buffered).toBe(2)
 			expect(stats.dropped).toBe(0)
 			expect(stats.isFlushing).toBe(false)
+			expect(stats.pendingRetry).toBe(0)
+		})
+
+		test('should report pendingRetry after all retries fail', async () => {
+			transport.shouldFail = true
+
+			transport.log(createEntry())
+			transport.log(createEntry())
+			await transport.flush()
+
+			const stats = transport.getStats()
+			expect(stats.pendingRetry).toBe(2)
+		})
+	})
+
+	describe('failed batch recovery', () => {
+		test('should store failed entries for retry on next flush', async () => {
+			transport.shouldFail = true
+
+			transport.log(createEntry({ message: 'Entry 1' }))
+			transport.log(createEntry({ message: 'Entry 2' }))
+			await transport.flush()
+
+			// Entries should be stored for retry
+			expect(transport.getStats().pendingRetry).toBe(2)
+
+			// Now make send succeed
+			transport.shouldFail = false
+			transport.failCount = 0
+
+			transport.log(createEntry({ message: 'Entry 3' }))
+			await transport.flush()
+
+			// Should have sent all 3 entries (2 failed + 1 new)
+			expect(transport.sendCalls.length).toBe(1)
+			expect(transport.sendCalls[0].length).toBe(3)
+			expect(transport.sendCalls[0][0].message).toBe('Entry 1')
+			expect(transport.sendCalls[0][1].message).toBe('Entry 2')
+			expect(transport.sendCalls[0][2].message).toBe('Entry 3')
+		})
+
+		test('should replace old failed batch with new one on repeated failure', async () => {
+			transport.shouldFail = true
+
+			// First flush fails
+			transport.log(createEntry({ message: 'Batch 1 Entry 1' }))
+			transport.log(createEntry({ message: 'Batch 1 Entry 2' }))
+			await transport.flush()
+
+			expect(transport.getStats().pendingRetry).toBe(2)
+			expect(transport.errorCalls.length).toBe(1)
+
+			// Second flush also fails (includes first failed batch + new entries)
+			transport.log(createEntry({ message: 'Batch 2 Entry 1' }))
+			await transport.flush()
+
+			// Failed batch now contains all 3 entries (2 from first fail + 1 new)
+			expect(transport.getStats().pendingRetry).toBe(3)
+			expect(transport.errorCalls.length).toBe(2)
+
+			// Third flush fails again
+			await transport.flush()
+
+			// Still same 3 entries pending (no new entries added)
+			expect(transport.getStats().pendingRetry).toBe(3)
+			expect(transport.errorCalls.length).toBe(3)
+		})
+
+		test('should clear pendingRetry after successful flush', async () => {
+			transport.shouldFail = true
+
+			transport.log(createEntry())
+			await transport.flush()
+
+			expect(transport.getStats().pendingRetry).toBe(1)
+
+			// Succeed on next flush
+			transport.shouldFail = false
+			await transport.flush()
+
+			expect(transport.getStats().pendingRetry).toBe(0)
+			expect(transport.sendCalls.length).toBe(1)
+		})
+
+		test('should not flush when no buffer and no failed batch', async () => {
+			await transport.flush()
+			expect(transport.sendCalls.length).toBe(0)
+
+			// Even after a failed flush, if we clear the failed batch
+			// (by succeeding), subsequent empty flushes should be no-op
+			transport.log(createEntry())
+			await transport.flush()
+
+			expect(transport.sendCalls.length).toBe(1)
+			transport.sendCalls = []
+
+			await transport.flush()
+			expect(transport.sendCalls.length).toBe(0)
+		})
+
+		test('should flush failed batch even with empty buffer', async () => {
+			transport.shouldFail = true
+
+			transport.log(createEntry())
+			await transport.flush()
+
+			expect(transport.getStats().pendingRetry).toBe(1)
+
+			// Succeed without adding new entries
+			transport.shouldFail = false
+			await transport.flush()
+
+			expect(transport.sendCalls.length).toBe(1)
+			expect(transport.sendCalls[0].length).toBe(1)
+			expect(transport.getStats().pendingRetry).toBe(0)
 		})
 	})
 
