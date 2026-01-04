@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.11.0](https://github.com/Arakiss/vestig/compare/v0.10.2...v0.11.0) (2026-01-04)
+
+### ✨ Features
+
+* **blog:** add RSS feed and dynamic blog infrastructure ([d1c6a23](https://github.com/Arakiss/vestig/commit/d1c6a231c7d8dd3f495f262213da00c0161593cb))
+
+### 🐛 Bug Fixes
+
+* **web:** improve hooks with proper cleanup and memory management ([62a7d4d](https://github.com/Arakiss/vestig/commit/62a7d4d6d9b1709d198c1d357ff063f52068f416))
+* **web:** resolve lint errors in error page component ([dbd5809](https://github.com/Arakiss/vestig/commit/dbd58093a7de0f2d3d73ec01d4823b93e200d49d))
+* **web:** update hero badge version from 0.8.0 to 0.10.2 ([1037e17](https://github.com/Arakiss/vestig/commit/1037e174d757fbe7b2a106c4466d8924228b0923))
+* **web:** update site metadata version from 0.8.0 to 0.10.2 ([994fd64](https://github.com/Arakiss/vestig/commit/994fd647a0ff21dec35d21d55b14cae6d4b800cf))
+
+### ⚡ Performance
+
+* **log-context:** split contexts and optimize re-renders ([e2631ab](https://github.com/Arakiss/vestig/commit/e2631ab35d0c196db29a0ed4fae77f51350c2fd3))
+* **web:** add scroll throttling and improve semantic HTML ([31a5d0e](https://github.com/Arakiss/vestig/commit/31a5d0e975b2837dc874ed655d09cf76df4c0617))
+* **web:** add useScrollPosition hook and optimize scroll handling ([a907865](https://github.com/Arakiss/vestig/commit/a90786592a5500bbbb8c01dd40bfb6f41a43ad7c))
+
+### ♻️ Refactoring
+
+* **blog:** update blog pages with improved structure ([9182c30](https://github.com/Arakiss/vestig/commit/9182c3081dc246e332fac881584b6cb2beb08b86))
+* **playground:** improve dev-overlay with refs ([2748dfb](https://github.com/Arakiss/vestig/commit/2748dfb9ffb710ea344130d5a5583d4c6b13349e))
+* **web:** extract useCopyToClipboard hook to eliminate code duplication ([71b7583](https://github.com/Arakiss/vestig/commit/71b758374c3c5f5f1d2c97ed560481b5d651aeec))
+* **web:** improve landing page components ([3379f89](https://github.com/Arakiss/vestig/commit/3379f89095d76092684ff6e52e2f651c159fcb5e))
+* **web:** improve MDX and UI components ([53fa5d5](https://github.com/Arakiss/vestig/commit/53fa5d56d45134b88d4f5aec9d347e46ef2e7b81))
+* **web:** minor API and changelog improvements ([a20da0f](https://github.com/Arakiss/vestig/commit/a20da0fd3ce76dd16942142eaa137a5c80f72c56))
+* **web:** use constants for URLs and add focus-visible to Footer ([79cfc17](https://github.com/Arakiss/vestig/commit/79cfc179af1cc186353e204aa03c71ee71f7723b))
+
 ## [0.10.2](https://github.com/Arakiss/vestig/compare/v0.10.1...v0.10.2) (2026-01-03)
 
 ### 🐛 Bug Fixes
