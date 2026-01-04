@@ -281,4 +281,205 @@ describe('HTTPTransportError', () => {
 		const error = new HTTPTransportError('Error', 500)
 		expect(error instanceof Error).toBe(true)
 	})
+
+	test('should include cause when provided', () => {
+		const cause = new Error('Connection refused')
+		const error = new HTTPTransportError('Network error', 0, undefined, cause)
+		expect(error.cause).toBe(cause)
+	})
+
+	describe('isNetworkError', () => {
+		test('should return true for status 0', () => {
+			const error = new HTTPTransportError('Network error', 0)
+			expect(error.isNetworkError).toBe(true)
+		})
+
+		test('should return false for non-zero status', () => {
+			const error = new HTTPTransportError('Not Found', 404)
+			expect(error.isNetworkError).toBe(false)
+		})
+	})
+
+	describe('isTimeout', () => {
+		test('should return true for status 408', () => {
+			const error = new HTTPTransportError('Timeout', 408)
+			expect(error.isTimeout).toBe(true)
+		})
+
+		test('should return false for other status codes', () => {
+			const error = new HTTPTransportError('Error', 500)
+			expect(error.isTimeout).toBe(false)
+		})
+	})
+
+	describe('isClientError', () => {
+		test('should return true for 4xx status codes', () => {
+			expect(new HTTPTransportError('Bad Request', 400).isClientError).toBe(true)
+			expect(new HTTPTransportError('Unauthorized', 401).isClientError).toBe(true)
+			expect(new HTTPTransportError('Not Found', 404).isClientError).toBe(true)
+			expect(new HTTPTransportError('Unprocessable', 422).isClientError).toBe(true)
+			expect(new HTTPTransportError('Too Many Requests', 429).isClientError).toBe(true)
+		})
+
+		test('should return false for 5xx status codes', () => {
+			expect(new HTTPTransportError('Server Error', 500).isClientError).toBe(false)
+		})
+
+		test('should return false for network errors', () => {
+			expect(new HTTPTransportError('Network error', 0).isClientError).toBe(false)
+		})
+	})
+
+	describe('isServerError', () => {
+		test('should return true for 5xx status codes', () => {
+			expect(new HTTPTransportError('Internal Error', 500).isServerError).toBe(true)
+			expect(new HTTPTransportError('Bad Gateway', 502).isServerError).toBe(true)
+			expect(new HTTPTransportError('Service Unavailable', 503).isServerError).toBe(true)
+			expect(new HTTPTransportError('Gateway Timeout', 504).isServerError).toBe(true)
+		})
+
+		test('should return false for 4xx status codes', () => {
+			expect(new HTTPTransportError('Not Found', 404).isServerError).toBe(false)
+		})
+	})
+
+	describe('isRetryable', () => {
+		test('should return true for network errors', () => {
+			expect(new HTTPTransportError('Network error', 0).isRetryable).toBe(true)
+		})
+
+		test('should return true for timeouts', () => {
+			expect(new HTTPTransportError('Timeout', 408).isRetryable).toBe(true)
+		})
+
+		test('should return true for 5xx errors', () => {
+			expect(new HTTPTransportError('Server Error', 500).isRetryable).toBe(true)
+			expect(new HTTPTransportError('Service Unavailable', 503).isRetryable).toBe(true)
+		})
+
+		test('should return false for 4xx errors', () => {
+			expect(new HTTPTransportError('Bad Request', 400).isRetryable).toBe(false)
+			expect(new HTTPTransportError('Not Found', 404).isRetryable).toBe(false)
+			expect(new HTTPTransportError('Unauthorized', 401).isRetryable).toBe(false)
+		})
+	})
+})
+
+describe('HTTPTransport error wrapping', () => {
+	let originalFetch: typeof global.fetch
+
+	beforeEach(() => {
+		originalFetch = global.fetch
+	})
+
+	afterEach(() => {
+		global.fetch = originalFetch
+	})
+
+	test('should wrap network errors in HTTPTransportError', async () => {
+		const networkError = new Error('fetch failed')
+		global.fetch = mock(async () => {
+			throw networkError
+		}) as unknown as typeof fetch
+
+		const transport = new HTTPTransport({
+			url: 'https://logs.example.com',
+			maxRetries: 1,
+			retryDelay: 1,
+		})
+
+		transport.log(createEntry())
+
+		// Get the error from flush
+		let caughtError: HTTPTransportError | null = null
+		try {
+			// Access protected method via any
+			await (transport as unknown as { send: (entries: LogEntry[]) => Promise<void> }).send([
+				createEntry(),
+			])
+		} catch (error) {
+			caughtError = error as HTTPTransportError
+		}
+
+		expect(caughtError).not.toBeNull()
+		expect(caughtError).toBeInstanceOf(HTTPTransportError)
+		expect(caughtError?.isNetworkError).toBe(true)
+		expect(caughtError?.statusCode).toBe(0)
+		expect(caughtError?.cause).toBe(networkError)
+	})
+
+	test('should wrap TypeError from fetch in HTTPTransportError', async () => {
+		const typeError = new TypeError('Failed to fetch')
+		global.fetch = mock(async () => {
+			throw typeError
+		}) as unknown as typeof fetch
+
+		const transport = new HTTPTransport({
+			url: 'https://logs.example.com',
+			maxRetries: 1,
+			retryDelay: 1,
+		})
+
+		let caughtError: HTTPTransportError | null = null
+		try {
+			await (transport as unknown as { send: (entries: LogEntry[]) => Promise<void> }).send([
+				createEntry(),
+			])
+		} catch (error) {
+			caughtError = error as HTTPTransportError
+		}
+
+		expect(caughtError).toBeInstanceOf(HTTPTransportError)
+		expect(caughtError?.message).toBe('Failed to fetch')
+		expect(caughtError?.cause).toBe(typeError)
+	})
+
+	test('should preserve HTTPTransportError when already wrapped', async () => {
+		const originalError = new HTTPTransportError('Original error', 500, 'Server error')
+		global.fetch = mock(async () => {
+			throw originalError
+		}) as unknown as typeof fetch
+
+		const transport = new HTTPTransport({
+			url: 'https://logs.example.com',
+			maxRetries: 1,
+			retryDelay: 1,
+		})
+
+		let caughtError: HTTPTransportError | null = null
+		try {
+			await (transport as unknown as { send: (entries: LogEntry[]) => Promise<void> }).send([
+				createEntry(),
+			])
+		} catch (error) {
+			caughtError = error as HTTPTransportError
+		}
+
+		expect(caughtError).toBe(originalError)
+	})
+
+	test('should handle non-Error throws', async () => {
+		global.fetch = mock(async () => {
+			throw 'string error'
+		}) as unknown as typeof fetch
+
+		const transport = new HTTPTransport({
+			url: 'https://logs.example.com',
+			maxRetries: 1,
+			retryDelay: 1,
+		})
+
+		let caughtError: HTTPTransportError | null = null
+		try {
+			await (transport as unknown as { send: (entries: LogEntry[]) => Promise<void> }).send([
+				createEntry(),
+			])
+		} catch (error) {
+			caughtError = error as HTTPTransportError
+		}
+
+		expect(caughtError).toBeInstanceOf(HTTPTransportError)
+		expect(caughtError?.message).toBe('string error')
+		expect(caughtError?.statusCode).toBe(0)
+	})
 })
