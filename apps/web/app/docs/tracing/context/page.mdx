@@ -27,21 +27,21 @@ await withContext({ requestId: 'req-123', userId: 'user-456' }, async () => {
 Vestig uses **AsyncLocalStorage** (available in Node.js, Bun, and Deno) to maintain context across async boundaries:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Request Lifecycle                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  withContext({ requestId: 'req-123' }, async () => {        │
-│    │                                                         │
-│    ├── log.info('A')  ───────────────► { requestId: 'req-123' }
-│    │                                                         │
-│    ├── await asyncOperation()                                │
-│    │     │                                                   │
-│    │     └── log.info('B')  ─────────► { requestId: 'req-123' }
-│    │                                                         │
-│    └── log.info('C')  ───────────────► { requestId: 'req-123' }
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
++----------------------------------------------------------+
+|                    Request Lifecycle                      |
++----------------------------------------------------------+
+|                                                           |
+|  withContext({ requestId: 'req-123' }, async () => {     |
+|    |                                                      |
+|    +-- log.info('A')  ----------> { requestId: 'req-123' }|
+|    |                                                      |
+|    +-- await asyncOperation()                             |
+|    |     |                                                |
+|    |     +-- log.info('B')  ---> { requestId: 'req-123' } |
+|    |                                                      |
+|    +-- log.info('C')  ----------> { requestId: 'req-123' }|
+|                                                           |
++----------------------------------------------------------+
 ```
 
 ## Basic Usage

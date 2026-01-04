@@ -185,14 +185,13 @@ export function UserDashboard() {
 
 ```
 Request Flow:
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Middleware │ ──▶ │   Server    │ ──▶ │   Client    │
-│  (creates)  │     │  Component  │     │  Component  │
-│  requestId  │     │  (inherits) │     │  (receives) │
-└─────────────┘     └─────────────┘     └─────────────┘
-      │                    │                    │
-      ▼                    ▼                    ▼
-   All logs share the same requestId and traceId
+
+  Middleware  -->  Server Component  -->  Client Component
+  (creates)        (inherits)             (receives)
+  requestId        requestId              requestId
+      |                 |                      |
+      v                 v                      v
+         All logs share the same requestId and traceId
 ```
 
 ## Next Steps

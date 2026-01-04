@@ -12,27 +12,27 @@ This guide covers advanced sampling patterns for high-throughput production envi
 Vestig's sampling system consists of:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    LogEntry                          │
-└─────────────────────┬───────────────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────────────┐
-│              Composite Sampler                       │
-│  ┌────────────────────────────────────────────────┐ │
-│  │ Bypass Rules:                                  │ │
-│  │ - alwaysSampleErrors: true → bypass sampling   │ │
-│  │ - bypassLevel: 'error' → bypass sampling       │ │
-│  └────────────────────────────────────────────────┘ │
-│                      │                               │
-│  ┌───────────────────▼──────────────────────────┐   │
-│  │          Inner Sampler                        │   │
-│  │  (Probability | RateLimit | Namespace)       │   │
-│  └──────────────────────────────────────────────┘   │
-└─────────────────────┬───────────────────────────────┘
-                      │
-            ┌─────────▼─────────┐
-            │  Sample: true/false │
-            └───────────────────┘
+                    LogEntry
+                       |
+                       v
+            +--------------------+
+            | Composite Sampler  |
+            +--------------------+
+            | Bypass Rules:      |
+            | - alwaysSampleErrors|
+            | - bypassLevel      |
+            +--------------------+
+                       |
+                       v
+            +--------------------+
+            |   Inner Sampler    |
+            | (Probability |     |
+            |  RateLimit |       |
+            |  Namespace)        |
+            +--------------------+
+                       |
+                       v
+              Sample: true/false
 ```
 
 ## Probability Sampling
