@@ -116,7 +116,7 @@ export default function PlaygroundLayout({
 			<Sidebar sections={navigation} />
 
 			{/* Main content */}
-			<main className="lg:pl-64 pt-14">
+			<main id="main-content" className="lg:pl-64 pt-14">
 				<div className="p-6">{children}</div>
 			</main>
 

@@ -13,7 +13,7 @@ import {
 	WarningTriangle,
 	Xmark,
 } from 'iconoir-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { createLogger } from 'vestig'
 
 const log = createLogger({ namespace: 'playground:dev-overlay' })
@@ -50,57 +50,59 @@ const logLevels = [
 
 export function DevOverlayClient() {
 	const [logCount, setLogCount] = useState(0)
+	const logCountRef = useRef(0)
 
-	const generateLog = useCallback(
-		(level: 'debug' | 'info' | 'warn' | 'error') => {
-			const messages = {
-				debug: [
-					'Cache hit for user preferences',
-					'Rendering component tree',
-					'State update triggered',
-					'useEffect cleanup running',
-				],
-				info: [
-					'User session started',
-					'Data fetched successfully',
-					'Navigation to dashboard',
-					'Form submission processed',
-				],
-				warn: [
-					'Rate limit approaching threshold',
-					'Deprecated API usage detected',
-					'Missing optional configuration',
-					'Session expires in 5 minutes',
-				],
-				error: [
-					'Failed to fetch user data',
-					'Database connection timeout',
-					'Invalid authentication token',
-					'Payment processing failed',
-				],
-			}
+	const generateLog = useCallback((level: 'debug' | 'info' | 'warn' | 'error') => {
+		const messages = {
+			debug: [
+				'Cache hit for user preferences',
+				'Rendering component tree',
+				'State update triggered',
+				'useEffect cleanup running',
+			],
+			info: [
+				'User session started',
+				'Data fetched successfully',
+				'Navigation to dashboard',
+				'Form submission processed',
+			],
+			warn: [
+				'Rate limit approaching threshold',
+				'Deprecated API usage detected',
+				'Missing optional configuration',
+				'Session expires in 5 minutes',
+			],
+			error: [
+				'Failed to fetch user data',
+				'Database connection timeout',
+				'Invalid authentication token',
+				'Payment processing failed',
+			],
+		}
 
-			const randomMessage = messages[level][Math.floor(Math.random() * messages[level].length)]
+		const randomMessage = messages[level][Math.floor(Math.random() * messages[level].length)]
+		// Use ref for current count to avoid stale closure
+		const currentLogNumber = logCountRef.current + 1
 
-			switch (level) {
-				case 'debug':
-					log.debug(randomMessage, { logNumber: logCount + 1 })
-					break
-				case 'info':
-					log.info(randomMessage, { logNumber: logCount + 1 })
-					break
-				case 'warn':
-					log.warn(randomMessage, { logNumber: logCount + 1 })
-					break
-				case 'error':
-					log.error(randomMessage, { logNumber: logCount + 1, stack: new Error().stack })
-					break
-			}
+		switch (level) {
+			case 'debug':
+				log.debug(randomMessage, { logNumber: currentLogNumber })
+				break
+			case 'info':
+				log.info(randomMessage, { logNumber: currentLogNumber })
+				break
+			case 'warn':
+				log.warn(randomMessage, { logNumber: currentLogNumber })
+				break
+			case 'error':
+				log.error(randomMessage, { logNumber: currentLogNumber, stack: new Error().stack })
+				break
+		}
 
-			setLogCount((prev) => prev + 1)
-		},
-		[logCount],
-	)
+		// Update both ref and state
+		logCountRef.current = currentLogNumber
+		setLogCount(currentLogNumber)
+	}, [])
 
 	const generateBurst = useCallback(() => {
 		const levels: ('debug' | 'info' | 'warn' | 'error')[] = ['debug', 'info', 'warn', 'error']
