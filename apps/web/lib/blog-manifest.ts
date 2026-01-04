@@ -4,12 +4,14 @@
  * This manifest is used by:
  * - Sitemap generation (app/sitemap.ts)
  * - RSS feed generation (app/blog/feed.xml/route.ts)
- * - Blog index page (future enhancement)
+ * - Blog index page (app/blog/page.tsx)
  *
  * When adding a new blog post:
  * 1. Create the MDX file in app/blog/[slug]/page.mdx
  * 2. Add an entry to this manifest with matching slug
  */
+
+export type BlogCategory = 'Release' | 'Tutorial' | 'Comparison' | 'Update'
 
 export interface BlogPost {
 	/** URL slug (must match the folder name in app/blog/) */
@@ -26,6 +28,12 @@ export interface BlogPost {
 	author?: string
 	/** Optional: featured image for OpenGraph */
 	image?: string
+	/** Post category for blog listing */
+	category: BlogCategory
+	/** Estimated read time */
+	readTime: string
+	/** Whether to feature this post prominently */
+	featured?: boolean
 }
 
 /**
@@ -39,6 +47,9 @@ export const blogPosts: BlogPost[] = [
 			'Announcing Vestig v0.7.0 with full Deno runtime support, W3C tracestate, advanced sampling strategies, and VestigErrorBoundary for React.',
 		publishedTime: '2025-12-22T00:00:00.000Z',
 		author: 'Vestig Team',
+		category: 'Release',
+		readTime: '5 min read',
+		featured: true,
 	},
 	{
 		slug: 'why-vestig',
@@ -47,6 +58,9 @@ export const blogPosts: BlogPost[] = [
 			'The story behind Vestig and how it differs from Pino, Winston, and other logging libraries. Zero dependencies, multi-runtime, privacy-first.',
 		publishedTime: '2025-12-22T00:00:00.000Z',
 		author: 'Vestig Team',
+		category: 'Comparison',
+		readTime: '8 min read',
+		featured: true,
 	},
 ]
 

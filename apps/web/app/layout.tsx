@@ -135,6 +135,13 @@ export default async function RootLayout({
 			className={`${hankenGrotesk.variable} ${dmSans.variable} ${outfit.variable} ${jetbrainsMono.variable}`}
 		>
 			<head>
+				{/* RSS Feed for blog */}
+				<link
+					rel="alternate"
+					type="application/rss+xml"
+					title="Vestig Blog"
+					href="/blog/feed.xml"
+				/>
 				{/* LLM-friendly content discovery */}
 				<link rel="llms" href="/llms.txt" />
 				<link rel="llms-full" href="/llms-full.txt" />

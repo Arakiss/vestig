@@ -8,7 +8,7 @@ import type { NavLink } from '@/lib/content/types'
 import { cn } from '@/lib/utils'
 import { Menu, OpenNewWindow, Xmark } from 'iconoir-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 interface NavbarProps {
 	links: NavLink[]
@@ -23,6 +23,36 @@ export function Navbar({
 }: NavbarProps) {
 	const { isScrolled } = useScrollPosition({ threshold: 20 })
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+	const menuButtonRef = useRef<HTMLButtonElement>(null)
+	const firstMenuItemRef = useRef<HTMLAnchorElement>(null)
+
+	// Focus management: move focus to first menu item when opening
+	useEffect(() => {
+		if (isMobileMenuOpen && firstMenuItemRef.current) {
+			// Small delay to ensure the menu is rendered
+			requestAnimationFrame(() => {
+				firstMenuItemRef.current?.focus()
+			})
+		}
+	}, [isMobileMenuOpen])
+
+	// Close menu and restore focus to button
+	const closeMenu = useCallback(() => {
+		setIsMobileMenuOpen(false)
+		menuButtonRef.current?.focus()
+	}, [])
+
+	// Handle escape key to close menu
+	useEffect(() => {
+		const handleEscape = (event: KeyboardEvent) => {
+			if (event.key === 'Escape' && isMobileMenuOpen) {
+				closeMenu()
+			}
+		}
+
+		document.addEventListener('keydown', handleEscape)
+		return () => document.removeEventListener('keydown', handleEscape)
+	}, [isMobileMenuOpen, closeMenu])
 
 	return (
 		<header
@@ -64,6 +94,7 @@ export function Navbar({
 
 					{/* Mobile Menu Button */}
 					<button
+						ref={menuButtonRef}
 						type="button"
 						className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
 						onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -83,14 +114,15 @@ export function Navbar({
 						aria-label="Mobile navigation"
 					>
 						<div className="flex flex-col gap-4">
-							{links.map((link) => (
+							{links.map((link, index) => (
 								<Link
 									key={link.href}
+									ref={index === 0 ? firstMenuItemRef : undefined}
 									href={link.href}
 									target={link.external ? '_blank' : undefined}
 									rel={link.external ? 'noopener noreferrer' : undefined}
 									className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
-									onClick={() => setIsMobileMenuOpen(false)}
+									onClick={closeMenu}
 								>
 									{link.label}
 									{link.external && (
@@ -102,7 +134,7 @@ export function Navbar({
 								</Link>
 							))}
 							<Button asChild size="sm" className="mt-2">
-								<Link href={ctaHref} onClick={() => setIsMobileMenuOpen(false)}>
+								<Link href={ctaHref} onClick={closeMenu}>
 									{ctaLabel}
 								</Link>
 							</Button>

@@ -1,3 +1,4 @@
+import { type BlogCategory, blogPosts } from '@/lib/blog-manifest'
 import { ArrowRight, Calendar, Clock } from 'iconoir-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -7,40 +8,7 @@ export const metadata: Metadata = {
 	description: 'Updates, release notes, tutorials, and insights about Vestig logging library.',
 }
 
-interface BlogPost {
-	slug: string
-	title: string
-	description: string
-	date: string
-	readTime: string
-	category: 'Release' | 'Tutorial' | 'Comparison' | 'Update'
-	featured?: boolean
-}
-
-const posts: BlogPost[] = [
-	{
-		slug: 'vestig-v0.7.0-deno-sampling',
-		title: 'Vestig v0.7.0: Full Deno Support, Advanced Sampling & More',
-		description:
-			'Announcing Vestig v0.7.0 with full Deno runtime support, W3C tracestate, advanced sampling strategies, and VestigErrorBoundary for React.',
-		date: '2025-12-22',
-		readTime: '5 min read',
-		category: 'Release',
-		featured: true,
-	},
-	{
-		slug: 'why-vestig',
-		title: 'Why We Built Vestig: A Different Approach to TypeScript Logging',
-		description:
-			'The story behind Vestig and how it differs from Pino, Winston, and other logging libraries. Zero dependencies, multi-runtime, privacy-first.',
-		date: '2025-12-22',
-		readTime: '8 min read',
-		category: 'Comparison',
-		featured: true,
-	},
-]
-
-const categoryColors: Record<BlogPost['category'], string> = {
+const categoryColors: Record<BlogCategory, string> = {
 	Release: 'bg-green-500/10 text-green-400 border-green-500/20',
 	Tutorial: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
 	Comparison: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
@@ -48,8 +16,8 @@ const categoryColors: Record<BlogPost['category'], string> = {
 }
 
 export default function BlogPage() {
-	const featuredPosts = posts.filter((p) => p.featured)
-	const otherPosts = posts.filter((p) => !p.featured)
+	const featuredPosts = blogPosts.filter((p) => p.featured)
+	const otherPosts = blogPosts.filter((p) => !p.featured)
 
 	return (
 		<div className="min-h-screen bg-background pt-14">
@@ -83,7 +51,7 @@ export default function BlogPage() {
 										</span>
 										<span className="flex items-center gap-1.5 text-xs text-white/50">
 											<Calendar className="h-3.5 w-3.5" aria-hidden="true" />
-											{new Date(post.date).toLocaleDateString('en-US', {
+											{new Date(post.publishedTime).toLocaleDateString('en-US', {
 												month: 'short',
 												day: 'numeric',
 												year: 'numeric',
@@ -133,7 +101,13 @@ export default function BlogPage() {
 											{post.title}
 										</h3>
 									</div>
-									<div className="text-sm text-white/50">{post.date}</div>
+									<div className="text-sm text-white/50">
+										{new Date(post.publishedTime).toLocaleDateString('en-US', {
+											month: 'short',
+											day: 'numeric',
+											year: 'numeric',
+										})}
+									</div>
 								</Link>
 							))}
 						</div>
@@ -141,7 +115,7 @@ export default function BlogPage() {
 				)}
 
 				{/* Empty State */}
-				{posts.length === 0 && (
+				{blogPosts.length === 0 && (
 					<div className="text-center py-16">
 						<p className="text-white/50">No posts yet. Check back soon!</p>
 					</div>

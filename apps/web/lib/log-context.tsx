@@ -248,22 +248,47 @@ export function LogProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		let eventSource: EventSource | null = null
 		let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
-		const abortController = new AbortController()
+		let isCleanedUp = false // Flag to prevent actions after cleanup
+
+		const cleanup = () => {
+			isCleanedUp = true
+			if (reconnectTimeout) {
+				clearTimeout(reconnectTimeout)
+				reconnectTimeout = null
+			}
+			if (eventSource) {
+				// Remove all listeners before closing to prevent stale callbacks
+				eventSource.onopen = null
+				eventSource.onmessage = null
+				eventSource.onerror = null
+				eventSource.close()
+				eventSource = null
+			}
+		}
 
 		const connect = () => {
-			if (abortController.signal.aborted) return
+			if (isCleanedUp) return
+
+			// Cleanup any existing connection before creating a new one
+			if (eventSource) {
+				eventSource.onopen = null
+				eventSource.onmessage = null
+				eventSource.onerror = null
+				eventSource.close()
+				eventSource = null
+			}
 
 			dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connecting' })
 			eventSource = new EventSource('/api/logs')
 
 			eventSource.onopen = () => {
-				if (abortController.signal.aborted) return
+				if (isCleanedUp) return
 				dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'connected' })
 				dispatch({ type: 'RESET_RECONNECT' })
 			}
 
 			eventSource.onmessage = (event) => {
-				if (abortController.signal.aborted) return
+				if (isCleanedUp) return
 				try {
 					const log = JSON.parse(event.data) as DemoLogEntry
 					dispatch({ type: 'ADD_LOG', payload: log })
@@ -276,11 +301,16 @@ export function LogProvider({ children }: { children: ReactNode }) {
 			}
 
 			eventSource.onerror = () => {
-				if (abortController.signal.aborted) return
+				if (isCleanedUp) return
 
-				// Close current connection
-				eventSource?.close()
-				eventSource = null
+				// Close current connection properly
+				if (eventSource) {
+					eventSource.onopen = null
+					eventSource.onmessage = null
+					eventSource.onerror = null
+					eventSource.close()
+					eventSource = null
+				}
 
 				dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
 				dispatch({ type: 'INCREMENT_RECONNECT' })
@@ -312,13 +342,7 @@ export function LogProvider({ children }: { children: ReactNode }) {
 		connect()
 
 		return () => {
-			abortController.abort()
-			if (reconnectTimeout) {
-				clearTimeout(reconnectTimeout)
-			}
-			if (eventSource) {
-				eventSource.close()
-			}
+			cleanup()
 			dispatch({ type: 'SET_CONNECTION_STATUS', payload: 'disconnected' })
 		}
 	}, []) // Empty deps - effect runs once, uses ref for current values

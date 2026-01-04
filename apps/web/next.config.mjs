@@ -43,11 +43,11 @@ const nextConfig = {
 					{
 						// Content Security Policy
 						// Note: 'unsafe-inline' for styles is required by Tailwind and Framer Motion
-						// 'unsafe-eval' has been removed as it's not needed and weakens security
+						// 'wasm-unsafe-eval' is required for Shiki syntax highlighting (uses WASM)
 						key: 'Content-Security-Policy',
 						value: [
 							"default-src 'self'",
-							"script-src 'self' 'unsafe-inline'", // unsafe-eval removed - not needed for Next.js
+							"script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'", // wasm-unsafe-eval for Shiki WASM
 							"style-src 'self' 'unsafe-inline'", // Required for Tailwind/Framer Motion inline styles
 							"img-src 'self' data: https:",
 							"font-src 'self'",

@@ -64,9 +64,33 @@ export async function GET(request: Request) {
  * DELETE /api/logs - Clear all stored logs
  *
  * Useful for demo purposes to reset the log viewer
+ * Includes CSRF protection via origin/referer validation
  */
 export const DELETE = withVestig(
 	async (request, { log, ctx }) => {
+		// CSRF protection: validate origin/referer for state-changing requests
+		const origin = request.headers.get('origin')
+		const referer = request.headers.get('referer')
+		const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
+		// In production, require valid origin
+		if (process.env.NODE_ENV === 'production') {
+			const isValidOrigin = origin && new URL(origin).origin === new URL(siteUrl).origin
+			const isValidReferer = referer && new URL(referer).origin === new URL(siteUrl).origin
+
+			if (!isValidOrigin && !isValidReferer) {
+				log.warn('CSRF validation failed', {
+					origin,
+					referer,
+					expectedOrigin: new URL(siteUrl).origin,
+				})
+				return Response.json(
+					{ success: false, error: 'Invalid origin', code: 'CSRF_VALIDATION_FAILED' },
+					{ status: 403 },
+				)
+			}
+		}
+
 		const logCount = logStore.getSize()
 
 		try {

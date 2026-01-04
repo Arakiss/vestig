@@ -28,6 +28,78 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
 	{
+		version: '0.10.2',
+		date: '2026-01-04',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.10.1...v0.10.2',
+		features: [
+			'Add RSS feed and dynamic blog infrastructure with centralized manifest',
+			'Add useScrollPosition hook with RAF throttling for performance',
+		],
+		fixes: [
+			'Improve hooks with proper cleanup and memory management',
+			'Add CSP and HSTS security headers to next.config',
+		],
+		docs: ['Add metadata exports to all 21 documentation pages for improved SEO'],
+		refactoring: [
+			'Split log context into separate contexts for performance optimization',
+			'Improve landing page and MDX components accessibility',
+		],
+	},
+	{
+		version: '0.10.1',
+		date: '2026-01-03',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.10.0...v0.10.1',
+		fixes: ['Improve docs links and navigation accessibility'],
+	},
+	{
+		version: '0.10.0',
+		date: '2026-01-03',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.9.1...v0.10.0',
+		features: [
+			'Add error boundary with proper error handling and loading states',
+			'Add centralized constants for API limits and configuration',
+		],
+		fixes: ['Add Zod validation and Content-Type checks for API security'],
+	},
+	{
+		version: '0.9.1',
+		date: '2026-01-03',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.9.0...v0.9.1',
+		fixes: ['Optimize font loading and improve accessibility'],
+	},
+	{
+		version: '0.9.0',
+		date: '2026-01-03',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.8.1...v0.9.0',
+		features: ['Automate version display in web app from package.json'],
+		fixes: [
+			'Make FileTransport batching test deterministic',
+			'Remove duplicate tests from release-it hooks',
+			'Ensure sequential package builds for CI',
+			'Resolve all Biome lint errors for CI pass',
+		],
+	},
+	{
+		version: '0.8.1',
+		date: '2026-01-03',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.8.0...v0.8.1',
+		features: [
+			'Add changelog, 404, and core documentation pages',
+			'Add new playground demos, API routes and documentation',
+			'Improve API route logging with withVestig wrapper',
+			'Add security headers and accessibility improvements',
+		],
+		fixes: [
+			'Resolve race conditions and storage quota handling in client',
+			'Prevent memory leaks and crashes in core logger',
+			'Correct broken links and update sitemap',
+		],
+		refactoring: [
+			'Improve log context with exponential backoff reconnection',
+			'Replace useSyncExternalStore with useState+useEffect in @vestig/next',
+		],
+	},
+	{
 		version: '0.8.0',
 		date: '2025-12-23',
 		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.7.0...v0.8.0',
@@ -114,6 +186,25 @@ const changelog: ChangelogEntry[] = [
 		refactoring: ['Migrate demo to @vestig/next integration'],
 		tests: ['Add comprehensive transport tests'],
 		cicd: ['Fix lint errors and update biome config', 'Reorder workflow to build before typecheck'],
+	},
+	{
+		version: '0.2.1',
+		date: '2025-12-19',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.2.0...v0.2.1',
+		refactoring: ['Complete vestig rename across entire codebase'],
+	},
+	{
+		version: '0.2.0',
+		date: '2025-12-19',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.1.1...v0.2.0',
+		features: ['Add multi-transport system, sanitization presets, and benchmarks'],
+		refactoring: ['Rename package to vestig'],
+	},
+	{
+		version: '0.1.1',
+		date: '2025-12-18',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.1.0...v0.1.1',
+		fixes: ['Disable autoGenerate and clean up changelog in release workflow'],
 	},
 	{
 		version: '0.1.0',
