@@ -62,14 +62,14 @@ export default function ErrorPage({
 					<button
 						type="button"
 						onClick={reset}
-						className="px-6 py-3 bg-brand text-white font-medium rounded-lg hover:bg-brand/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+						className="px-6 py-3 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 					>
 						Try again
 					</button>
 
 					<a
 						href="/"
-						className="px-6 py-3 bg-white/5 text-white/70 font-medium rounded-lg hover:bg-white/10 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+						className="px-6 py-3 bg-white/10 text-white font-medium rounded-lg border border-white/10 hover:bg-white/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 					>
 						Go home
 					</a>
