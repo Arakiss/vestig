@@ -1,5 +1,5 @@
 import { IS_SERVER } from '../runtime'
-import type { FileTransportConfig, LogEntry } from '../types'
+import type { FileTransportConfig, LogEntry, RotationInterval } from '../types'
 import { BatchTransport } from './batch'
 
 /**
@@ -9,7 +9,33 @@ const DEFAULTS = {
 	maxSize: 10 * 1024 * 1024, // 10MB
 	maxFiles: 5,
 	compress: false,
+	rotateInterval: 'none' as RotationInterval,
 } as const
+
+/**
+ * Get the current period identifier for time-based rotation
+ */
+function getCurrentPeriod(interval: RotationInterval): string {
+	const now = new Date()
+
+	switch (interval) {
+		case 'hourly':
+			return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}`
+		case 'daily':
+			return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+		case 'weekly': {
+			// Get ISO week number
+			const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+			const dayNum = d.getUTCDay() || 7
+			d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+			const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+			const weekNum = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+			return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`
+		}
+		default:
+			return ''
+	}
+}
 
 /**
  * File transport for writing logs to disk
@@ -34,8 +60,10 @@ export class FileTransport extends BatchTransport {
 	private readonly maxSize: number
 	private readonly maxFiles: number
 	private readonly compress: boolean
+	private readonly rotateInterval: RotationInterval
 
 	private currentSize = 0
+	private currentPeriod = ''
 	private fd: FileHandle | null = null
 	private fs: typeof import('node:fs/promises') | null = null
 	private zlib: typeof import('node:zlib') | null = null
@@ -55,6 +83,7 @@ export class FileTransport extends BatchTransport {
 		this.maxSize = config.maxSize ?? DEFAULTS.maxSize
 		this.maxFiles = config.maxFiles ?? DEFAULTS.maxFiles
 		this.compress = config.compress ?? DEFAULTS.compress
+		this.rotateInterval = config.rotateInterval ?? DEFAULTS.rotateInterval
 	}
 
 	/**
@@ -91,6 +120,11 @@ export class FileTransport extends BatchTransport {
 		// Get current file size
 		const stats = await this.fd.stat()
 		this.currentSize = stats.size
+
+		// Initialize current period for time-based rotation
+		if (this.rotateInterval !== 'none') {
+			this.currentPeriod = getCurrentPeriod(this.rotateInterval)
+		}
 	}
 
 	/**
@@ -105,7 +139,16 @@ export class FileTransport extends BatchTransport {
 		const data = `${entries.map((e) => JSON.stringify(e)).join('\n')}\n`
 		const bytes = Buffer.byteLength(data, 'utf8')
 
-		// Check if rotation needed
+		// Check if time-based rotation needed
+		if (this.rotateInterval !== 'none') {
+			const newPeriod = getCurrentPeriod(this.rotateInterval)
+			if (newPeriod !== this.currentPeriod) {
+				await this.rotate()
+				this.currentPeriod = newPeriod
+			}
+		}
+
+		// Check if size-based rotation needed
 		if (this.currentSize + bytes > this.maxSize) {
 			await this.rotate()
 		}
@@ -117,6 +160,10 @@ export class FileTransport extends BatchTransport {
 
 	/**
 	 * Rotate log files
+	 *
+	 * For size-based rotation: app.log -> app.log.1 -> app.log.2 -> ...
+	 * For time-based rotation: app.log -> app.log.2026-01-04 -> app.log.2026-01-03 -> ...
+	 * Combined: uses period suffix when available, then numeric index
 	 */
 	private async rotate(): Promise<void> {
 		if (!this.fd || !this.fs) return
@@ -125,10 +172,15 @@ export class FileTransport extends BatchTransport {
 		await this.fd.close()
 		this.fd = null
 
+		// Determine the suffix for the rotated file
+		const periodSuffix =
+			this.rotateInterval !== 'none' && this.currentPeriod ? `.${this.currentPeriod}` : ''
+		const compressSuffix = this.compress ? '.gz' : ''
+
 		// Rotate existing files
 		for (let i = this.maxFiles - 1; i >= 1; i--) {
-			const oldPath = i === 1 ? this.path : `${this.path}.${i - 1}${this.compress ? '.gz' : ''}`
-			const newPath = `${this.path}.${i}${this.compress ? '.gz' : ''}`
+			const oldPath = i === 1 ? this.path : `${this.path}${periodSuffix}.${i - 1}${compressSuffix}`
+			const newPath = `${this.path}${periodSuffix}.${i}${compressSuffix}`
 
 			try {
 				await this.fs.access(oldPath)
@@ -145,7 +197,7 @@ export class FileTransport extends BatchTransport {
 		}
 
 		// Delete oldest file if it exists
-		const oldestPath = `${this.path}.${this.maxFiles}${this.compress ? '.gz' : ''}`
+		const oldestPath = `${this.path}${periodSuffix}.${this.maxFiles}${compressSuffix}`
 		try {
 			await this.fs.unlink(oldestPath)
 		} catch {
@@ -187,6 +239,16 @@ export class FileTransport extends BatchTransport {
 	 */
 	getCurrentSize(): number {
 		return this.currentSize
+	}
+
+	/**
+	 * Get rotation configuration
+	 */
+	getRotationConfig(): { interval: RotationInterval; currentPeriod: string } {
+		return {
+			interval: this.rotateInterval,
+			currentPeriod: this.currentPeriod,
+		}
 	}
 }
 

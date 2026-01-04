@@ -314,6 +314,113 @@ describe('FileTransport', () => {
 		})
 	})
 
+	describe('time-based rotation', () => {
+		test('should accept rotateInterval option', async () => {
+			const transport = new FileTransport({
+				path: TEST_LOG_PATH,
+				rotateInterval: 'daily',
+			})
+
+			await transport.init()
+
+			const config = transport.getRotationConfig()
+			expect(config.interval).toBe('daily')
+			expect(config.currentPeriod).toMatch(/^\d{4}-\d{2}-\d{2}$/) // e.g., 2026-01-04
+
+			await transport.destroy()
+		})
+
+		test('should default to no time-based rotation', async () => {
+			const transport = new FileTransport({
+				path: TEST_LOG_PATH,
+			})
+
+			await transport.init()
+
+			const config = transport.getRotationConfig()
+			expect(config.interval).toBe('none')
+			expect(config.currentPeriod).toBe('')
+
+			await transport.destroy()
+		})
+
+		test('should set current period for hourly rotation', async () => {
+			const transport = new FileTransport({
+				path: TEST_LOG_PATH,
+				rotateInterval: 'hourly',
+			})
+
+			await transport.init()
+
+			const config = transport.getRotationConfig()
+			expect(config.interval).toBe('hourly')
+			// e.g., 2026-01-04-15 (YYYY-MM-DD-HH)
+			expect(config.currentPeriod).toMatch(/^\d{4}-\d{2}-\d{2}-\d{2}$/)
+
+			await transport.destroy()
+		})
+
+		test('should set current period for weekly rotation', async () => {
+			const transport = new FileTransport({
+				path: TEST_LOG_PATH,
+				rotateInterval: 'weekly',
+			})
+
+			await transport.init()
+
+			const config = transport.getRotationConfig()
+			expect(config.interval).toBe('weekly')
+			// e.g., 2026-W01 (YYYY-Www)
+			expect(config.currentPeriod).toMatch(/^\d{4}-W\d{2}$/)
+
+			await transport.destroy()
+		})
+
+		test('should work with size and time rotation combined', async () => {
+			const transport = new FileTransport({
+				path: TEST_LOG_PATH,
+				maxSize: 200,
+				maxFiles: 3,
+				rotateInterval: 'daily',
+			})
+
+			await transport.init()
+
+			// Write enough to trigger size-based rotation
+			for (let i = 0; i < 10; i++) {
+				transport.log(createEntry({ message: `Log entry number ${i} with some extra content` }))
+			}
+			await transport.flush()
+
+			// Should have rotated based on size
+			expect(existsSync(TEST_LOG_PATH)).toBe(true)
+
+			await transport.destroy()
+		})
+
+		test('should preserve rotation interval setting through operations', async () => {
+			const transport = new FileTransport({
+				path: TEST_LOG_PATH,
+				rotateInterval: 'daily',
+				maxSize: 200,
+			})
+
+			await transport.init()
+
+			// Write and trigger rotation
+			for (let i = 0; i < 5; i++) {
+				transport.log(createEntry({ message: `Log ${i}` }))
+			}
+			await transport.flush()
+
+			// Config should remain unchanged
+			const config = transport.getRotationConfig()
+			expect(config.interval).toBe('daily')
+
+			await transport.destroy()
+		})
+	})
+
 	describe('edge cases', () => {
 		test('should handle empty log message', async () => {
 			const transport = new FileTransport({
