@@ -159,7 +159,7 @@ function ChangeSection({
 				{items.map((item) => (
 					<li
 						key={item}
-						className="text-sm text-white/70 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-white/30"
+						className="text-sm text-white/70 pl-4 relative before:content-['•'] before:absolute before:left-0 before:text-white/50"
 					>
 						{item}
 					</li>
@@ -174,12 +174,12 @@ export default function ChangelogPage() {
 		<div className="min-h-screen bg-background">
 			<InnerNav section="Changelog" />
 
-			<main className="pt-14">
+			<main id="main-content" className="pt-14">
 				<div className="max-w-3xl mx-auto px-6 lg:px-8 py-12">
 					{/* Back link */}
 					<Link
 						href="/"
-						className="inline-flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition-colors mb-8"
+						className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white/80 transition-colors mb-8"
 					>
 						<ArrowLeft className="h-4 w-4" />
 						Back to Home
@@ -188,7 +188,7 @@ export default function ChangelogPage() {
 					{/* Header */}
 					<div className="mb-12">
 						<h1 className="text-4xl font-bold tracking-tight text-white mb-4">Changelog</h1>
-						<p className="text-lg text-white/60">
+						<p className="text-lg text-white/70">
 							All notable changes to Vestig. Following{' '}
 							<a
 								href="https://semver.org"
@@ -217,7 +217,7 @@ export default function ChangelogPage() {
 								{/* Version header */}
 								<div className="flex flex-wrap items-center gap-3 mb-4">
 									<h2 className="text-xl font-bold text-white">v{entry.version}</h2>
-									<span className="flex items-center gap-1.5 text-sm text-white/40">
+									<span className="flex items-center gap-1.5 text-sm text-white/60">
 										<Calendar className="h-3.5 w-3.5" />
 										{new Date(entry.date).toLocaleDateString('en-US', {
 											month: 'long',
@@ -230,7 +230,7 @@ export default function ChangelogPage() {
 											href={entry.githubCompare}
 											target="_blank"
 											rel="noopener noreferrer"
-											className="flex items-center gap-1 text-sm text-white/40 hover:text-orange-400 transition-colors"
+											className="flex items-center gap-1 text-sm text-white/60 hover:text-orange-400 transition-colors"
 										>
 											<GitCommit className="h-3.5 w-3.5" />
 											Compare
@@ -255,7 +255,7 @@ export default function ChangelogPage() {
 
 					{/* Footer */}
 					<footer className="mt-16 pt-8 border-t border-white/[0.06]">
-						<p className="text-sm text-white/30">
+						<p className="text-sm text-white/50">
 							© {new Date().getFullYear()} Vestig. Open source under MIT License.
 						</p>
 					</footer>

@@ -1,8 +1,6 @@
 import { createLogStream, getSubscriberCount, logStore } from '@/lib/demo-transport'
+import { API_LIMITS } from '@/lib/constants'
 import { withVestig } from '@vestig/next'
-
-// Maximum concurrent SSE connections to prevent resource exhaustion
-const MAX_SUBSCRIBERS = 50
 
 /**
  * GET /api/logs - Server-Sent Events stream for real-time logs
@@ -17,8 +15,10 @@ export async function GET(request: Request) {
 	const subscriberCount = getSubscriberCount()
 
 	// Check subscriber limit to prevent resource exhaustion
-	if (subscriberCount >= MAX_SUBSCRIBERS) {
-		console.warn(`[api:logs] SSE subscriber limit reached: ${subscriberCount}/${MAX_SUBSCRIBERS}`)
+	if (subscriberCount >= API_LIMITS.MAX_SSE_SUBSCRIBERS) {
+		console.warn(
+			`[api:logs] SSE subscriber limit reached: ${subscriberCount}/${API_LIMITS.MAX_SSE_SUBSCRIBERS}`,
+		)
 		return new Response(
 			JSON.stringify({
 				error: 'Too many connections',
