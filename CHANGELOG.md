@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.11.4](https://github.com/Arakiss/vestig/compare/v0.11.3...v0.11.4) (2026-01-04)
+
+### 🐛 Bug Fixes
+
+* **mdx:** enable GFM support for markdown tables ([a0f6295](https://github.com/Arakiss/vestig/commit/a0f6295dc2350736221e3721bcf79318c680b3fe))
+
+### ♻️ Refactoring
+
+* **ui:** redesign error page with enhanced visuals ([bad55c5](https://github.com/Arakiss/vestig/commit/bad55c571f0486505a5f6755fc93bdb330fd025b))
+
+### 📚 Documentation
+
+* **readme:** update to reflect current v0.11.3 release ([5579d4c](https://github.com/Arakiss/vestig/commit/5579d4cce03110e9a9b75382e03ff3d538a58612))
+
 ## [0.11.3](https://github.com/Arakiss/vestig/compare/v0.11.2...v0.11.3) (2026-01-04)
 
 ### 🐛 Bug Fixes
