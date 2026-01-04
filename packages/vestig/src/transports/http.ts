@@ -125,7 +125,7 @@ export class HTTPTransportError extends Error {
 		message: string,
 		public readonly statusCode: number,
 		public readonly responseBody?: string,
-		public readonly cause?: Error,
+		override readonly cause?: Error,
 	) {
 		super(message, cause ? { cause } : undefined)
 		this.name = 'HTTPTransportError'

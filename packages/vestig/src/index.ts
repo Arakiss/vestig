@@ -2,7 +2,7 @@
 export { VERSION } from './version'
 
 // Core exports
-export { createLogger, LoggerImpl } from './logger'
+export { createLogger, createLoggerAsync, initLogger, LoggerImpl } from './logger'
 export type {
 	Logger,
 	LoggerConfig,

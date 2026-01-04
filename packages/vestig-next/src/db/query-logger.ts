@@ -130,10 +130,12 @@ export function extractAllTableNames(query: string): string[] {
 	for (const pattern of tablePatterns) {
 		let match: RegExpExecArray | null = null
 		while ((match = pattern.exec(normalized)) !== null) {
-			const tableName = match[1]
-				// Remove quotes
-				.replace(/["'`]/g, '')
-			tables.add(tableName)
+			if (match[1]) {
+				const tableName = match[1]
+					// Remove quotes
+					.replace(/["'`]/g, '')
+				tables.add(tableName)
+			}
 		}
 	}
 

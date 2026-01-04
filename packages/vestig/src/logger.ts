@@ -427,7 +427,78 @@ export class LoggerImpl implements Logger {
 
 /**
  * Create a new logger instance
+ *
+ * @example
+ * ```typescript
+ * // Basic usage
+ * const logger = createLogger({ level: 'info' })
+ *
+ * // With namespace
+ * const dbLogger = createLogger({ namespace: 'db' })
+ *
+ * // For async initialization, see createLoggerAsync()
+ * ```
  */
 export function createLogger(config?: LoggerConfig): Logger {
 	return new LoggerImpl(config)
+}
+
+/**
+ * Create and initialize a logger instance asynchronously
+ *
+ * This function creates a logger and waits for all transports to initialize.
+ * Use this when you have transports that require async setup (file handles,
+ * database connections, HTTP clients with connection pooling, etc.).
+ *
+ * @param config - Logger configuration options
+ * @returns A promise that resolves to the initialized logger
+ *
+ * @example
+ * ```typescript
+ * // Initialize logger with async transports
+ * const logger = await createLoggerAsync({
+ *   level: 'info',
+ *   namespace: 'app'
+ * })
+ *
+ * // Add transports that need async init
+ * logger.addTransport(new FileTransport({ path: './logs/app.log' }))
+ * logger.addTransport(new HTTPTransport({ url: 'https://logs.example.com' }))
+ *
+ * // Or create with transports added first
+ * const logger = createLogger()
+ * logger.addTransport(new FileTransport({ path: './logs/app.log' }))
+ * const initializedLogger = await initLogger(logger)
+ * ```
+ */
+export async function createLoggerAsync(config?: LoggerConfig): Promise<Logger> {
+	const logger = new LoggerImpl(config)
+	await logger.init()
+	return logger
+}
+
+/**
+ * Initialize an existing logger and its transports
+ *
+ * This is useful when you want to add transports first, then initialize them all.
+ *
+ * @param logger - The logger instance to initialize
+ * @returns A promise that resolves to the same logger after initialization
+ *
+ * @example
+ * ```typescript
+ * const logger = createLogger({ namespace: 'api' })
+ * logger.addTransport(new FileTransport({ path: './api.log' }))
+ * logger.addTransport(new DatadogTransport({ apiKey: process.env.DD_API_KEY }))
+ *
+ * // Initialize all transports
+ * await initLogger(logger)
+ * ```
+ */
+export async function initLogger(logger: Logger): Promise<Logger> {
+	// The Logger interface doesn't expose init(), so we cast to access it
+	// This is safe because createLogger always returns a LoggerImpl
+	const impl = logger as LoggerImpl
+	await impl.init()
+	return logger
 }

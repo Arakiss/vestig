@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
-import { LoggerImpl, createLogger } from '../logger'
+import { LoggerImpl, createLogger, createLoggerAsync, initLogger } from '../logger'
 
 describe('createLogger', () => {
 	test('should create a logger instance', () => {
@@ -604,5 +604,121 @@ describe('LoggerImpl', () => {
 			await logger.init()
 			expect(initCalled).toBe(true)
 		})
+	})
+})
+
+describe('createLoggerAsync', () => {
+	test('should create and initialize a logger', async () => {
+		const logger = await createLoggerAsync()
+		expect(logger).toBeDefined()
+		expect(typeof logger.info).toBe('function')
+	})
+
+	test('should accept config', async () => {
+		const logger = await createLoggerAsync({ level: 'warn', namespace: 'async-test' })
+		expect(logger.getLevel()).toBe('warn')
+	})
+
+	test('should initialize transports', async () => {
+		let initCalled = false
+		const logger = await createLoggerAsync()
+
+		// Add a transport after creation - it should init immediately because logger is initialized
+		const mockTransport = {
+			name: 'async-init-test',
+			config: { name: 'async-init-test', enabled: true },
+			log: () => {},
+			init: async () => {
+				initCalled = true
+			},
+		}
+
+		logger.addTransport(mockTransport)
+
+		// Wait for async init
+		await new Promise((r) => setTimeout(r, 10))
+		expect(initCalled).toBe(true)
+	})
+
+	test('should return a fully functional logger', async () => {
+		const logger = await createLoggerAsync({ level: 'debug' })
+		const child = logger.child('child')
+
+		expect(child.getLevel()).toBe('debug')
+	})
+})
+
+describe('initLogger', () => {
+	test('should initialize an existing logger', async () => {
+		const logger = createLogger()
+		let initCalled = false
+
+		const mockTransport = {
+			name: 'init-logger-test',
+			config: { name: 'init-logger-test', enabled: true },
+			log: () => {},
+			init: async () => {
+				initCalled = true
+			},
+		}
+
+		logger.addTransport(mockTransport)
+
+		await initLogger(logger)
+		expect(initCalled).toBe(true)
+	})
+
+	test('should return the same logger instance', async () => {
+		const logger = createLogger()
+		const result = await initLogger(logger)
+
+		expect(result).toBe(logger)
+	})
+
+	test('should only initialize once', async () => {
+		const logger = createLogger()
+		let initCount = 0
+
+		const mockTransport = {
+			name: 'init-once-test',
+			config: { name: 'init-once-test', enabled: true },
+			log: () => {},
+			init: async () => {
+				initCount++
+			},
+		}
+
+		logger.addTransport(mockTransport)
+
+		await initLogger(logger)
+		await initLogger(logger)
+		await initLogger(logger)
+
+		expect(initCount).toBe(1)
+	})
+
+	test('should work with logger created from createLoggerAsync', async () => {
+		const logger = await createLoggerAsync()
+
+		// Calling initLogger again should be safe (no-op)
+		await expect(initLogger(logger)).resolves.toBe(logger)
+	})
+
+	test('should handle transports with async initialization errors', async () => {
+		const logger = createLogger()
+
+		const errorTransport = {
+			name: 'error-transport',
+			config: { name: 'error-transport', enabled: true },
+			log: () => {},
+			init: async () => {
+				throw new Error('Init failed')
+			},
+		}
+
+		logger.addTransport(errorTransport)
+
+		// initLogger should propagate the error
+		await expect(initLogger(logger)).rejects.toThrow('Init failed')
 	})
 })
