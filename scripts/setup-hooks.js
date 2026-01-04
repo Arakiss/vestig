@@ -12,11 +12,11 @@ const path = require('node:path')
 
 const HOOKS_DIR = path.join(__dirname, '..', '.git', 'hooks')
 
-// Pre-push hook: validates versions and changelog before pushing to remote
+// Pre-push hook: validates versions, docs, and changelog before pushing to remote
 const PRE_PUSH_HOOK = `#!/bin/sh
 #
-# Pre-push hook: Validate version consistency and changelog before pushing
-# This prevents version jumps, sync issues, and outdated changelogs
+# Pre-push hook: Validate version consistency, docs, and changelog before pushing
+# This prevents version jumps, sync issues, outdated changelogs, and missing docs
 #
 
 # Only run on pushes to main branch
@@ -37,6 +37,18 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "✅ Version validation passed"
+
+echo ""
+echo "🔍 Running documentation validation..."
+node scripts/validate-docs.js
+
+if [ $? -eq 1 ]; then
+    echo ""
+    echo "❌ Push blocked: Documentation validation failed"
+    echo "   Please update documentation before pushing to main."
+    echo ""
+    exit 1
+fi
 
 echo ""
 echo "🔍 Running changelog sync validation..."
