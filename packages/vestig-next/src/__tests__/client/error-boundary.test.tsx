@@ -6,6 +6,8 @@ import {
 	type VestigErrorBoundaryProps,
 	addBreadcrumb,
 	clearBreadcrumbs,
+	filterComponentStack,
+	filterStackTrace,
 	getBreadcrumbs,
 } from '../../client/error-boundary'
 
@@ -362,5 +364,137 @@ describe('VestigErrorBoundary integration', () => {
 			fallback: fnFallback,
 		})
 		expect(typeof functionFallback.props.fallback).toBe('function')
+	})
+})
+
+describe('filterStackTrace', () => {
+	const sampleStack = `Error: Something went wrong
+    at UserComponent (/app/src/components/User.tsx:15:10)
+    at renderWithHooks (/app/node_modules/react-dom/cjs/react-dom.development.js:14985:18)
+    at mountIndeterminateComponent (/app/node_modules/react-dom/cjs/react-dom.development.js:17811:13)
+    at beginWork (/app/node_modules/react-dom/cjs/react-dom.development.js:19049:16)
+    at HTMLUnknownElement.callCallback (/app/node_modules/react-dom/cjs/react-dom.development.js:3945:14)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at App (/app/src/App.tsx:8:5)`
+
+	test('should return full stack in development', () => {
+		const result = filterStackTrace(sampleStack, true)
+		expect(result).toBe(sampleStack)
+	})
+
+	test('should filter React internals in production', () => {
+		const result = filterStackTrace(sampleStack, false)
+
+		// Should keep user code frames
+		expect(result).toContain('at UserComponent')
+		expect(result).toContain('at App')
+
+		// Should filter React internals
+		expect(result).not.toContain('renderWithHooks')
+		expect(result).not.toContain('mountIndeterminateComponent')
+		expect(result).not.toContain('beginWork')
+	})
+
+	test('should filter node internals in production', () => {
+		const result = filterStackTrace(sampleStack, false)
+		expect(result).not.toContain('processTicksAndRejections')
+	})
+
+	test('should keep the error message line', () => {
+		const result = filterStackTrace(sampleStack, false)
+		expect(result).toContain('Error: Something went wrong')
+	})
+
+	test('should handle undefined stack', () => {
+		const result = filterStackTrace(undefined, false)
+		expect(result).toBeUndefined()
+	})
+
+	test('should add note when all frames filtered', () => {
+		const onlyInternalsStack = `Error: Test
+    at renderWithHooks (/app/node_modules/react-dom/cjs/react-dom.development.js:14985:18)
+    at beginWork (/app/node_modules/react-dom/cjs/react-dom.development.js:19049:16)`
+
+		const result = filterStackTrace(onlyInternalsStack, false)
+		expect(result).toContain('Error: Test')
+		expect(result).toContain('(stack frames filtered in production)')
+	})
+
+	test('should filter webpack internals', () => {
+		const webpackStack = `Error: Module error
+    at MyComponent (/app/src/Component.tsx:10:5)
+    at __webpack_require__ (/app/.next/server/webpack-runtime.js:25:42)
+    at __next_route_loader__ (/app/.next/server/app/page.js:1:1)`
+
+		const result = filterStackTrace(webpackStack, false)
+		expect(result).toContain('MyComponent')
+		expect(result).not.toContain('__webpack_require__')
+		expect(result).not.toContain('__next_route_loader__')
+	})
+})
+
+describe('filterComponentStack', () => {
+	test('should return full stack in development', () => {
+		const componentStack = `
+    at Button
+    at Form
+    at Page
+    at Layout`
+
+		const result = filterComponentStack(componentStack, true)
+		expect(result).toBe(componentStack)
+	})
+
+	test('should limit frames in production', () => {
+		// Create a stack with more than 10 frames
+		const frames = Array.from({ length: 15 }, (_, i) => `    at Component${i}`).join('\n')
+
+		const result = filterComponentStack(frames, false)
+
+		// Should have 10 frames + summary
+		expect(result).toContain('at Component0')
+		expect(result).toContain('at Component9')
+		expect(result).not.toContain('at Component10')
+		expect(result).toContain('... and 5 more')
+	})
+
+	test('should not truncate short stacks', () => {
+		const shortStack = `    at Button
+    at Form
+    at Page`
+
+		const result = filterComponentStack(shortStack, false)
+
+		// All frames should be present, no truncation message
+		expect(result).toContain('at Button')
+		expect(result).toContain('at Form')
+		expect(result).toContain('at Page')
+		expect(result).not.toContain('... and')
+	})
+
+	test('should handle undefined stack', () => {
+		const result = filterComponentStack(undefined, false)
+		expect(result).toBeUndefined()
+	})
+
+	test('should handle null stack', () => {
+		const result = filterComponentStack(null, false)
+		expect(result).toBeUndefined()
+	})
+
+	test('should filter empty lines', () => {
+		const stackWithEmptyLines = `
+    at Button
+
+    at Form
+
+    at Page
+`
+
+		const result = filterComponentStack(stackWithEmptyLines, false)
+
+		// Should not have empty lines in output
+		const lines = result?.split('\n') ?? []
+		expect(lines.every((line) => line.trim() !== '' || line === '')).toBe(true)
 	})
 })

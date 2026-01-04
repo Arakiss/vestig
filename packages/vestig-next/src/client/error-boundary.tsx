@@ -5,6 +5,105 @@ import type { LogEntry, Logger } from 'vestig'
 import { useVestigContext } from './provider'
 
 /**
+ * Patterns to filter from stack traces in production
+ * These are internal framework frames that add noise without helping debug user code
+ */
+const FILTERED_STACK_PATTERNS = [
+	// React internals
+	/at (renderWithHooks|mountIndeterminateComponent|beginWork|performUnitOfWork)/,
+	/at ReactDOMRoot\.render/,
+	/at scheduleUpdateOnFiber/,
+	/at (dispatchAction|dispatchSetState)/,
+	/at Object\.invokeGuardedCallbackDev/,
+	/at invokeGuardedCallback/,
+	/at HTMLUnknownElement\.callCallback/,
+	// Next.js internals
+	/at (AppRouter|HotReload|DevRoot)/,
+	/at __webpack_require__/,
+	/at __next_route_loader__/,
+	/webpack-internal:\/\/\/\(app-pages-browser\)/,
+	// Node.js internals
+	/at Module\._compile/,
+	/at processTicksAndRejections/,
+	/at runMicrotasks/,
+	// Build/bundle internals
+	/node_modules\/(react|react-dom|next|webpack)/,
+]
+
+/**
+ * Filter stack trace for production logging
+ *
+ * Removes noisy framework internals while keeping user code frames.
+ * Returns full stack in development for debugging.
+ *
+ * @param stack - The raw error stack trace
+ * @param isDev - Whether we're in development mode
+ * @returns Filtered stack trace (or original in development)
+ */
+export function filterStackTrace(stack: string | undefined, isDev: boolean): string | undefined {
+	if (!stack || isDev) {
+		return stack
+	}
+
+	const lines = stack.split('\n')
+	const filteredLines: string[] = []
+
+	// Always keep the first line (error message)
+	if (lines.length > 0 && lines[0]) {
+		filteredLines.push(lines[0])
+	}
+
+	// Filter remaining lines
+	for (let i = 1; i < lines.length; i++) {
+		const line = lines[i]
+		if (!line) continue
+
+		// Check if line matches any filter pattern
+		const shouldFilter = FILTERED_STACK_PATTERNS.some((pattern) => pattern.test(line))
+
+		if (!shouldFilter) {
+			filteredLines.push(line)
+		}
+	}
+
+	// If we filtered everything except the message, include a note
+	if (filteredLines.length === 1) {
+		filteredLines.push('    (stack frames filtered in production)')
+	}
+
+	return filteredLines.join('\n')
+}
+
+/**
+ * Filter component stack for production logging
+ *
+ * In production, limits the component stack to a reasonable size
+ * to reduce log volume while preserving debugging context.
+ *
+ * @param stack - The React component stack
+ * @param isDev - Whether we're in development mode
+ * @returns Filtered component stack (or original in development)
+ */
+export function filterComponentStack(
+	stack: string | null | undefined,
+	isDev: boolean,
+): string | undefined {
+	if (!stack || isDev) {
+		return stack ?? undefined
+	}
+
+	const lines = stack.split('\n').filter((line) => line.trim())
+
+	// In production, limit to 10 most relevant frames
+	const maxFrames = 10
+	if (lines.length > maxFrames) {
+		return [...lines.slice(0, maxFrames), `    ... and ${lines.length - maxFrames} more`].join('\n')
+	}
+
+	return lines.join('\n')
+}
+
+/**
  * Breadcrumb entry for error context
  */
 export interface Breadcrumb {
@@ -105,13 +204,17 @@ class VestigErrorBoundaryInner extends Component<
 
 		// Log the error with vestig
 		if (this.props.logger) {
+			const isDev = process.env.NODE_ENV === 'development'
+
 			this.props.logger.error('React component error', {
 				error: {
 					name: error.name,
 					message: error.message,
-					stack: error.stack,
+					// Filter stack traces in production to reduce noise
+					stack: filterStackTrace(error.stack, isDev),
 				},
-				componentStack: errorInfo.componentStack,
+				// Filter component stack in production to limit size
+				componentStack: filterComponentStack(errorInfo.componentStack, isDev),
 				breadcrumbs: getBreadcrumbs(),
 			})
 		}
