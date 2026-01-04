@@ -2,12 +2,13 @@
 
 import { Wordmark } from '@/components/ui/logo'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { useScrollPosition } from '@/hooks/use-scroll-position'
 import { GITHUB_URL, INSTALL_COMMAND } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Book, Check, Code, Copy, Github, Menu, Play, Xmark } from 'iconoir-react'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 /**
  * StickyNav - Cloudflare Sandbox inspired sticky navigation
@@ -32,25 +33,22 @@ export function StickyNav({
 	className,
 }: StickyNavProps) {
 	const { copied, copy } = useCopyToClipboard()
-	const [scrolled, setScrolled] = useState(false)
+	const { isScrolled: scrolled } = useScrollPosition({ threshold: 20 })
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-	const ticking = useRef(false)
-
-	useEffect(() => {
-		const handleScroll = () => {
-			if (!ticking.current) {
-				requestAnimationFrame(() => {
-					setScrolled(window.scrollY > 20)
-					ticking.current = false
-				})
-				ticking.current = true
-			}
-		}
-		window.addEventListener('scroll', handleScroll, { passive: true })
-		return () => window.removeEventListener('scroll', handleScroll)
-	}, [])
+	const [isAnimating, setIsAnimating] = useState(false)
 
 	const handleCopy = () => copy(installCommand)
+
+	// Prevent rapid toggling during animation to avoid race conditions
+	const handleToggleMenu = useCallback(() => {
+		if (isAnimating) return
+		setMobileMenuOpen((prev) => !prev)
+	}, [isAnimating])
+
+	const handleCloseMenu = useCallback(() => {
+		if (isAnimating) return
+		setMobileMenuOpen(false)
+	}, [isAnimating])
 
 	return (
 		<>
@@ -136,24 +134,34 @@ export function StickyNav({
 						{/* Mobile Menu Button */}
 						<button
 							type="button"
-							onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-							className="md:hidden p-2 text-foreground"
-							aria-label="Toggle menu"
+							onClick={handleToggleMenu}
+							disabled={isAnimating}
+							className="md:hidden p-2 text-foreground disabled:opacity-50"
+							aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+							aria-expanded={mobileMenuOpen}
+							aria-controls="sticky-nav-mobile-menu"
 						>
-							{mobileMenuOpen ? <Xmark className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+							{mobileMenuOpen ? (
+								<Xmark className="w-6 h-6" aria-hidden="true" />
+							) : (
+								<Menu className="w-6 h-6" aria-hidden="true" />
+							)}
 						</button>
 					</div>
 				</div>
 			</nav>
 
 			{/* Mobile Menu */}
-			<AnimatePresence>
+			<AnimatePresence onExitComplete={() => setIsAnimating(false)}>
 				{mobileMenuOpen && (
 					<motion.div
+						id="sticky-nav-mobile-menu"
 						className="fixed inset-0 z-40 md:hidden"
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						exit={{ opacity: 0 }}
+						onAnimationStart={() => setIsAnimating(true)}
+						onAnimationComplete={() => setIsAnimating(false)}
 					>
 						{/* Backdrop */}
 						<motion.div
@@ -161,7 +169,7 @@ export function StickyNav({
 							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}
 							exit={{ opacity: 0 }}
-							onClick={() => setMobileMenuOpen(false)}
+							onClick={handleCloseMenu}
 						/>
 
 						{/* Menu Content */}
@@ -196,16 +204,16 @@ export function StickyNav({
 
 							{/* Nav Links */}
 							<div className="space-y-1">
-								<MobileNavLink href="/docs" onClick={() => setMobileMenuOpen(false)}>
+								<MobileNavLink href="/docs" onClick={handleCloseMenu}>
 									Documentation
 								</MobileNavLink>
-								<MobileNavLink href="/playground" onClick={() => setMobileMenuOpen(false)}>
+								<MobileNavLink href="/playground" onClick={handleCloseMenu}>
 									Playground
 								</MobileNavLink>
-								<MobileNavLink href="/docs/api" onClick={() => setMobileMenuOpen(false)}>
+								<MobileNavLink href="/docs/api" onClick={handleCloseMenu}>
 									API Reference
 								</MobileNavLink>
-								<MobileNavLink href={githubUrl} external onClick={() => setMobileMenuOpen(false)}>
+								<MobileNavLink href={githubUrl} external onClick={handleCloseMenu}>
 									GitHub
 								</MobileNavLink>
 							</div>

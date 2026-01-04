@@ -3,11 +3,12 @@
 import { Container } from '@/components/layout'
 import { Button } from '@/components/ui/button'
 import { Wordmark } from '@/components/ui/logo'
+import { useScrollPosition } from '@/hooks/use-scroll-position'
 import type { NavLink } from '@/lib/content/types'
 import { cn } from '@/lib/utils'
 import { Menu, OpenNewWindow, Xmark } from 'iconoir-react'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 
 interface NavbarProps {
 	links: NavLink[]
@@ -20,24 +21,8 @@ export function Navbar({
 	ctaLabel = 'Get Started',
 	ctaHref = '/docs/getting-started',
 }: NavbarProps) {
-	const [isScrolled, setIsScrolled] = useState(false)
+	const { isScrolled } = useScrollPosition({ threshold: 20 })
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-	const ticking = useRef(false)
-
-	useEffect(() => {
-		const handleScroll = () => {
-			if (!ticking.current) {
-				requestAnimationFrame(() => {
-					setIsScrolled(window.scrollY > 20)
-					ticking.current = false
-				})
-				ticking.current = true
-			}
-		}
-
-		window.addEventListener('scroll', handleScroll, { passive: true })
-		return () => window.removeEventListener('scroll', handleScroll)
-	}, [])
 
 	return (
 		<header
@@ -64,7 +49,7 @@ export function Navbar({
 								className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
 							>
 								{link.label}
-								{link.external && <OpenNewWindow className="h-3 w-3" />}
+								{link.external && <OpenNewWindow className="h-3 w-3" aria-hidden="true" />}
 								{link.badge && (
 									<span className="ml-1 px-1.5 py-0.5 text-xs bg-white/10 text-white/70">
 										{link.badge}
@@ -90,7 +75,7 @@ export function Navbar({
 					</button>
 				</nav>
 
-				{/* Mobile Menu */}
+				{/* Mobile Menu - aria-live removed as nav shouldn't be in live region */}
 				{isMobileMenuOpen && (
 					<nav
 						id="mobile-navigation-menu"
@@ -108,7 +93,12 @@ export function Navbar({
 									onClick={() => setIsMobileMenuOpen(false)}
 								>
 									{link.label}
-									{link.external && <OpenNewWindow className="inline ml-1 h-3 w-3" />}
+									{link.external && (
+										<>
+											<OpenNewWindow className="inline ml-1 h-3 w-3" aria-hidden="true" />
+											<span className="sr-only"> (opens in new tab)</span>
+										</>
+									)}
 								</Link>
 							))}
 							<Button asChild size="sm" className="mt-2">
