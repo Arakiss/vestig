@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.11.5](https://github.com/Arakiss/vestig/compare/v0.11.4...v0.11.5) (2026-01-04)
+
+### 🐛 Bug Fixes
+
+* **docs:** replace Unicode box-drawing chars with ASCII ([d0d5e8b](https://github.com/Arakiss/vestig/commit/d0d5e8b027ee03880036bbee62a823e8164d9c27))
+
 ## [0.11.4](https://github.com/Arakiss/vestig/compare/v0.11.3...v0.11.4) (2026-01-04)
 
 ### 🐛 Bug Fixes
