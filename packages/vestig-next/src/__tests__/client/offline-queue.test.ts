@@ -391,6 +391,208 @@ describe('ClientHTTPTransport - Offline Queue', () => {
 			expect(stored.length).toBe(2)
 		})
 	})
+
+	describe('localStorage quota handling', () => {
+		test('should handle QuotaExceededError by reducing stored entries', async () => {
+			let dropCount = 0
+			let quotaExceededOnce = true
+
+			// Create a storage that throws quota exceeded on first attempt
+			const quotaStorage: Record<string, string> = {}
+			const quotaLocalStorage = {
+				getItem: (key: string) => quotaStorage[key] ?? null,
+				setItem: (key: string, value: string) => {
+					if (quotaExceededOnce) {
+						quotaExceededOnce = false
+						const error = new Error('Quota exceeded')
+						error.name = 'QuotaExceededError'
+						throw error
+					}
+					quotaStorage[key] = value
+				},
+				removeItem: (key: string) => {
+					delete quotaStorage[key]
+				},
+				clear: () => {
+					Object.keys(quotaStorage).forEach((key) => delete quotaStorage[key])
+				},
+			}
+
+			Object.defineProperty(globalThis, 'localStorage', {
+				value: quotaLocalStorage,
+				writable: true,
+				configurable: true,
+			})
+
+			const transport = new ClientHTTPTransport({
+				name: 'test-transport',
+				url: '/api/logs',
+				batchSize: 100,
+				maxRetries: 1,
+				retryDelay: 1,
+				onDrop: (count) => {
+					dropCount = count
+				},
+			})
+
+			await transport.init()
+
+			// Fail fetch to trigger persistence
+			mockFetch = mock(() => Promise.reject(new Error('Network error')))
+			globalThis.fetch = mockFetch as unknown as typeof fetch
+
+			// Add multiple entries
+			for (let i = 0; i < 10; i++) {
+				transport.log(createLogEntry(`entry ${i}`))
+			}
+
+			await transport.flush()
+
+			// Should have dropped some entries due to quota reduction
+			expect(dropCount).toBeGreaterThan(0)
+
+			await transport.destroy()
+		})
+
+		test('should handle corrupted JSON during merge gracefully', async () => {
+			// Pre-populate with invalid JSON
+			mockStorage['vestig:offline-queue'] = '{invalid json structure'
+
+			const transport = new ClientHTTPTransport({
+				name: 'test-transport',
+				url: '/api/logs',
+				batchSize: 100,
+				maxRetries: 1,
+				retryDelay: 1,
+			})
+
+			await transport.init()
+
+			// Fail fetch to trigger persistence
+			mockFetch = mock(() => Promise.reject(new Error('Network error')))
+			globalThis.fetch = mockFetch as unknown as typeof fetch
+
+			transport.log(createLogEntry('new entry'))
+			await transport.flush()
+
+			// Should have stored the new entry despite invalid existing data
+			const stored = JSON.parse(mockStorage['vestig:offline-queue'] || '[]')
+			expect(stored.length).toBeGreaterThanOrEqual(1)
+
+			await transport.destroy()
+		})
+	})
+
+	describe('online/offline transitions', () => {
+		test('should flush when coming back online after failure', async () => {
+			let flushSuccessCount = 0
+			const transport = new ClientHTTPTransport({
+				name: 'test-transport',
+				url: '/api/logs',
+				batchSize: 100,
+				maxRetries: 1,
+				retryDelay: 1,
+				onFlushSuccess: () => {
+					flushSuccessCount++
+				},
+			})
+
+			await transport.init()
+
+			// First: fail flush
+			mockFetch = mock(() => Promise.reject(new Error('Network error')))
+			globalThis.fetch = mockFetch as unknown as typeof fetch
+
+			transport.log(createLogEntry('entry 1'))
+			await transport.flush()
+
+			// Entries should be persisted
+			expect(mockStorage['vestig:offline-queue']).toBeDefined()
+
+			// Now: come back online with successful fetch
+			mockFetch = mock(() =>
+				Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })),
+			)
+			globalThis.fetch = mockFetch as unknown as typeof fetch
+
+			// Simulate coming back online by calling flush
+			await transport.flush()
+
+			expect(flushSuccessCount).toBeGreaterThanOrEqual(1)
+
+			await transport.destroy()
+		})
+
+		test('should preserve entry order across reconnect', async () => {
+			const transport = new ClientHTTPTransport({
+				name: 'test-transport',
+				url: '/api/logs',
+				batchSize: 100,
+				maxRetries: 1,
+				retryDelay: 1,
+			})
+
+			// Pre-populate storage with ordered entries
+			mockStorage['vestig:offline-queue'] = JSON.stringify([
+				createLogEntry('offline entry 1'),
+				createLogEntry('offline entry 2'),
+			])
+
+			await transport.init()
+
+			// Add new entries
+			transport.log(createLogEntry('online entry 3'))
+			transport.log(createLogEntry('online entry 4'))
+
+			// Flush all
+			await transport.flush()
+
+			// Check order in sent request
+			expect(mockFetch).toHaveBeenCalled()
+			const call = mockFetch.mock.calls[0]
+			const body = JSON.parse(call[1]?.body as string)
+
+			// Offline entries should come first, then online entries
+			expect(body.entries[0].message).toBe('offline entry 1')
+			expect(body.entries[1].message).toBe('offline entry 2')
+			expect(body.entries[2].message).toBe('online entry 3')
+			expect(body.entries[3].message).toBe('online entry 4')
+
+			await transport.destroy()
+		})
+
+		test('should batch offline and online entries together', async () => {
+			const transport = new ClientHTTPTransport({
+				name: 'test-transport',
+				url: '/api/logs',
+				batchSize: 100,
+				maxRetries: 1,
+				retryDelay: 1,
+			})
+
+			// Pre-populate storage
+			mockStorage['vestig:offline-queue'] = JSON.stringify([
+				createLogEntry('offline 1'),
+				createLogEntry('offline 2'),
+			])
+
+			await transport.init()
+
+			// Add online entries
+			transport.log(createLogEntry('online 1'))
+
+			// Flush
+			await transport.flush()
+
+			// Should send all entries in single batch
+			expect(mockFetch).toHaveBeenCalledTimes(1)
+			const call = mockFetch.mock.calls[0]
+			const body = JSON.parse(call[1]?.body as string)
+			expect(body.entries.length).toBe(3)
+
+			await transport.destroy()
+		})
+	})
 })
 
 describe('Offline Queue exports', () => {
