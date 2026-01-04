@@ -16,6 +16,7 @@ export type {
 	BatchTransportConfig,
 	HTTPTransportConfig,
 	FileTransportConfig,
+	RotationInterval,
 	DatadogTransportConfig,
 	SerializedError,
 	Runtime,
@@ -127,6 +128,10 @@ export {
 	createNamespaceSampler,
 	createCompositeSampler,
 } from './sampling'
+
+// Metrics - Prometheus format export
+export { MetricsCollector, globalMetrics, createMetricsCollector } from './metrics'
+export type { LoggerMetrics } from './metrics'
 
 // Default logger instance (convenience)
 import { createLogger } from './logger'
