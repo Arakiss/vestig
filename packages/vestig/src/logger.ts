@@ -76,6 +76,20 @@ function formatArgs(args: unknown[]): { message: string; metadata: LogMetadata }
 }
 
 /**
+ * FinalizationRegistry for cleaning up stale WeakRef entries in children Map.
+ * When a child logger is garbage collected, this removes its entry from the parent's Map.
+ */
+const childLoggerRegistry = new FinalizationRegistry<{
+	parent: WeakRef<LoggerImpl>
+	namespace: string
+}>((heldValue) => {
+	const parent = heldValue.parent.deref()
+	if (parent) {
+		parent.cleanupChild(heldValue.namespace)
+	}
+})
+
+/**
  * Core logger implementation
  */
 export class LoggerImpl implements Logger {
@@ -234,9 +248,23 @@ export class LoggerImpl implements Logger {
 		// Cache if no custom config (using WeakRef to allow GC)
 		if (!config) {
 			this.children.set(fullNamespace, new WeakRef(child))
+
+			// Register for automatic cleanup when child is garbage collected
+			childLoggerRegistry.register(child, {
+				parent: new WeakRef(this),
+				namespace: fullNamespace,
+			})
 		}
 
 		return child
+	}
+
+	/**
+	 * Internal method called by FinalizationRegistry to clean up stale entries
+	 * @internal
+	 */
+	cleanupChild(namespace: string): void {
+		this.children.delete(namespace)
 	}
 
 	/**
