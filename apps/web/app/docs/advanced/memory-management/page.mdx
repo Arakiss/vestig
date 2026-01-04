@@ -1,0 +1,415 @@
+export const metadata = {
+  title: 'Memory Management',
+  description: 'Understanding Vestig memory patterns, avoiding leaks, and optimizing for high-volume logging.',
+}
+
+# Memory Management
+
+Vestig is designed for memory efficiency in high-volume production environments. This guide covers internal memory patterns and best practices for avoiding leaks.
+
+## Architecture Overview
+
+Vestig uses several memory-aware patterns:
+
+| Component | Pattern | Purpose |
+|-----------|---------|---------|
+| Child loggers | `WeakRef` + `FinalizationRegistry` | Allow GC of unused child loggers |
+| Transport buffers | `CircularBuffer` | Bounded memory for log batching |
+| Context storage | `AsyncLocalStorage` | Request-scoped, auto-cleaned |
+| Error serialization | Depth limits | Prevent unbounded recursion |
+
+## Child Logger Memory Management
+
+### WeakRef Caching
+
+Child loggers are cached using `WeakRef`, allowing garbage collection when no longer referenced:
+
+```typescript
+import { createLogger } from 'vestig'
+
+const logger = createLogger()
+
+function processRequest(requestId: string) {
+  // Child is created and cached
+  const requestLogger = logger.child(requestId)
+  requestLogger.info('Processing')
+
+  // When function exits and no references remain,
+  // the child logger can be garbage collected
+}
+
+// Even with thousands of requests, memory stays bounded
+for (let i = 0; i < 100000; i++) {
+  processRequest(`req-${i}`)
+}
+// Old child loggers are GC'd, only recent ones in memory
+```
+
+### FinalizationRegistry Cleanup
+
+Vestig uses `FinalizationRegistry` to clean up cache entries when child loggers are collected:
+
+```typescript
+// Internal implementation (simplified):
+const childLoggerRegistry = new FinalizationRegistry<{
+  parent: WeakRef<LoggerImpl>
+  namespace: string
+}>(({ parent, namespace }) => {
+  // When child is GC'd, remove from parent's cache
+  parent.deref()?.cleanupChild(namespace)
+})
+```
+
+### Avoiding Cache Pollution
+
+```typescript
+// ✅ Good: Namespaces with config bypass cache
+const logger = createLogger()
+
+// Each call creates a fresh logger (not cached)
+logger.child('request', { context: { requestId: '123' } })
+logger.child('request', { context: { requestId: '456' } })
+
+// ✅ Good: Reuse namespace for static children
+const dbLogger = logger.child('db')      // Cached
+const authLogger = logger.child('auth')  // Cached
+
+// ❌ Avoid: Dynamic namespaces without config
+// These get cached and may accumulate
+for (const userId of users) {
+  logger.child(`user-${userId}`)  // Creates cached entries
+}
+
+// ✅ Better: Use context instead of namespace
+for (const userId of users) {
+  logger.child('user', { context: { userId } })  // Not cached
+}
+```
+
+## CircularBuffer
+
+### Bounded Memory for Batching
+
+The `CircularBuffer` ensures transport buffers don't grow unboundedly:
+
+```typescript
+import { CircularBuffer } from 'vestig'
+
+const buffer = new CircularBuffer<LogEntry>({
+  maxSize: 1000,  // Maximum entries
+})
+
+// When full, oldest entries are automatically dropped
+for (let i = 0; i < 2000; i++) {
+  buffer.push({ message: `Log ${i}` })
+}
+
+console.log(buffer.size)  // 1000 (not 2000)
+```
+
+### onDrop Callback
+
+Handle dropped entries for monitoring or backup:
+
+```typescript
+import { CircularBuffer } from 'vestig'
+
+let droppedCount = 0
+
+const buffer = new CircularBuffer<LogEntry>({
+  maxSize: 500,
+  onDrop: (dropped) => {
+    droppedCount += dropped.length
+
+    // Alert if dropping too many
+    if (droppedCount > 1000) {
+      alertOps('High log drop rate', { droppedCount })
+    }
+
+    // Optionally persist critical logs
+    const critical = dropped.filter(e => e.level === 'error')
+    if (critical.length > 0) {
+      fs.appendFileSync('./critical.log',
+        critical.map(e => JSON.stringify(e)).join('\n')
+      )
+    }
+  }
+})
+```
+
+### Buffer Sizing
+
+Choose buffer size based on:
+
+```typescript
+// Formula: (logs per second) × (flush interval seconds) × (safety margin)
+
+// Example: 100 logs/sec, 5 second flush, 2x margin
+const batchSize = 100 * 5 * 2  // 1000 entries
+
+new HTTPTransport({
+  batchSize: 1000,
+  flushInterval: 5000,
+})
+```
+
+## Transport Memory Patterns
+
+### BatchTransport Buffering
+
+Batch transports maintain an internal buffer:
+
+```typescript
+import { HTTPTransport } from 'vestig'
+
+const transport = new HTTPTransport({
+  url: 'https://logs.example.com',
+  batchSize: 100,        // Flush when 100 entries
+  flushInterval: 5000,   // Or every 5 seconds
+})
+
+// Memory used: ~100 entries max (plus in-flight batches)
+```
+
+### Flush Before High-Memory Operations
+
+```typescript
+const logger = createLogger()
+
+async function processLargeFile(path: string) {
+  // Flush logs before memory-intensive work
+  await logger.flush()
+
+  // Now load large data
+  const data = await fs.readFile(path)
+
+  logger.info('File loaded', { size: data.length })
+}
+```
+
+### Transport Cleanup
+
+Always destroy transports on shutdown:
+
+```typescript
+import { createLogger, HTTPTransport, FileTransport } from 'vestig'
+
+const logger = createLogger()
+logger.addTransport(new HTTPTransport({ url: '...' }))
+logger.addTransport(new FileTransport({ path: '...' }))
+
+// On shutdown: flush and cleanup
+process.on('SIGTERM', async () => {
+  await logger.destroy()  // Flushes and releases resources
+  process.exit(0)
+})
+```
+
+## Context Memory
+
+### AsyncLocalStorage Lifecycle
+
+Context is automatically cleaned when async operations complete:
+
+```typescript
+import { withContext } from 'vestig'
+
+async function handleRequest(req: Request) {
+  // Context allocated for this async chain
+  await withContext({ requestId: req.id }, async () => {
+    await processRequest(req)
+    // Context is released when this async scope exits
+  })
+}
+```
+
+### Avoiding Context Leaks
+
+```typescript
+// ❌ Bad: Storing context references outside scope
+let savedContext: LogContext
+
+await withContext({ requestId: '123' }, async () => {
+  savedContext = getContext()  // Reference escapes scope
+})
+// savedContext may prevent GC of request data
+
+// ✅ Good: Extract only needed data
+let requestId: string
+
+await withContext({ requestId: '123' }, async () => {
+  requestId = getContext()?.requestId ?? ''
+})
+// Only primitive saved, context can be GC'd
+```
+
+## Error Serialization Memory
+
+### Depth Limits
+
+Error cause chains are limited to prevent memory issues:
+
+```typescript
+import { serializeError } from 'vestig'
+
+// Deep cause chain (for demonstration)
+let error = new Error('level 0')
+for (let i = 1; i <= 20; i++) {
+  error = new Error(`level ${i}`, { cause: error })
+}
+
+const serialized = serializeError(error)
+// Only first 10 levels serialized, preventing unbounded memory
+```
+
+### Circular Reference Handling
+
+Circular errors are detected and stopped:
+
+```typescript
+const error1 = new Error('Error 1')
+const error2 = new Error('Error 2', { cause: error1 })
+;(error1 as any).cause = error2  // Circular!
+
+const serialized = serializeError(error1)
+// Circular reference detected, "[Circular Reference]" inserted
+```
+
+## High-Volume Patterns
+
+### Sampling to Reduce Memory Pressure
+
+```typescript
+import { createLogger } from 'vestig'
+
+const logger = createLogger({
+  sampling: {
+    enabled: true,
+    sampler: {
+      // Keep all errors
+      default: { probability: 0.1 },  // 10% of normal logs
+      namespaces: {
+        'db.*': { maxPerSecond: 100 },  // Rate limit DB logs
+      }
+    }
+  }
+})
+
+// Fewer logs = less memory for buffering
+```
+
+### Streaming Large Metadata
+
+```typescript
+// ❌ Bad: Large objects in metadata
+logger.info('Response', {
+  body: hugeJsonResponse  // May be megabytes
+})
+
+// ✅ Good: Log summary, store full data elsewhere
+logger.info('Response', {
+  bodySize: hugeJsonResponse.length,
+  bodyHash: hash(hugeJsonResponse),
+  storageRef: await storeBlob(hugeJsonResponse)
+})
+```
+
+### Async Iterator for File Transport
+
+For very high volume, consider streaming:
+
+```typescript
+import { FileTransport } from 'vestig'
+
+const transport = new FileTransport({
+  path: './logs/app.log',
+  batchSize: 50,       // Smaller batches
+  flushInterval: 1000, // Flush frequently
+  maxSize: 100 * 1024 * 1024,  // 100MB per file
+  maxFiles: 5,         // Keep 5 files max
+})
+
+// Memory used: ~50 entries max per batch
+```
+
+## Monitoring Memory Usage
+
+### Log Buffer Metrics
+
+```typescript
+import { createMetricsCollector } from 'vestig'
+
+const metrics = createMetricsCollector()
+
+// Periodically check metrics
+setInterval(() => {
+  const prometheus = metrics.toPrometheus()
+
+  // Parse and alert on high buffer usage
+  if (metrics.getBufferSize() > 800) {
+    console.warn('Log buffer near capacity')
+  }
+}, 10000)
+```
+
+### Memory Profiling
+
+```typescript
+// Add to your monitoring
+const memoryUsage = process.memoryUsage()
+
+logger.info('Memory stats', {
+  heapUsed: memoryUsage.heapUsed / 1024 / 1024,
+  heapTotal: memoryUsage.heapTotal / 1024 / 1024,
+  external: memoryUsage.external / 1024 / 1024,
+  rss: memoryUsage.rss / 1024 / 1024,
+})
+```
+
+## Best Practices Summary
+
+### Do
+
+- Use `logger.child(name, { context })` for dynamic data (not cached)
+- Call `logger.destroy()` on shutdown
+- Configure appropriate `batchSize` and `flushInterval`
+- Use sampling for high-volume environments
+- Log summaries of large data, not the data itself
+
+### Don't
+
+- Create child loggers with dynamic namespaces without config
+- Store context references outside their scope
+- Log full request/response bodies
+- Forget to flush before memory-intensive operations
+- Skip transport cleanup on shutdown
+
+## API Reference
+
+### CircularBuffer Options
+
+```typescript
+interface CircularBufferConfig<T> {
+  maxSize: number
+  onDrop?: (dropped: T[]) => void
+}
+```
+
+### Transport Cleanup
+
+```typescript
+interface Transport {
+  destroy?(): Promise<void>  // Cleanup resources
+  flush?(): Promise<void>    // Flush pending logs
+}
+```
+
+### Logger Lifecycle
+
+```typescript
+interface Logger {
+  init(): Promise<void>     // Initialize transports
+  flush(): Promise<void>    // Flush all transports
+  destroy(): Promise<void>  // Cleanup everything
+}
+```
