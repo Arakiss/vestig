@@ -440,6 +440,120 @@ describe('sanitize', () => {
 	})
 })
 
+describe('performance', () => {
+	test('should handle deeply nested objects efficiently', () => {
+		// Create a 50-level deep object
+		let obj: Record<string, unknown> = { password: 'secret', value: 'data' }
+		for (let i = 0; i < 50; i++) {
+			obj = { nested: obj, level: i }
+		}
+
+		const start = performance.now()
+		const result = sanitize(obj)
+		const duration = performance.now() - start
+
+		// Should complete within 100ms
+		expect(duration).toBeLessThan(100)
+		expect(result).toBeDefined()
+	})
+
+	test('should handle large arrays efficiently', () => {
+		// Create an array with 1000 objects
+		const arr = Array.from({ length: 1000 }, (_, i) => ({
+			id: i,
+			email: `user${i}@example.com`,
+			password: 'secret',
+			data: { nested: { value: i } },
+		}))
+
+		const start = performance.now()
+		const result = sanitize(arr)
+		const duration = performance.now() - start
+
+		// Should complete within 200ms
+		expect(duration).toBeLessThan(200)
+		expect(Array.isArray(result)).toBe(true)
+		expect((result as Array<{ password: string }>)[0].password).toBe('[REDACTED]')
+	})
+
+	test('should handle wide objects with many keys efficiently', () => {
+		// Create an object with 500 keys
+		const obj: Record<string, unknown> = {}
+		for (let i = 0; i < 500; i++) {
+			obj[`field_${i}`] = `value_${i}`
+		}
+		// Add some sensitive fields
+		obj.password = 'secret'
+		obj.token = 'abc123'
+		obj.apikey = 'key456'
+
+		const start = performance.now()
+		const result = sanitize(obj)
+		const duration = performance.now() - start
+
+		// Should complete within 50ms
+		expect(duration).toBeLessThan(50)
+		expect((result as Record<string, unknown>).password).toBe('[REDACTED]')
+		expect((result as Record<string, unknown>).token).toBe('[REDACTED]')
+		expect((result as Record<string, unknown>).field_1).toBe('value_1')
+	})
+
+	test('should handle large strings with patterns efficiently', () => {
+		// Create a large string with many email addresses
+		const emails = Array.from({ length: 100 }, (_, i) => `user${i}@example.com`)
+		const text = emails.join(' Contact: ')
+
+		const start = performance.now()
+		const result = sanitize(text)
+		const duration = performance.now() - start
+
+		// Should complete within 50ms
+		expect(duration).toBeLessThan(50)
+		expect(typeof result).toBe('string')
+		// Should have masked emails
+		expect(result as string).toContain('***@example.com')
+	})
+
+	test('should handle mixed nested structure efficiently', () => {
+		// Create a complex structure with arrays, objects, and deep nesting
+		const createNested = (depth: number): unknown => {
+			if (depth === 0) {
+				return { password: 'secret', data: 'value' }
+			}
+			return {
+				items: Array.from({ length: 5 }, () => createNested(depth - 1)),
+				meta: { depth, token: 'abc123' },
+			}
+		}
+
+		const obj = createNested(5)
+
+		const start = performance.now()
+		const result = sanitize(obj)
+		const duration = performance.now() - start
+
+		// Should complete within 100ms
+		expect(duration).toBeLessThan(100)
+		expect(result).toBeDefined()
+	})
+
+	test('should respect max depth and not hang on very deep structures', () => {
+		// Create extremely deep structure (beyond default depth limit)
+		let obj: Record<string, unknown> = { password: 'secret' }
+		for (let i = 0; i < 100; i++) {
+			obj = { deep: obj }
+		}
+
+		const start = performance.now()
+		const result = sanitize(obj)
+		const duration = performance.now() - start
+
+		// Should complete quickly due to depth limit
+		expect(duration).toBeLessThan(50)
+		expect(result).toBeDefined()
+	})
+})
+
 describe('createSanitizer', () => {
 	test('should create a sanitizer function', () => {
 		const customSanitizer = createSanitizer(['customField'])
