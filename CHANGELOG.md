@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.11.2](https://github.com/Arakiss/vestig/compare/v0.11.1...v0.11.2) (2026-01-04)
+
+### 🐛 Bug Fixes
+
+* **mdx:** remove double border from code blocks ([b0d4aa2](https://github.com/Arakiss/vestig/commit/b0d4aa2db93dc0b51b8381b79ba8542a93c19d09))
+
 ## [0.11.1](https://github.com/Arakiss/vestig/compare/v0.11.0...v0.11.1) (2026-01-04)
 
 ### 🐛 Bug Fixes
