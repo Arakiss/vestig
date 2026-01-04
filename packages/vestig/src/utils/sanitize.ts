@@ -76,7 +76,7 @@ export class Sanitizer {
 	 */
 	sanitize<T>(value: T): T {
 		if (!this.config.enabled) return value
-		return this.sanitizeValue(value, 0) as T
+		return this.sanitizeValue(value, 0, '') as T
 	}
 
 	/**
@@ -99,20 +99,118 @@ export class Sanitizer {
 	}
 
 	/**
-	 * Check if a field name should be sanitized
+	 * Check if a field name or path should be sanitized
+	 *
+	 * Supports:
+	 * - Simple field names: 'password' matches any field named 'password'
+	 * - Dot notation paths: 'user.password' matches password under user
+	 * - Glob patterns: '**.password' matches password at any depth
+	 * - Wildcard: 'config.*' matches any direct child of config
 	 */
-	private isSensitiveField(fieldName: string): boolean {
+	private isSensitiveField(fieldName: string, path: string): boolean {
 		const lower = fieldName.toLowerCase()
+		const fullPath = path ? `${path}.${fieldName}` : fieldName
+		const fullPathLower = fullPath.toLowerCase()
 
-		// Check simple field set
+		// Check simple field set (matches by key name or full path)
 		if (this.fieldSet.has(lower)) return true
+		if (this.fieldSet.has(fullPathLower)) return true
 
 		// Check field matchers
 		for (const matcher of this.fieldMatchers) {
+			// Check against key name
 			if (this.matchField(lower, matcher)) return true
+			// Check against full path
+			if (this.matchFieldPath(fullPathLower, matcher)) return true
 		}
 
 		return false
+	}
+
+	/**
+	 * Match a field path against a FieldMatcher with glob support
+	 */
+	private matchFieldPath(path: string, matcher: FieldMatcher): boolean {
+		const value = matcher.caseSensitive ? matcher.value : matcher.value.toLowerCase()
+		const targetPath = matcher.caseSensitive ? path : path.toLowerCase()
+
+		// Handle glob patterns
+		if (value.includes('**') || value.includes('*')) {
+			return this.matchGlobPattern(targetPath, value)
+		}
+
+		// For non-glob patterns, check if the pattern matches the full path
+		switch (matcher.type) {
+			case 'exact':
+				return targetPath === value
+			case 'prefix':
+				return targetPath.startsWith(value)
+			case 'suffix':
+				return targetPath.endsWith(value)
+			case 'contains':
+				return targetPath.includes(value)
+			case 'regex':
+				return new RegExp(matcher.value, matcher.caseSensitive ? '' : 'i').test(path)
+			default:
+				return false
+		}
+	}
+
+	/**
+	 * Match a path against a glob pattern
+	 *
+	 * Supports:
+	 * - ** matches any number of path segments (including zero)
+	 * - * matches exactly one path segment
+	 */
+	private matchGlobPattern(path: string, pattern: string): boolean {
+		const segments = pattern.split('.')
+		const regexParts: string[] = []
+		let addDotPrefix = false // Track if next segment needs a dot prefix
+
+		for (let i = 0; i < segments.length; i++) {
+			const segment = segments[i] as string // Always defined within loop bounds
+			const isLast = i === segments.length - 1
+
+			if (segment === '**') {
+				// ** matches any number of segments (including zero)
+				if (i === 0 && isLast) {
+					// Just "**" matches everything
+					regexParts.push('.*')
+				} else if (i === 0) {
+					// "**.foo" - optional prefix with dot included
+					regexParts.push('(?:.*\\.)?')
+					// Don't add dot prefix to next segment - it's included in (?:.*\.)?
+				} else if (isLast) {
+					// "foo.**" - match foo followed by anything
+					regexParts.push('(?:\\..*)?')
+				} else {
+					// "foo.**.bar" - match zero or more segments in between
+					regexParts.push('(?:\\.[^.]+)*')
+					addDotPrefix = true
+				}
+			} else if (segment === '*') {
+				// * matches exactly one segment
+				if (addDotPrefix) {
+					regexParts.push('\\.[^.]+')
+				} else {
+					regexParts.push('[^.]+')
+				}
+				addDotPrefix = true
+			} else {
+				// Literal segment
+				const escaped = segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+				if (addDotPrefix) {
+					regexParts.push(`\\.${escaped}`)
+				} else {
+					regexParts.push(escaped)
+				}
+				addDotPrefix = true
+			}
+		}
+
+		const regexPattern = regexParts.join('')
+		return new RegExp(`^${regexPattern}$`, 'i').test(path)
 	}
 
 	/**
@@ -158,8 +256,12 @@ export class Sanitizer {
 
 	/**
 	 * Recursively sanitize a value
+	 *
+	 * @param value - The value to sanitize
+	 * @param depth - Current recursion depth
+	 * @param path - Dot-notation path to current position (e.g., 'user.credentials')
 	 */
-	private sanitizeValue(value: unknown, depth: number): unknown {
+	private sanitizeValue(value: unknown, depth: number, path: string): unknown {
 		if (depth > this.config.depth) return value
 
 		// Handle null/undefined
@@ -172,17 +274,20 @@ export class Sanitizer {
 
 		// Handle arrays
 		if (Array.isArray(value)) {
-			return value.map((item) => this.sanitizeValue(item, depth + 1))
+			return value.map((item, index) =>
+				this.sanitizeValue(item, depth + 1, path ? `${path}[${index}]` : `[${index}]`),
+			)
 		}
 
 		// Handle objects
 		if (typeof value === 'object') {
 			const result: Record<string, unknown> = {}
 			for (const [key, val] of Object.entries(value)) {
-				if (this.isSensitiveField(key)) {
+				if (this.isSensitiveField(key, path)) {
 					result[key] = this.config.replacement
 				} else {
-					result[key] = this.sanitizeValue(val, depth + 1)
+					const newPath = path ? `${path}.${key}` : key
+					result[key] = this.sanitizeValue(val, depth + 1, newPath)
 				}
 			}
 			return result

@@ -264,6 +264,167 @@ describe('sanitize', () => {
 		})
 	})
 
+	describe('path-based field matching', () => {
+		test('should match field by full dot-notation path', () => {
+			// Use Sanitizer directly to avoid default preset pollution
+			const { Sanitizer } = require('../utils/sanitize')
+			const sanitizer = new Sanitizer({
+				fields: [{ type: 'exact', value: 'user.credentials.myValue' }],
+			})
+			const result = sanitizer.sanitize({
+				user: {
+					credentials: {
+						myValue: 'should-be-redacted',
+						other: 'should-be-safe',
+					},
+				},
+				myValue: 'also-safe-because-path-doesnt-match',
+			})
+			expect(result).toEqual({
+				user: {
+					credentials: {
+						myValue: '[REDACTED]',
+						other: 'should-be-safe',
+					},
+				},
+				myValue: 'also-safe-because-path-doesnt-match',
+			})
+		})
+
+		test('should match nested paths with contains matcher', () => {
+			const sanitizer = createSanitizer(['credentials.password'])
+			const result = sanitizer({
+				user: {
+					credentials: {
+						password: 'secret',
+						username: 'john',
+					},
+				},
+				admin: {
+					credentials: {
+						password: 'admin-secret',
+					},
+				},
+			})
+			expect(result).toEqual({
+				user: {
+					credentials: {
+						password: '[REDACTED]',
+						username: 'john',
+					},
+				},
+				admin: {
+					credentials: {
+						password: '[REDACTED]',
+					},
+				},
+			})
+		})
+
+		test('should support ** glob pattern for any depth', () => {
+			// Using Sanitizer directly to test FieldMatcher with glob
+			const { Sanitizer } = require('../utils/sanitize')
+			const sanitizer = new Sanitizer({
+				fields: [{ type: 'exact', value: '**.deepSecret' }],
+			})
+			const result = sanitizer.sanitize({
+				level1: {
+					level2: {
+						level3: {
+							deepSecret: 'should-be-redacted',
+						},
+					},
+				},
+				deepSecret: 'top-level-also-matches',
+			})
+			expect(result).toEqual({
+				level1: {
+					level2: {
+						level3: {
+							deepSecret: '[REDACTED]',
+						},
+					},
+				},
+				deepSecret: '[REDACTED]',
+			})
+		})
+
+		test('should support * wildcard for single segment', () => {
+			const { Sanitizer } = require('../utils/sanitize')
+			const sanitizer = new Sanitizer({
+				fields: [{ type: 'exact', value: 'config.*.secret' }],
+			})
+			const result = sanitizer.sanitize({
+				config: {
+					database: {
+						secret: 'db-secret',
+						host: 'localhost',
+					},
+					cache: {
+						secret: 'cache-secret',
+					},
+				},
+			})
+			expect(result).toEqual({
+				config: {
+					database: {
+						secret: '[REDACTED]',
+						host: 'localhost',
+					},
+					cache: {
+						secret: '[REDACTED]',
+					},
+				},
+			})
+		})
+
+		test('should handle arrays in path tracking', () => {
+			const result = sanitize({
+				users: [
+					{ name: 'Alice', password: 'secret1' },
+					{ name: 'Bob', password: 'secret2' },
+				],
+			})
+			expect(result).toEqual({
+				users: [
+					{ name: 'Alice', password: '[REDACTED]' },
+					{ name: 'Bob', password: '[REDACTED]' },
+				],
+			})
+		})
+
+		test('should combine path matching with key matching', () => {
+			// Token should be matched by key name regardless of path
+			// api.secret should be matched by path
+			const { Sanitizer } = require('../utils/sanitize')
+			const sanitizer = new Sanitizer({
+				fields: ['token', { type: 'exact', value: 'api.key' }],
+			})
+			const result = sanitizer.sanitize({
+				api: {
+					key: 'api-key-value',
+					token: 'api-token',
+					endpoint: '/users',
+				},
+				config: {
+					key: 'not-matched-different-path',
+					token: 'matched-by-key-name',
+				},
+			})
+			expect(result).toEqual({
+				api: {
+					key: '[REDACTED]',
+					token: '[REDACTED]',
+					endpoint: '/users',
+				},
+				config: {
+					key: 'not-matched-different-path',
+					token: '[REDACTED]',
+				},
+			})
+		})
+	})
+
 	describe('max depth protection', () => {
 		test('should handle circular-like deep nesting', () => {
 			// Create a very deep structure (but not circular)
