@@ -135,6 +135,25 @@ export {
 	createCompositeSampler,
 } from './sampling'
 
+// Wide Events - canonical log lines for comprehensive request context
+export {
+	createWideEvent,
+	WideEventBuilderImpl,
+	getActiveWideEvent,
+	withWideEvent,
+	withWideEventAsync,
+} from './wide-events'
+export type {
+	WideEvent,
+	WideEventBuilder,
+	WideEventConfig,
+	WideEventContext,
+	WideEventEndOptions,
+	WideEventFields,
+	WideEventStatus,
+	TailSamplingConfig,
+} from './wide-events'
+
 // Metrics - Prometheus format export
 export { MetricsCollector, globalMetrics, createMetricsCollector } from './metrics'
 export type { LoggerMetrics } from './metrics'
