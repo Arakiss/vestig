@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
+import { TailSampler, createTailSampler } from '../../sampling/tail'
 import { createWideEvent } from '../../wide-events/builder'
-import { createTailSampler, TailSampler } from '../../sampling/tail'
 import type { WideEvent } from '../../wide-events/types'
 
 function createTestEvent(overrides: Partial<WideEvent> = {}): WideEvent {

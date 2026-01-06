@@ -10,10 +10,10 @@
  *   node scripts/sync-changelog.js --fix  # Show instructions for what's missing
  */
 
-import { execSync } from 'child_process'
-import { readFileSync } from 'fs'
-import { resolve, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '..')
@@ -132,7 +132,7 @@ function generateEntryCode(version, prevVersion, date) {
 	}
 
 	const lines = [
-		`\t{`,
+		'\t{',
 		`\t\tversion: '${version}',`,
 		`\t\tdate: '${date}',`,
 		`\t\tgithubCompare: 'https://github.com/Arakiss/vestig/compare/v${prevVersion}...v${version}',`,
@@ -144,11 +144,11 @@ function generateEntryCode(version, prevVersion, date) {
 			for (const item of items) {
 				lines.push(`\t\t\t'${item.replace(/'/g, "\\'")}',`)
 			}
-			lines.push(`\t\t],`)
+			lines.push('\t\t],')
 		}
 	}
 
-	lines.push(`\t},`)
+	lines.push('\t},')
 
 	return lines.join('\n')
 }

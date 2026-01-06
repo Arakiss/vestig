@@ -12,7 +12,7 @@ import {
 	parseTraceparent,
 } from 'vestig'
 import { CORRELATION_HEADERS } from '../utils/headers'
-import { runWithWideEvent, type WideEventRequestContext } from './context'
+import { type WideEventRequestContext, runWithWideEvent } from './context'
 
 /**
  * Options for the wide event middleware
@@ -95,7 +95,7 @@ export function createWideEventMiddleware(options: WideEventMiddlewareOptions = 
 	return async function wideEventMiddleware(request: NextRequest) {
 		// Skip configured paths
 		const pathname = request.nextUrl.pathname
-		const skipPaths = mergedOptions.skipPaths!
+		const skipPaths = mergedOptions.skipPaths ?? DEFAULT_OPTIONS.skipPaths ?? []
 
 		if (skipPaths.some((p) => pathname.startsWith(p))) {
 			return NextResponse.next()
@@ -105,7 +105,10 @@ export function createWideEventMiddleware(options: WideEventMiddlewareOptions = 
 		const startTime = performance.now()
 
 		// Extract or generate correlation context
-		const requestIdHeader = mergedOptions.requestIdHeader!
+		const requestIdHeader =
+			mergedOptions.requestIdHeader ??
+			DEFAULT_OPTIONS.requestIdHeader ??
+			CORRELATION_HEADERS.REQUEST_ID
 		const existingRequestId = request.headers.get(requestIdHeader) ?? undefined
 		const traceparent = request.headers.get(CORRELATION_HEADERS.TRACEPARENT)
 		const parsed = traceparent ? parseTraceparent(traceparent) : null
@@ -154,16 +157,18 @@ export function createWideEventMiddleware(options: WideEventMiddlewareOptions = 
 		}
 
 		// Run middleware with wide event context
+		// These are guaranteed to exist from createCorrelationContext
+		const requestId = ctx.requestId ?? ''
+		const traceId = ctx.traceId ?? ''
+		const spanId = ctx.spanId ?? ''
+
 		return runWithWideEvent(eventContext, () => {
 			// Create new headers with correlation IDs
 			const requestHeaders = new Headers(request.headers)
-			requestHeaders.set(CORRELATION_HEADERS.REQUEST_ID, ctx.requestId!)
-			requestHeaders.set(CORRELATION_HEADERS.TRACE_ID, ctx.traceId!)
-			requestHeaders.set(CORRELATION_HEADERS.SPAN_ID, ctx.spanId!)
-			requestHeaders.set(
-				CORRELATION_HEADERS.TRACEPARENT,
-				createTraceparent(ctx.traceId!, ctx.spanId!),
-			)
+			requestHeaders.set(CORRELATION_HEADERS.REQUEST_ID, requestId)
+			requestHeaders.set(CORRELATION_HEADERS.TRACE_ID, traceId)
+			requestHeaders.set(CORRELATION_HEADERS.SPAN_ID, spanId)
+			requestHeaders.set(CORRELATION_HEADERS.TRACEPARENT, createTraceparent(traceId, spanId))
 
 			// Create response with updated headers
 			const response = NextResponse.next({
@@ -173,8 +178,8 @@ export function createWideEventMiddleware(options: WideEventMiddlewareOptions = 
 			})
 
 			// Add correlation headers to response
-			response.headers.set(CORRELATION_HEADERS.REQUEST_ID, ctx.requestId!)
-			response.headers.set(CORRELATION_HEADERS.TRACE_ID, ctx.traceId!)
+			response.headers.set(CORRELATION_HEADERS.REQUEST_ID, requestId)
+			response.headers.set(CORRELATION_HEADERS.TRACE_ID, traceId)
 
 			// Complete the wide event
 			const duration = performance.now() - startTime

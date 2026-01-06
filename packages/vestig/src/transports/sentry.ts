@@ -290,7 +290,7 @@ export class SentryTransport extends BatchTransport {
 
 		for (const line of lines) {
 			const match = line.match(/^\s*at\s+(?:(.+?)\s+\()?(.+?):(\d+):(\d+)\)?/)
-			if (match && match[2] && match[3] && match[4]) {
+			if (match?.[2] && match[3] && match[4]) {
 				frames.push({
 					function: match[1] || '<anonymous>',
 					filename: match[2],

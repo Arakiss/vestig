@@ -1,5 +1,5 @@
-import { describe, expect, test, beforeEach } from 'bun:test'
-import { createWideEvent, WideEventBuilderImpl } from '../../wide-events/builder'
+import { beforeEach, describe, expect, test } from 'bun:test'
+import { WideEventBuilderImpl, createWideEvent } from '../../wide-events/builder'
 import type { WideEventBuilder } from '../../wide-events/types'
 
 describe('createWideEvent', () => {

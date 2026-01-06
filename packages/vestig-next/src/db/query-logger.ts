@@ -128,14 +128,15 @@ export function extractAllTableNames(query: string): string[] {
 	]
 
 	for (const pattern of tablePatterns) {
-		let match: RegExpExecArray | null = null
-		while ((match = pattern.exec(normalized)) !== null) {
+		let match = pattern.exec(normalized)
+		while (match !== null) {
 			if (match[1]) {
 				const tableName = match[1]
 					// Remove quotes
 					.replace(/["'`]/g, '')
 				tables.add(tableName)
 			}
+			match = pattern.exec(normalized)
 		}
 	}
 

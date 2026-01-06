@@ -6,7 +6,7 @@ import {
 	createLogger,
 	createWideEvent,
 } from 'vestig'
-import { getWideEvent, runWithWideEventAsync, type WideEventRequestContext } from './context'
+import { type WideEventRequestContext, getWideEvent, runWithWideEventAsync } from './context'
 
 /**
  * Options for wide event server actions
@@ -220,10 +220,9 @@ export function withWideEvent<TInput, TResult>(
  * ```
  */
 export function createWideEventAction(defaultOptions: WideEventActionOptions = {}) {
-	return function <TInput, TResult>(
+	return <TInput, TResult>(
 		handler: WideEventServerAction<TInput, TResult>,
 		options: WideEventActionOptions = {},
-	): (input: TInput) => Promise<TResult> {
-		return withWideEvent(handler, { ...defaultOptions, ...options })
-	}
+	): ((input: TInput) => Promise<TResult>) =>
+		withWideEvent(handler, { ...defaultOptions, ...options })
 }

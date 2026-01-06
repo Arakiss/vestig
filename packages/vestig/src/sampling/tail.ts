@@ -1,4 +1,4 @@
-import type { WideEvent, TailSamplingConfig, WideEventStatus } from '../wide-events/types'
+import type { TailSamplingConfig, WideEvent, WideEventStatus } from '../wide-events/types'
 
 /**
  * Default tail sampling configuration

@@ -1,5 +1,5 @@
 import type { WideEventBuilder } from 'vestig'
-import { getWideEvent, requireWideEvent, getWideEventElapsed } from './context'
+import { getWideEvent, getWideEventElapsed, requireWideEvent } from './context'
 
 // Re-export context functions as helpers
 export { getWideEvent, requireWideEvent, getWideEventElapsed }

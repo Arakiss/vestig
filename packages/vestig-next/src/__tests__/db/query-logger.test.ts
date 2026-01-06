@@ -138,7 +138,7 @@ describe('createQueryLogEntry', () => {
 
 	describe('query truncation', () => {
 		test('should truncate long queries', () => {
-			const longQuery = 'SELECT * FROM users WHERE ' + 'x'.repeat(2000)
+			const longQuery = `SELECT * FROM users WHERE ${'x'.repeat(2000)}`
 			const entry = createQueryLogEntry(longQuery, [], 10, config)
 			expect(entry.query.length).toBeLessThan(longQuery.length)
 			expect(entry.query).toContain('[truncated]')

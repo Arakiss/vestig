@@ -451,7 +451,7 @@ describe('Dev Overlay Store Stress Tests', () => {
 				logStore.addLog({
 					timestamp: new Date().toISOString(),
 					level: 'info',
-					message: `Log with special chars: [test] (value) {data} $price ^start`,
+					message: 'Log with special chars: [test] (value) {data} $price ^start',
 					source: 'client',
 				})
 			}

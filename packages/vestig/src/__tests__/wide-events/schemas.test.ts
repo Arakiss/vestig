@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { createWideEvent } from '../../wide-events/builder'
-import { httpFields, jobFields, HTTP_EVENT_TYPES, JOB_EVENT_TYPES } from '../../wide-events/schemas'
+import { HTTP_EVENT_TYPES, JOB_EVENT_TYPES, httpFields, jobFields } from '../../wide-events/schemas'
 
 describe('HTTP event schema', () => {
 	test('should have correct event type constants', () => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { RefreshDouble, Home } from 'iconoir-react'
+import { Home, RefreshDouble } from 'iconoir-react'
 import { useEffect } from 'react'
 
 /**

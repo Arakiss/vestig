@@ -1,5 +1,5 @@
-import type { LogMetadata, SerializedError } from '../types'
 import { RUNTIME } from '../runtime'
+import type { LogMetadata, SerializedError } from '../types'
 import { serializeError } from '../utils/error'
 import type {
 	WideEvent,
@@ -33,7 +33,7 @@ export class WideEventBuilderImpl implements WideEventBuilder {
 	private readonly _startedAt: Date
 	private _context: WideEventContext
 	private _fields: WideEventFields
-	private _ended: boolean = false
+	private _ended = false
 
 	constructor(config: WideEventConfig) {
 		this._type = config.type

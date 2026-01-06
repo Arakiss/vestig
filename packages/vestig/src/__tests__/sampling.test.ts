@@ -1,5 +1,4 @@
-import { describe, expect, test, beforeEach, mock } from 'bun:test'
-import type { LogEntry } from '../types'
+import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import {
 	createCompositeSampler,
 	createNamespaceSampler,
@@ -8,6 +7,7 @@ import {
 	createSampler,
 	createSamplerFromConfig,
 } from '../sampling'
+import type { LogEntry } from '../types'
 
 const createEntry = (overrides: Partial<LogEntry> = {}): LogEntry => ({
 	timestamp: new Date().toISOString(),

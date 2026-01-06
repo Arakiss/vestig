@@ -69,7 +69,7 @@ function getTransportFiles() {
 				const classMatch = content.match(/export\s+class\s+(\w+Transport)/)
 				const className = classMatch
 					? classMatch[1]
-					: name.charAt(0).toUpperCase() + name.slice(1) + 'Transport'
+					: `${name.charAt(0).toUpperCase() + name.slice(1)}Transport`
 
 				return { file: f, name, className }
 			})
@@ -163,7 +163,7 @@ function detectNewFeatures(changedFiles) {
 			const name = path.basename(file, '.ts')
 			newFeatures.push({
 				type: 'transport',
-				name: name.charAt(0).toUpperCase() + name.slice(1) + 'Transport',
+				name: `${name.charAt(0).toUpperCase() + name.slice(1)}Transport`,
 				file,
 				docsNeeded: ['packages/vestig/README.md', 'apps/web/app/docs/transports/page.mdx'],
 			})
@@ -288,7 +288,7 @@ function main() {
 	}
 
 	// Summary
-	log('\n' + '━'.repeat(50))
+	log(`\n${'━'.repeat(50)}`)
 
 	if (hasErrors) {
 		log(colors.bold(colors.red('\n❌ Documentation validation FAILED\n')))

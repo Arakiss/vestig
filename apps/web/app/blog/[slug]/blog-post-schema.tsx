@@ -1,5 +1,5 @@
-import { SITE_URL } from '@/lib/constants'
 import type { BlogPost } from '@/lib/blog-manifest'
+import { SITE_URL } from '@/lib/constants'
 
 interface BlogPostSchemaProps {
 	post: BlogPost
