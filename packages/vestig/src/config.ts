@@ -69,6 +69,7 @@ export function getDefaultConfig(): ResolvedLoggerConfig {
 		namespace: '',
 		sampling: undefined,
 		dedupe: undefined,
+		tailSampling: undefined,
 	}
 }
 
@@ -88,5 +89,6 @@ export function mergeConfig(userConfig?: LoggerConfig): ResolvedLoggerConfig {
 		namespace: userConfig?.namespace ?? defaults.namespace,
 		sampling: userConfig?.sampling ?? defaults.sampling,
 		dedupe: userConfig?.dedupe ?? defaults.dedupe,
+		tailSampling: userConfig?.tailSampling ?? defaults.tailSampling,
 	}
 }
