@@ -77,7 +77,7 @@ export function CodeBlock({
 
 			{/* Code content */}
 			<div className="relative overflow-x-auto">
-				<pre className="p-4 bg-surface font-mono text-sm leading-relaxed">
+				<pre className="p-4 bg-surface font-mono text-sm leading-normal">
 					<code>
 						{lines.map((line, i) => (
 							<div
@@ -336,7 +336,7 @@ export function OutputBlock({ lines, className }: OutputBlockProps) {
 	return (
 		<pre
 			className={cn(
-				'p-4 bg-black font-mono text-xs leading-relaxed text-muted-foreground',
+				'p-4 bg-black font-mono text-xs leading-normal text-muted-foreground',
 				className,
 			)}
 		>

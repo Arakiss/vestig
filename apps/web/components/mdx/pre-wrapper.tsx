@@ -106,7 +106,7 @@ export function PreWrapper({
 				{highlightedCode ? (
 					<div
 						className={cn(
-							'p-4 text-sm leading-relaxed font-mono',
+							'p-4 text-sm leading-normal font-mono',
 							'[&_pre]:!bg-transparent [&_pre]:!p-0 [&_pre]:!m-0 [&_pre]:!border-0',
 							'[&_code]:!bg-transparent [&_code]:!border-0 [&_code]:!outline-0',
 							'[&_.line]:block [&_.line]:!border-0',
@@ -116,7 +116,7 @@ export function PreWrapper({
 				) : (
 					<pre
 						className={cn(
-							'!p-4 text-sm leading-relaxed font-mono !bg-transparent !border-0 !m-0',
+							'!p-4 text-sm leading-normal font-mono !bg-transparent !border-0 !m-0',
 							'[&_code]:!bg-transparent [&_code]:!p-0',
 							className,
 						)}

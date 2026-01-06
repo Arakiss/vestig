@@ -51,7 +51,7 @@ export function CodeBlock({
 
 			{/* Code content */}
 			<div className="relative overflow-x-auto scrollbar-thin">
-				<pre className="!p-4 text-sm leading-relaxed font-mono !bg-transparent !border-0 !m-0">
+				<pre className="!p-4 text-sm leading-normal font-mono !bg-transparent !border-0 !m-0">
 					<code className="!bg-transparent !p-0">
 						{lines.map((line, i) => (
 							<div
