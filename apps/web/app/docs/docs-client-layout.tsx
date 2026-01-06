@@ -2,16 +2,21 @@
 
 import { InnerNav, Sidebar, type SidebarSection } from '@/components/layout'
 import {
+	Activity,
 	Antenna,
+	ArrowRight,
 	Book,
 	Code,
 	Cpu,
+	DashboardSpeed,
 	DatabaseScript,
+	FastArrowRight,
 	Flash,
 	GitFork,
 	GraphUp,
 	Laptop,
 	Lock,
+	RefreshDouble,
 	Rocket,
 	Server,
 	Settings,
@@ -64,6 +69,18 @@ const navigation: SidebarSection[] = [
 		],
 	},
 	{
+		title: 'Wide Events',
+		items: [
+			{
+				title: 'Overview',
+				href: '/docs/wide-events',
+				icon: <Activity className="h-4 w-4" />,
+				badge: 'New',
+			},
+			{ title: 'Tail Sampling', href: '/docs/wide-events/tail-sampling' },
+		],
+	},
+	{
 		title: 'Security',
 		items: [
 			{
@@ -87,29 +104,32 @@ const navigation: SidebarSection[] = [
 				icon: <Laptop className="h-4 w-4" />,
 			},
 			{
+				title: 'Wide Events',
+				href: '/docs/nextjs/wide-events',
+				icon: <Activity className="h-4 w-4" />,
+				badge: 'New',
+			},
+			{
 				title: 'Dev Overlay',
 				href: '/docs/nextjs/dev-overlay',
 				icon: <ViewGrid className="h-4 w-4" />,
-				badge: 'New',
 			},
 			{
 				title: 'Web Vitals',
 				href: '/docs/nextjs/web-vitals',
 				icon: <GraphUp className="h-4 w-4" />,
-				badge: 'New',
 			},
 			{
 				title: 'Error Boundary',
 				href: '/docs/nextjs/error-boundary',
 				icon: <Flash className="h-4 w-4" />,
-				badge: 'New',
 			},
 			{
 				title: 'Database Logging',
 				href: '/docs/nextjs/database',
 				icon: <DatabaseScript className="h-4 w-4" />,
-				badge: 'New',
 			},
+			{ title: 'Express.js', href: '/docs/express', icon: <FastArrowRight className="h-4 w-4" /> },
 		],
 	},
 	{
@@ -121,9 +141,30 @@ const navigation: SidebarSection[] = [
 				icon: <WarningTriangle className="h-4 w-4" />,
 			},
 			{
+				title: 'Error Recovery',
+				href: '/docs/advanced/error-recovery',
+				icon: <RefreshDouble className="h-4 w-4" />,
+			},
+			{
+				title: 'Performance Tuning',
+				href: '/docs/advanced/performance',
+				icon: <DashboardSpeed className="h-4 w-4" />,
+			},
+			{ title: 'Memory Management', href: '/docs/advanced/memory-management' },
+			{
 				title: 'Custom Transports',
 				href: '/docs/advanced/custom-transports',
 				icon: <Settings className="h-4 w-4" />,
+			},
+		],
+	},
+	{
+		title: 'Guides',
+		items: [
+			{
+				title: 'Migration from Pino',
+				href: '/docs/guides/migration-from-pino',
+				icon: <ArrowRight className="h-4 w-4" />,
 			},
 		],
 	},
