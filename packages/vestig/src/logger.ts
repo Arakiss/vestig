@@ -2,7 +2,7 @@ import { mergeConfig } from './config'
 import { getContext } from './context'
 import { LOG_LEVELS, shouldLog } from './levels'
 import { RUNTIME } from './runtime'
-import { type Sampler, createSampler } from './sampling'
+import { type Sampler, TailSampler, createSampler } from './sampling'
 import {
 	type Span,
 	type SpanCallback,
@@ -101,6 +101,7 @@ export class LoggerImpl implements Logger {
 	private initialized = false
 	private sampler: Sampler | null = null
 	private deduplicator: Deduplicator | null = null
+	private tailSampler: TailSampler | null = null
 
 	constructor(config?: LoggerConfig) {
 		this.config = mergeConfig(config)
@@ -113,6 +114,11 @@ export class LoggerImpl implements Logger {
 		// Initialize deduplicator if configured
 		if (this.config.dedupe?.enabled) {
 			this.deduplicator = new Deduplicator(this.config.dedupe)
+		}
+
+		// Initialize tail sampler for wide events if configured
+		if (this.config.tailSampling?.enabled !== false && this.config.tailSampling) {
+			this.tailSampler = new TailSampler(this.config.tailSampling)
 		}
 
 		// Add default console transport
@@ -472,12 +478,27 @@ export class LoggerImpl implements Logger {
 	 * Wide events are comprehensive, single-event records of complete
 	 * operations (like HTTP requests or background jobs).
 	 *
+	 * If tail sampling is configured, the event may be dropped based on:
+	 * - Status (errors are always kept)
+	 * - Duration (slow requests are always kept)
+	 * - VIP users/tiers (always kept)
+	 * - Random sampling for success events
+	 *
 	 * @param event - The completed WideEvent to emit
 	 */
 	emitWideEvent(event: import('./wide-events/types').WideEvent): void {
 		// Check if logging is enabled
 		if (!this.config.enabled) {
 			return
+		}
+
+		// Apply tail sampling if configured
+		if (this.tailSampler) {
+			const result = this.tailSampler.shouldSample(event)
+			if (!result.sampled) {
+				// Event was dropped by tail sampling
+				return
+			}
 		}
 
 		// Convert WideEvent to LogEntry
@@ -503,7 +524,7 @@ export class LoggerImpl implements Logger {
 			entry.metadata = (sanitize(entry.metadata, this.config.sanitizeFields) as LogMetadata) ?? {}
 		}
 
-		// Send to all enabled transports (no sampling/dedupe for wide events)
+		// Send to all enabled transports (no regular sampling/dedupe for wide events)
 		for (const transport of this.transports) {
 			if (transport.config.enabled === false) continue
 			if (transport.config.level && !shouldLog(entry.level, transport.config.level)) continue

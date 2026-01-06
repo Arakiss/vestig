@@ -216,15 +216,49 @@ export interface LoggerConfig {
 	 * ```
 	 */
 	dedupe?: DedupeConfig
+
+	/**
+	 * Tail sampling configuration for wide events.
+	 *
+	 * Tail sampling decides AFTER an operation completes whether to keep it,
+	 * enabling 100% retention of errors/slow requests while sampling success.
+	 *
+	 * @example
+	 * ```typescript
+	 * // Keep all errors, sample 10% of successful requests
+	 * createLogger({
+	 *   tailSampling: {
+	 *     enabled: true,
+	 *     alwaysKeepStatuses: ['error'],
+	 *     slowThresholdMs: 2000,
+	 *     successSampleRate: 0.1,
+	 *   }
+	 * })
+	 *
+	 * // VIP users get 100% sampling
+	 * createLogger({
+	 *   tailSampling: {
+	 *     enabled: true,
+	 *     vipUserIds: ['user-123', 'user-456'],
+	 *     vipTiers: ['enterprise', 'premium'],
+	 *     successSampleRate: 0.1,
+	 *   }
+	 * })
+	 * ```
+	 */
+	tailSampling?: import('./wide-events/types').TailSamplingConfig
 }
 
 /**
  * Resolved logger configuration with all required fields populated.
- * Note: `sampling` and `dedupe` remain optional as they're disabled by default.
+ * Note: `sampling`, `dedupe`, and `tailSampling` remain optional as they're disabled by default.
  */
-export type ResolvedLoggerConfig = Required<Omit<LoggerConfig, 'sampling' | 'dedupe'>> & {
+export type ResolvedLoggerConfig = Required<
+	Omit<LoggerConfig, 'sampling' | 'dedupe' | 'tailSampling'>
+> & {
 	sampling?: import('./sampling/types').SamplingConfig
 	dedupe?: DedupeConfig
+	tailSampling?: import('./wide-events/types').TailSamplingConfig
 }
 
 /**
