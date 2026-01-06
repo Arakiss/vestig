@@ -15,3 +15,25 @@ export type {
 	WideEventFields,
 	WideEventStatus,
 } from './types'
+
+// Schemas
+export {
+	httpFields,
+	HTTP_EVENT_TYPES,
+	jobFields,
+	JOB_EVENT_TYPES,
+} from './schemas'
+export type {
+	HttpFields,
+	UserFields,
+	PerformanceFields,
+	ErrorFields,
+	ServiceFields,
+	FeatureFlagFields,
+	HttpRequestEventFields,
+	JobFields,
+	JobDataFields,
+	JobPerformanceFields,
+	JobErrorFields,
+	BackgroundJobEventFields,
+} from './schemas'
