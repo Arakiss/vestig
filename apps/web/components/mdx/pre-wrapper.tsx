@@ -56,21 +56,56 @@ function parseMetaString(meta: string | undefined): {
 
 // Extract lines from Shiki HTML output
 function extractLinesFromHtml(html: string): string[] {
-	// Shiki wraps each line in <span class="line">...</span>
-	const lineRegex = /<span class="line">([\s\S]*?)<\/span>/g
+	// Shiki structure: <code><span class="line">content</span>\n<span class="line">content</span></code>
+	// We need to handle nested spans within each line
+
+	// First, extract content inside <code>...</code>
+	const codeMatch = html.match(/<code[^>]*>([\s\S]*)<\/code>/)
+	if (!codeMatch) return []
+
+	const codeContent = codeMatch[1]
+
+	// Split by the line span boundaries
+	// Each line is wrapped in <span class="line">...</span>
 	const lines: string[] = []
-	let match: RegExpExecArray | null
 
-	while ((match = lineRegex.exec(html)) !== null) {
-		lines.push(match[1])
-	}
+	// Use a state machine approach to properly match nested spans
+	const lineStartTag = '<span class="line">'
+	const spanEndTag = '</span>'
 
-	// If no lines found (shouldn't happen), return the whole content
-	if (lines.length === 0) {
-		const codeMatch = html.match(/<code[^>]*>([\s\S]*?)<\/code>/)
-		if (codeMatch) {
-			return [codeMatch[1]]
+	let pos = 0
+	while (pos < codeContent.length) {
+		const lineStart = codeContent.indexOf(lineStartTag, pos)
+		if (lineStart === -1) break
+
+		// Find the matching closing </span> by counting nested spans
+		const contentStart = lineStart + lineStartTag.length
+		let depth = 1
+		let searchPos = contentStart
+
+		while (depth > 0 && searchPos < codeContent.length) {
+			const nextOpen = codeContent.indexOf('<span', searchPos)
+			const nextClose = codeContent.indexOf(spanEndTag, searchPos)
+
+			if (nextClose === -1) break
+
+			if (nextOpen !== -1 && nextOpen < nextClose) {
+				// Found an opening span before the next close
+				depth++
+				searchPos = nextOpen + 5 // Move past "<span"
+			} else {
+				// Found a closing span
+				depth--
+				if (depth === 0) {
+					// This is our matching close tag
+					const lineContent = codeContent.slice(contentStart, nextClose)
+					lines.push(lineContent)
+				}
+				searchPos = nextClose + spanEndTag.length
+			}
 		}
+
+		pos = searchPos
 	}
 
 	return lines
