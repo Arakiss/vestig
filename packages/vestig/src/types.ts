@@ -429,4 +429,24 @@ export interface Logger {
 		fn: import('./tracing/types').SpanSyncCallback<T>,
 		options?: import('./tracing/types').SpanOptions,
 	): T
+
+	/**
+	 * Emit a completed wide event through the logger's transports.
+	 *
+	 * Wide events are comprehensive, single-event records of complete
+	 * operations (like HTTP requests or background jobs). They contain
+	 * all relevant context for debugging and observability.
+	 *
+	 * @param event - The completed WideEvent to emit
+	 *
+	 * @example
+	 * ```typescript
+	 * const builder = createWideEvent({ type: 'http.request' });
+	 * builder.set('http', 'method', 'POST');
+	 * builder.set('user', 'id', userId);
+	 * const wideEvent = builder.end({ status: 'success' });
+	 * logger.emitWideEvent(wideEvent);
+	 * ```
+	 */
+	emitWideEvent(event: import('./wide-events/types').WideEvent): void
 }

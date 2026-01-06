@@ -465,6 +465,65 @@ export class LoggerImpl implements Logger {
 		const fullName = this.config.namespace ? `${this.config.namespace}:${name}` : name
 		return spanSyncFn(fullName, fn, options)
 	}
+
+	/**
+	 * Emit a completed wide event through the logger's transports.
+	 *
+	 * Wide events are comprehensive, single-event records of complete
+	 * operations (like HTTP requests or background jobs).
+	 *
+	 * @param event - The completed WideEvent to emit
+	 */
+	emitWideEvent(event: import('./wide-events/types').WideEvent): void {
+		// Check if logging is enabled
+		if (!this.config.enabled) {
+			return
+		}
+
+		// Convert WideEvent to LogEntry
+		const entry: LogEntry = {
+			timestamp: event.ended_at,
+			level: event.level,
+			message: `[wide-event] ${event.event_type}`,
+			metadata: {
+				event_type: event.event_type,
+				status: event.status,
+				started_at: event.started_at,
+				duration_ms: event.duration_ms,
+				...this.flattenFields(event.fields),
+			},
+			context: event.context,
+			runtime: event.runtime,
+			namespace: this.config.namespace || undefined,
+			error: event.error,
+		}
+
+		// Sanitize metadata if enabled
+		if (this.config.sanitize && entry.metadata) {
+			entry.metadata = (sanitize(entry.metadata, this.config.sanitizeFields) as LogMetadata) ?? {}
+		}
+
+		// Send to all enabled transports (no sampling/dedupe for wide events)
+		for (const transport of this.transports) {
+			if (transport.config.enabled === false) continue
+			if (transport.config.level && !shouldLog(entry.level, transport.config.level)) continue
+			if (transport.config.filter && !transport.config.filter(entry)) continue
+			transport.log(entry)
+		}
+	}
+
+	/**
+	 * Flatten wide event fields to dot-notation for LogEntry metadata.
+	 */
+	private flattenFields(fields: Record<string, Record<string, unknown>>): LogMetadata {
+		const result: LogMetadata = {}
+		for (const [category, categoryFields] of Object.entries(fields)) {
+			for (const [key, value] of Object.entries(categoryFields)) {
+				result[`${category}.${key}`] = value
+			}
+		}
+		return result
+	}
 }
 
 /**
