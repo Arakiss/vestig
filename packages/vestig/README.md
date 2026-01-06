@@ -27,6 +27,7 @@ A modern, runtime-agnostic structured logging library with automatic PII sanitiz
 | Runtime Agnostic | ✅ | ❌ | ❌ |
 | Auto PII Sanitization | ✅ | ❌ | ❌ |
 | GDPR/HIPAA/PCI-DSS Presets | ✅ | ❌ | ❌ |
+| Wide Events / Tail Sampling | ✅ | ❌ | ❌ |
 | Zero Config | ✅ | ✅ | ❌ |
 | TypeScript First | ✅ | ✅ | ⚠️ |
 | Edge Runtime Support | ✅ | ❌ | ❌ |
@@ -213,6 +214,58 @@ export async function GET(req: Request) {
 }
 ```
 
+### Wide Events (Canonical Log Lines)
+
+Wide Events capture **all context about a complete operation in ONE structured event**. Instead of scattered logs, you get a single comprehensive record per request.
+
+```typescript
+import { createLogger, createWideEvent } from 'vestig'
+
+const log = createLogger({
+  tailSampling: {
+    enabled: true,
+    alwaysKeepStatuses: ['error'],  // 100% of errors
+    slowThresholdMs: 2000,          // 100% of slow requests
+    successSampleRate: 0.1,         // 10% of successful requests
+    vipUserIds: ['user-123'],       // 100% for VIP users
+  }
+})
+
+// Create and enrich the wide event throughout the request
+const event = createWideEvent({ type: 'http.request' })
+
+// Add HTTP context
+event.merge('http', {
+  method: 'POST',
+  path: '/api/checkout',
+  status_code: 200,
+})
+
+// Add user context
+event.merge('user', {
+  id: 'user-456',
+  subscription: 'premium',
+})
+
+// Add performance metrics
+event.merge('performance', {
+  db_query_ms: 45,
+  external_api_ms: 230,
+})
+
+// End and emit the event
+const completedEvent = event.end({ status: 'success' })
+log.emitWideEvent(completedEvent)
+
+// Output: ONE event with 50+ fields, easily queryable
+```
+
+**Why Wide Events?**
+- **Debug faster**: All context in one place, no log correlation needed
+- **Reduce costs**: Tail sampling keeps 100% of errors, samples success
+- **Better queries**: "Show me slow requests from premium users with payment errors"
+- **No missing context**: You'll never again lose the request that caused an error
+
 ## Configuration
 
 ### Environment Variables
@@ -315,6 +368,36 @@ Generate correlation IDs (requestId, traceId, spanId).
 ### `Sanitizer.fromPreset(preset)`
 
 Create a sanitizer from a preset name.
+
+### `createWideEvent(config)`
+
+Create a wide event builder for accumulating context throughout a request.
+
+```typescript
+const event = createWideEvent({ type: 'http.request' })
+event.set('http', 'method', 'POST')
+event.merge('user', { id: 'user-123', tier: 'premium' })
+const completed = event.end({ status: 'success' })
+```
+
+### `log.emitWideEvent(event)`
+
+Emit a completed wide event through the logger's transports. Applies tail sampling if configured.
+
+### `createTailSampler(config)`
+
+Create a tail sampler for wide events. Used internally by `emitWideEvent()` but can be used standalone.
+
+```typescript
+const sampler = createTailSampler({
+  alwaysKeepStatuses: ['error'],
+  slowThresholdMs: 2000,
+  successSampleRate: 0.1,
+})
+if (sampler.shouldSample(event).sampled) {
+  log.emitWideEvent(event)
+}
+```
 
 ## Contributing
 
