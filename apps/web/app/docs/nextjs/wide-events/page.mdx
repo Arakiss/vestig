@@ -1,0 +1,431 @@
+export const metadata = {
+  title: 'Wide Events for Next.js',
+  description: 'Automatic wide event tracking for Next.js applications with middleware and server action integration.',
+}
+
+# Wide Events for Next.js
+
+Automatic wide events for Next.js apps.
+
+## Overview
+
+`@vestig/next` provides seamless wide event integration:
+
+- **Middleware** — Automatic HTTP context and correlation IDs
+- **Server Actions** — Wrapped actions with wide event tracking
+- **Helpers** — Access the current wide event anywhere in your request
+
+## Installation
+
+```bash
+bun add vestig @vestig/next
+```
+
+## Middleware Setup
+
+The wide event middleware automatically:
+- Creates a wide event for each request
+- Populates HTTP context (method, path, headers)
+- Generates and propagates correlation IDs
+- Emits the event when the request completes
+- Applies tail sampling if configured
+
+```typescript
+// middleware.ts
+import { createWideEventMiddleware } from '@vestig/next/wide-events'
+
+export const middleware = createWideEventMiddleware({
+  // Skip static assets and internal routes
+  skipPaths: ['/_next', '/favicon.ico', '/api/health'],
+
+  // Tail sampling configuration
+  tailSampling: {
+    enabled: true,
+    alwaysKeepStatuses: ['error'],
+    slowThresholdMs: 2000,
+    successSampleRate: 0.1, // 10% of successful requests
+  },
+})
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+}
+```
+
+### Quick Start
+
+For basic setup, export the pre-configured middleware:
+
+```typescript
+// middleware.ts
+export { wideEventMiddleware as middleware } from '@vestig/next/wide-events'
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+}
+```
+
+## Accessing the Wide Event
+
+From any server-side code within a request, access the current wide event:
+
+```typescript
+// app/api/checkout/route.ts
+import { NextResponse } from 'next/server'
+import { getWideEvent, setWideEventUser } from '@vestig/next/wide-events'
+
+export async function POST(req: Request) {
+  const event = getWideEvent()
+
+  // Add user context
+  const user = await authenticate(req)
+  setWideEventUser({
+    id: user.id,
+    subscription: user.plan,
+  })
+
+  // Add business context
+  event?.merge('order', {
+    items: order.items.length,
+    total: order.total,
+  })
+
+  // Process checkout...
+
+  return NextResponse.json({ orderId: order.id })
+}
+```
+
+## Helper Functions
+
+`@vestig/next/wide-events` provides convenient helpers:
+
+### `getWideEvent()`
+
+Get the current wide event (returns `undefined` outside of context):
+
+```typescript
+import { getWideEvent } from '@vestig/next/wide-events'
+
+const event = getWideEvent()
+if (event) {
+  event.set('custom', 'field', 'value')
+}
+```
+
+### `requireWideEvent()`
+
+Get the wide event or throw if not in context:
+
+```typescript
+import { requireWideEvent } from '@vestig/next/wide-events'
+
+// Throws if not in a wide event context
+const event = requireWideEvent()
+event.set('order', 'id', orderId)
+```
+
+### `setWideEventUser()`
+
+Set user information and enable VIP detection:
+
+```typescript
+import { setWideEventUser } from '@vestig/next/wide-events'
+
+setWideEventUser({
+  id: user.id,
+  email: user.email,
+  subscription: user.plan,  // Used for VIP tier sampling
+  role: user.role,
+})
+```
+
+### `setWideEventPerformance()`
+
+Add timing metrics:
+
+```typescript
+import { setWideEventPerformance } from '@vestig/next/wide-events'
+
+const start = performance.now()
+const users = await db.users.findMany()
+
+setWideEventPerformance({
+  db_query_ms: performance.now() - start,
+  db_rows: users.length,
+})
+```
+
+### `setWideEventField()` / `mergeWideEventFields()`
+
+Add custom fields:
+
+```typescript
+import { setWideEventField, mergeWideEventFields } from '@vestig/next/wide-events'
+
+// Single field
+setWideEventField('order', 'id', orderId)
+
+// Multiple fields
+mergeWideEventFields('payment', {
+  method: 'stripe',
+  amount: 9999,
+  currency: 'usd',
+})
+```
+
+### `setWideEventFeatureFlags()`
+
+Track feature flags:
+
+```typescript
+import { setWideEventFeatureFlags } from '@vestig/next/wide-events'
+
+setWideEventFeatureFlags({
+  new_checkout: true,
+  beta_features: false,
+  experiment_id: 'exp-123',
+})
+```
+
+### `setWideEventError()`
+
+Record error information:
+
+```typescript
+import { setWideEventError } from '@vestig/next/wide-events'
+
+try {
+  await processPayment(order)
+} catch (error) {
+  setWideEventError(error, { orderId: order.id })
+  throw error
+}
+```
+
+### `timeWideEventOperation()`
+
+Time sub-operations:
+
+```typescript
+import { timeWideEventOperation } from '@vestig/next/wide-events'
+
+const endDbQuery = timeWideEventOperation('db_users_query')
+const users = await db.users.findMany()
+endDbQuery()  // Adds performance.db_users_query_ms field
+```
+
+### `getWideEventElapsed()`
+
+Get elapsed time since request started:
+
+```typescript
+import { getWideEventElapsed } from '@vestig/next/wide-events'
+
+const elapsed = getWideEventElapsed()
+console.log(`Request running for ${elapsed}ms`)
+```
+
+## Server Actions
+
+Wrap server actions with wide event tracking:
+
+```typescript
+// app/actions/user.ts
+'use server'
+
+import { withWideEvent } from '@vestig/next/wide-events'
+
+export const createUser = withWideEvent(
+  async (data: CreateUserInput, { event }) => {
+    event.set('action', 'type', 'user.create')
+    event.set('user', 'email', data.email)
+
+    const user = await db.users.create({ data })
+
+    event.set('user', 'id', user.id)
+    return user
+  },
+  { name: 'action.user.create' }
+)
+```
+
+### Action Factory
+
+Create a factory with shared options:
+
+```typescript
+// app/actions/index.ts
+import { createWideEventAction } from '@vestig/next/wide-events'
+
+const action = createWideEventAction({
+  tailSampling: {
+    enabled: true,
+    successSampleRate: 0.1,
+  },
+})
+
+export const createUser = action(
+  async (data, { event }) => {
+    event.set('user', 'email', data.email)
+    return await db.users.create({ data })
+  },
+  { name: 'action.user.create' }
+)
+
+export const updateUser = action(
+  async ({ id, data }, { event }) => {
+    event.set('user', 'id', id)
+    return await db.users.update({ where: { id }, data })
+  },
+  { name: 'action.user.update' }
+)
+```
+
+### Context Integration
+
+If a server action is called from within a middleware-created context, it enriches the existing wide event instead of creating a new one:
+
+```typescript
+// Middleware creates wide event for request
+// ↓
+// Route handler processes request
+// ↓
+// Server action enriches the same wide event
+// ↓
+// One comprehensive event emitted at the end
+```
+
+## Complete Example
+
+```typescript
+// middleware.ts
+import { createWideEventMiddleware } from '@vestig/next/wide-events'
+
+export const middleware = createWideEventMiddleware({
+  tailSampling: {
+    enabled: true,
+    alwaysKeepStatuses: ['error'],
+    slowThresholdMs: 2000,
+    successSampleRate: 0.1,
+    vipTiers: ['premium', 'enterprise'],
+  },
+})
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+}
+```
+
+```typescript
+// app/api/checkout/route.ts
+import { NextResponse } from 'next/server'
+import {
+  setWideEventUser,
+  mergeWideEventFields,
+  timeWideEventOperation,
+  setWideEventError,
+} from '@vestig/next/wide-events'
+
+export async function POST(req: Request) {
+  try {
+    // Auth and user context
+    const user = await authenticate(req)
+    setWideEventUser({
+      id: user.id,
+      subscription: user.plan,
+    })
+
+    // Load cart with timing
+    const endCartLoad = timeWideEventOperation('db_cart')
+    const cart = await db.carts.get(user.id)
+    endCartLoad()
+
+    mergeWideEventFields('cart', {
+      items: cart.items.length,
+      total: cart.total,
+    })
+
+    // Process payment with timing
+    const endPayment = timeWideEventOperation('stripe_api')
+    const payment = await stripe.charge(cart)
+    endPayment()
+
+    mergeWideEventFields('payment', {
+      provider: 'stripe',
+      status: payment.status,
+      amount: payment.amount,
+    })
+
+    // Create order
+    const order = await db.orders.create({ user, cart, payment })
+    mergeWideEventFields('order', {
+      id: order.id,
+      items: order.items.length,
+    })
+
+    return NextResponse.json({ orderId: order.id }, { status: 201 })
+
+  } catch (error) {
+    setWideEventError(error)
+    return NextResponse.json(
+      { error: 'Checkout failed' },
+      { status: 500 }
+    )
+  }
+}
+```
+
+**Result: ONE comprehensive event per request:**
+
+```json
+{
+  "event_type": "http.request",
+  "status": "success",
+  "duration_ms": 850,
+  "http.method": "POST",
+  "http.path": "/api/checkout",
+  "user.id": "user-123",
+  "user.subscription": "premium",
+  "cart.items": 3,
+  "cart.total": 9999,
+  "payment.provider": "stripe",
+  "payment.status": "succeeded",
+  "order.id": "order-456",
+  "performance.db_cart_ms": 45,
+  "performance.stripe_api_ms": 230
+}
+```
+
+## Middleware Options
+
+```typescript
+interface WideEventMiddlewareOptions {
+  /** Log level (default: 'info') */
+  level?: LogLevel
+
+  /** Enable/disable (default: true) */
+  enabled?: boolean
+
+  /** PII sanitization preset (default: 'default') */
+  sanitize?: SanitizePreset
+
+  /** Paths to skip (prefix matching) */
+  skipPaths?: string[]
+
+  /** Custom request ID header (default: 'x-request-id') */
+  requestIdHeader?: string
+
+  /** Use structured JSON output (default: true) */
+  structured?: boolean
+
+  /** Tail sampling configuration */
+  tailSampling?: TailSamplingConfig
+}
+```
+
+## Related
+
+- [Wide Events](/docs/wide-events) — Core wide events documentation
+- [Tail Sampling](/docs/wide-events/tail-sampling) — Outcome-based sampling
+- [Next.js Integration](/docs/nextjs) — Full Next.js setup guide

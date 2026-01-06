@@ -1,0 +1,434 @@
+export const metadata = {
+  title: 'Wide Events',
+  description: 'Capture comprehensive context about complete operations in ONE structured event with Wide Events (Canonical Log Lines).',
+}
+
+# Wide Events
+
+Capture **all context about a complete operation in ONE structured event**.
+
+## The Problem with Traditional Logging
+
+Traditional logging scatters information across many log lines:
+
+```typescript
+// Traditional approach - context is scattered
+log.info('Request received', { method: 'POST', path: '/checkout' })
+log.debug('User authenticated', { userId: 'user-123' })
+log.debug('Cart loaded', { items: 3 })
+log.info('Payment started', { amount: 9999 })
+log.debug('Stripe API called', { duration: 230 })
+log.info('Order created', { orderId: 'order-456' })
+log.info('Request completed', { duration: 850 })
+```
+
+**Problems:**
+- 7 separate log lines to correlate
+- Missing context in each line
+- Hard to query across dimensions
+- Expensive at scale (7x the cost)
+
+## The Wide Events Solution
+
+Wide Events (also called **Canonical Log Lines**) emit ONE comprehensive event per operation:
+
+```typescript
+import { createLogger, createWideEvent } from 'vestig'
+
+const logger = createLogger()
+
+// Create the event at request start
+const event = createWideEvent({ type: 'http.request' })
+
+// Enrich throughout the request lifecycle
+event.merge('http', { method: 'POST', path: '/checkout', status_code: 200 })
+event.merge('user', { id: 'user-123', subscription: 'premium' })
+event.merge('cart', { items: 3, total: 9999 })
+event.merge('payment', { provider: 'stripe', status: 'succeeded' })
+event.merge('performance', { stripe_api_ms: 230, db_query_ms: 45 })
+
+// Emit once at the end
+logger.emitWideEvent(event.end({ status: 'success' }))
+```
+
+**Output: ONE event with 50+ fields, easily queryable**
+
+```json
+{
+  "event_type": "http.request",
+  "status": "success",
+  "duration_ms": 850,
+  "http.method": "POST",
+  "http.path": "/checkout",
+  "http.status_code": 200,
+  "user.id": "user-123",
+  "user.subscription": "premium",
+  "cart.items": 3,
+  "payment.provider": "stripe",
+  "performance.stripe_api_ms": 230
+}
+```
+
+## Why Wide Events?
+
+<Table>
+  <TableHead>
+    <TableRow>
+      <TableHeader>Benefit</TableHeader>
+      <TableHeader>Description</TableHeader>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    <TableRow>
+      <TableCell>**Debug Faster**</TableCell>
+      <TableCell>All context in one place, no log correlation needed</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>**Reduce Costs**</TableCell>
+      <TableCell>1 event vs 7+ log lines = 85%+ cost reduction</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>**Better Queries**</TableCell>
+      <TableCell>"Slow requests from premium users with payment errors"</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>**No Missing Context**</TableCell>
+      <TableCell>You'll never lose the request that caused an error</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+## API Reference
+
+### `createWideEvent(config)`
+
+Create a new wide event builder:
+
+```typescript
+const event = createWideEvent({
+  type: 'http.request',  // Event type identifier
+  context: {             // Optional correlation context
+    requestId: 'req-abc',
+    traceId: 'trace-xyz',
+  },
+})
+```
+
+### Builder Methods
+
+```typescript
+// Set a single field
+event.set('http', 'method', 'POST')
+
+// Merge multiple fields into a category
+event.merge('user', {
+  id: 'user-123',
+  email: 'user@example.com',
+  subscription: 'premium',
+})
+
+// Merge multiple categories at once
+event.mergeAll({
+  http: { method: 'POST', path: '/api' },
+  user: { id: 'user-123' },
+})
+
+// Get a field value
+const method = event.get('http', 'method')
+
+// Set context (requestId, traceId, etc.)
+event.setContext({ userId: 'user-123' })
+
+// Get current context
+const ctx = event.getContext()
+
+// Get all fields
+const fields = event.getFields()
+
+// Convert to flat metadata (for traditional logging)
+const metadata = event.toMetadata()
+```
+
+### `event.end(options)`
+
+Complete the event and prepare for emission:
+
+```typescript
+const completedEvent = event.end({
+  status: 'success',      // 'success' | 'error' | 'timeout' | 'cancelled'
+  level: 'info',          // Log level for emission
+  error: new Error('...'), // Optional error to attach
+  fields: { ... },        // Optional final fields to merge
+})
+```
+
+### `logger.emitWideEvent(event)`
+
+Emit a completed wide event through the logger's transports:
+
+```typescript
+const logger = createLogger()
+logger.emitWideEvent(completedEvent)
+```
+
+## Field Categories
+
+Organize your fields by category for clean, queryable events:
+
+```typescript
+// HTTP context
+event.merge('http', {
+  method: 'POST',
+  path: '/api/checkout',
+  status_code: 200,
+  request_size: 1234,
+  response_size: 567,
+})
+
+// User context
+event.merge('user', {
+  id: 'user-123',
+  email: 'user@example.com',
+  subscription: 'premium',
+  role: 'admin',
+})
+
+// Performance metrics
+event.merge('performance', {
+  db_query_ms: 45,
+  external_api_ms: 230,
+  cache_hit: true,
+})
+
+// Business metrics
+event.merge('order', {
+  id: 'order-456',
+  items: 3,
+  total: 9999,
+  currency: 'usd',
+})
+
+// Feature flags
+event.merge('feature_flags', {
+  new_checkout: true,
+  beta_features: false,
+})
+
+// Error context (when things go wrong)
+event.merge('error', {
+  type: 'PaymentFailed',
+  code: 'card_declined',
+  retry_count: 2,
+})
+```
+
+## Event Schemas
+
+Vestig provides TypeScript interfaces for common event types:
+
+### HTTP Request Events
+
+```typescript
+import type { HttpRequestEventFields } from 'vestig'
+
+// Type-safe field structure
+const fields: HttpRequestEventFields = {
+  http: {
+    method: 'POST',
+    path: '/api/users',
+    status_code: 201,
+    request_size: 1024,
+  },
+  user: {
+    id: 'user-123',
+    subscription: 'premium',
+  },
+  performance: {
+    total_ms: 150,
+    db_ms: 45,
+  },
+}
+```
+
+### Background Job Events
+
+```typescript
+import type { BackgroundJobEventFields } from 'vestig'
+
+const fields: BackgroundJobEventFields = {
+  job: {
+    id: 'job-789',
+    type: 'email.send',
+    queue: 'emails',
+    attempts: 1,
+  },
+  performance: {
+    duration_ms: 230,
+    memory_mb: 64,
+  },
+}
+```
+
+## Best Practices
+
+### 1. Create Early, Enrich Throughout
+
+```typescript
+export async function handleRequest(req: Request) {
+  // Create at the start
+  const event = createWideEvent({ type: 'http.request' })
+
+  try {
+    // Enrich as you process
+    event.merge('http', extractHttpContext(req))
+
+    const user = await authenticate(req)
+    event.merge('user', { id: user.id, tier: user.tier })
+
+    const result = await processRequest(req, user)
+    event.merge('result', result.metadata)
+
+    return Response.json(result)
+  } finally {
+    // Always emit, even on error
+    logger.emitWideEvent(event.end({ status: 'success' }))
+  }
+}
+```
+
+### 2. Handle Errors Gracefully
+
+```typescript
+try {
+  await processPayment(order)
+} catch (error) {
+  event.merge('error', {
+    type: error.name,
+    message: error.message,
+    code: error.code,
+  })
+
+  logger.emitWideEvent(event.end({
+    status: 'error',
+    error,
+    level: 'error',
+  }))
+
+  throw error
+}
+```
+
+### 3. Use Consistent Field Names
+
+```typescript
+// Good: Consistent naming
+event.set('performance', 'db_query_ms', 45)
+event.set('performance', 'api_call_ms', 230)
+event.set('performance', 'total_ms', 850)
+
+// Bad: Inconsistent naming
+event.set('perf', 'dbTime', 45)
+event.set('metrics', 'apiDuration', 230)
+event.set('timing', 'totalDuration', 850)
+```
+
+### 4. Include Business Context
+
+```typescript
+// Include what matters for your business
+event.merge('business', {
+  revenue: order.total,
+  customer_type: user.tier,
+  promotion_code: order.promoCode,
+  is_first_purchase: user.orderCount === 0,
+})
+```
+
+## Complete Example
+
+```typescript
+import { createLogger, createWideEvent } from 'vestig'
+
+const logger = createLogger({
+  tailSampling: {
+    enabled: true,
+    alwaysKeepStatuses: ['error'],
+    slowThresholdMs: 2000,
+    successSampleRate: 0.1,
+  },
+})
+
+export async function checkout(req: Request) {
+  const event = createWideEvent({
+    type: 'http.request',
+    context: { requestId: crypto.randomUUID() },
+  })
+
+  try {
+    // HTTP context
+    event.merge('http', {
+      method: req.method,
+      path: new URL(req.url).pathname,
+    })
+
+    // Authenticate
+    const user = await auth.verify(req)
+    event.merge('user', {
+      id: user.id,
+      subscription: user.subscription,
+      country: user.country,
+    })
+
+    // Load cart
+    const startDb = performance.now()
+    const cart = await db.carts.get(user.id)
+    event.set('performance', 'db_cart_ms', performance.now() - startDb)
+    event.merge('cart', {
+      items: cart.items.length,
+      total: cart.total,
+    })
+
+    // Process payment
+    const startPayment = performance.now()
+    const payment = await stripe.charge(cart)
+    event.set('performance', 'stripe_ms', performance.now() - startPayment)
+    event.merge('payment', {
+      provider: 'stripe',
+      status: payment.status,
+      amount: payment.amount,
+    })
+
+    // Create order
+    const order = await db.orders.create({ user, cart, payment })
+    event.merge('order', {
+      id: order.id,
+      items: order.items.length,
+    })
+
+    event.set('http', 'status_code', 201)
+    logger.emitWideEvent(event.end({ status: 'success' }))
+
+    return Response.json({ orderId: order.id }, { status: 201 })
+
+  } catch (error) {
+    event.set('http', 'status_code', 500)
+    event.merge('error', {
+      type: error.name,
+      message: error.message,
+    })
+
+    logger.emitWideEvent(event.end({
+      status: 'error',
+      error,
+      level: 'error',
+    }))
+
+    return Response.json({ error: 'Checkout failed' }, { status: 500 })
+  }
+}
+```
+
+## Next Steps
+
+- [Tail Sampling](/docs/wide-events/tail-sampling) — Keep 100% of errors, sample success
+- [Next.js Integration](/docs/nextjs/wide-events) — Automatic wide events for Next.js

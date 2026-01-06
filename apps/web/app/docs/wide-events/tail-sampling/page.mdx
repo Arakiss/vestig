@@ -1,0 +1,296 @@
+export const metadata = {
+  title: 'Tail Sampling',
+  description: 'Keep 100% of errors and slow requests while sampling successful operations to reduce costs.',
+}
+
+# Tail Sampling
+
+Keep 100% of errors while sampling success.
+
+## What is Tail Sampling?
+
+Traditional sampling decides upfront whether to log. **Tail sampling** waits until the operation completes, then decides based on the outcome.
+
+<Table><TableHead><TableRow><TableHeader>Approach</TableHeader><TableHeader>When Decision Made</TableHeader><TableHeader>Problem</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>**Head Sampling**</TableCell><TableCell>Before operation starts</TableCell><TableCell>May drop errors</TableCell></TableRow><TableRow><TableCell>**Tail Sampling**</TableCell><TableCell>After operation completes</TableCell><TableCell>None — outcome is known</TableCell></TableRow></TableBody></Table>
+
+## Why Tail Sampling?
+
+Consider a 10% sampling rate:
+
+```typescript
+// Head sampling at 10% — RISKY!
+// You'll lose 90% of your errors too
+const shouldLog = Math.random() < 0.1
+if (shouldLog) {
+  await handleRequest()  // What if this errors?
+  log.info('Request completed')
+}
+```
+
+With tail sampling:
+
+```typescript
+// Tail sampling — SMART!
+// 100% of errors, 10% of success
+const event = createWideEvent({ type: 'http.request' })
+try {
+  await handleRequest()
+  event.end({ status: 'success' })
+} catch (error) {
+  event.end({ status: 'error', error })
+}
+
+// Decision made AFTER we know the outcome
+logger.emitWideEvent(event) // Applies tail sampling internally
+```
+
+## Configuration
+
+```typescript
+import { createLogger } from 'vestig'
+
+const logger = createLogger({
+  tailSampling: {
+    enabled: true,
+
+    // Always keep these statuses (default: ['error'])
+    alwaysKeepStatuses: ['error', 'timeout'],
+
+    // Always keep requests over 2 seconds
+    slowThresholdMs: 2000,
+
+    // Keep 10% of successful requests
+    successSampleRate: 0.1,
+
+    // VIP users get 100% sampling
+    vipUserIds: ['user-123', 'user-456'],
+
+    // Premium tiers get 100% sampling
+    vipTiers: ['enterprise', 'premium'],
+
+    // Where to find the tier (default: 'user.subscription')
+    tierFieldPath: 'user.subscription',
+  },
+})
+```
+
+## Sampling Decision Order
+
+Tail sampling evaluates conditions in order:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 1. Is status in alwaysKeepStatuses? (error, timeout)   │
+│    YES → KEEP (100%)                                    │
+├─────────────────────────────────────────────────────────┤
+│ 2. Is duration >= slowThresholdMs?                     │
+│    YES → KEEP (100%)                                    │
+├─────────────────────────────────────────────────────────┤
+│ 3. Is userId in vipUserIds?                            │
+│    YES → KEEP (100%)                                    │
+├─────────────────────────────────────────────────────────┤
+│ 4. Is user tier in vipTiers?                           │
+│    YES → KEEP (100%)                                    │
+├─────────────────────────────────────────────────────────┤
+│ 5. Random sample at successSampleRate                  │
+│    Random < rate → KEEP                                 │
+│    Random >= rate → DROP                                │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Sampling Reasons
+
+Each sampling decision includes a reason:
+
+```typescript
+import { createTailSampler } from 'vestig'
+
+const sampler = createTailSampler({
+  alwaysKeepStatuses: ['error'],
+  slowThresholdMs: 2000,
+  successSampleRate: 0.1,
+})
+
+const result = sampler.shouldSample(completedEvent)
+
+// result.sampled: boolean
+// result.reason: 'always_keep_status' | 'slow_request' |
+//                'vip_user' | 'vip_tier' |
+//                'random_sample' | 'random_drop'
+```
+
+This is useful for debugging your sampling configuration.
+
+## Use Cases
+
+### API Gateway
+
+Sample successful requests but keep all errors:
+
+```typescript
+const logger = createLogger({
+  tailSampling: {
+    enabled: true,
+    alwaysKeepStatuses: ['error'],
+    slowThresholdMs: 5000,
+    successSampleRate: 0.01,  // 1% of success
+  },
+})
+```
+
+### E-Commerce
+
+Keep everything from paying customers:
+
+```typescript
+const logger = createLogger({
+  tailSampling: {
+    enabled: true,
+    vipTiers: ['premium', 'enterprise'],
+    successSampleRate: 0.1,
+  },
+})
+```
+
+### Background Jobs
+
+Keep all failed jobs:
+
+```typescript
+const logger = createLogger({
+  tailSampling: {
+    enabled: true,
+    alwaysKeepStatuses: ['error', 'timeout', 'cancelled'],
+    successSampleRate: 0.05,  // 5% of successful jobs
+  },
+})
+```
+
+### Debug Sessions
+
+Full logging for specific users:
+
+```typescript
+const logger = createLogger({
+  tailSampling: {
+    enabled: true,
+    vipUserIds: ['debug-user-123'],  // Add user being debugged
+    successSampleRate: 0.1,
+  },
+})
+```
+
+## Cost Savings
+
+Example: 10M requests/day
+
+<Table><TableHead><TableRow><TableHeader>Metric</TableHeader><TableHeader>Value</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>**Total requests**</TableCell><TableCell>10M/day</TableCell></TableRow><TableRow><TableCell>**Error rate**</TableCell><TableCell>0.1% (10K errors)</TableCell></TableRow><TableRow><TableCell>**Slow requests**</TableCell><TableCell>1% (100K slow)</TableCell></TableRow></TableBody></Table>
+
+Without sampling: 10M events/day
+
+With tail sampling (10% success rate):
+- Errors: 10K (100%)
+- Slow: 100K (100%)
+- Success: 989K (10% of 9.89M)
+- **Total: ~1.1M events/day**
+
+**Cost reduction: ~89%** while keeping 100% of important events.
+
+## Next.js Integration
+
+Tail sampling is built into the wide event middleware:
+
+```typescript
+// middleware.ts
+import { createWideEventMiddleware } from '@vestig/next/wide-events'
+
+export const middleware = createWideEventMiddleware({
+  tailSampling: {
+    enabled: true,
+    alwaysKeepStatuses: ['error'],
+    slowThresholdMs: 2000,
+    successSampleRate: 0.1,
+  },
+})
+```
+
+And server actions:
+
+```typescript
+// app/actions/user.ts
+'use server'
+
+import { withWideEvent } from '@vestig/next/wide-events'
+
+export const createUser = withWideEvent(
+  async (data, { event }) => {
+    event.set('user', 'email', data.email)
+    const user = await db.users.create({ data })
+    return user
+  },
+  {
+    name: 'action.user.create',
+    tailSampling: {
+      enabled: true,
+      successSampleRate: 0.1,
+    },
+  }
+)
+```
+
+## Standalone Sampler
+
+For custom integrations:
+
+```typescript
+import { createTailSampler, createWideEvent } from 'vestig'
+
+const sampler = createTailSampler({
+  alwaysKeepStatuses: ['error'],
+  successSampleRate: 0.1,
+})
+
+const event = createWideEvent({ type: 'custom.operation' })
+// ... enrich event ...
+
+const completedEvent = event.end({ status: 'success' })
+const { sampled, reason } = sampler.shouldSample(completedEvent)
+
+if (sampled) {
+  logger.info('Wide event', completedEvent)
+  console.log(`Kept because: ${reason}`)
+}
+```
+
+## Configuration Reference
+
+```typescript
+interface TailSamplingConfig {
+  /** Enable tail sampling (default: true) */
+  enabled?: boolean
+
+  /** Always keep events with these statuses (default: ['error']) */
+  alwaysKeepStatuses?: ('success' | 'error' | 'timeout' | 'cancelled')[]
+
+  /** Always keep events above this duration in ms */
+  slowThresholdMs?: number
+
+  /** Sampling rate for successful events (0-1, default: 1.0) */
+  successSampleRate?: number
+
+  /** VIP user IDs that always get 100% sampling */
+  vipUserIds?: string[]
+
+  /** VIP subscription tiers that always get 100% sampling */
+  vipTiers?: string[]
+
+  /** Field path to check for tier (default: 'user.subscription') */
+  tierFieldPath?: string
+}
+```
+
+## Related
+
+- [Wide Events](/docs/wide-events) — Comprehensive event logging
+- [Next.js Integration](/docs/nextjs/wide-events) — Automatic wide events for Next.js
+- [Sampling](/docs/sampling) — Traditional head sampling strategies
