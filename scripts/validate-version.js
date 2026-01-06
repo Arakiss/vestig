@@ -115,6 +115,35 @@ function getAllTags() {
 }
 
 /**
+ * Get the latest version published on npm
+ */
+function getNpmVersion(packageName) {
+	try {
+		const version = execSync(`npm view ${packageName} version 2>/dev/null`, {
+			encoding: 'utf8',
+		}).trim()
+		return version
+	} catch {
+		return null
+	}
+}
+
+/**
+ * Compare two semantic versions
+ * Returns: -1 if a < b, 0 if a === b, 1 if a > b
+ */
+function compareVersions(a, b) {
+	const vA = parseVersion(a)
+	const vB = parseVersion(b)
+	if (!vA || !vB) return 0
+
+	if (vA.major !== vB.major) return vA.major > vB.major ? 1 : -1
+	if (vA.minor !== vB.minor) return vA.minor > vB.minor ? 1 : -1
+	if (vA.patch !== vB.patch) return vA.patch > vB.patch ? 1 : -1
+	return 0
+}
+
+/**
  * Check if version bump is valid (no gaps)
  */
 function isValidBump(from, to) {
@@ -177,30 +206,55 @@ function validate() {
 		}
 	}
 
-	// 2. Check version is valid bump from latest tag
-	log(colors.blue('\n🏷️  Checking version against git tags...\n'))
+	// 2. Check version against git tags AND npm (use highest as baseline)
+	log(colors.blue('\n🏷️  Checking version against releases...\n'))
 	const latestTag = getLatestTag()
+	const npmVersion = getNpmVersion('vestig')
 	const currentVersion = uniqueVersions[0]
 
-	if (!latestTag) {
-		warn('No git tags found. Skipping tag validation.')
+	// Determine the actual latest released version (higher of tag or npm)
+	let latestReleased = null
+	let releaseSource = null
+
+	if (latestTag && npmVersion) {
+		const comparison = compareVersions(latestTag, npmVersion)
+		if (comparison >= 0) {
+			latestReleased = latestTag
+			releaseSource = 'git tag'
+		} else {
+			latestReleased = npmVersion
+			releaseSource = 'npm'
+		}
+	} else if (latestTag) {
+		latestReleased = latestTag
+		releaseSource = 'git tag'
+	} else if (npmVersion) {
+		latestReleased = npmVersion
+		releaseSource = 'npm'
+	}
+
+	if (!latestReleased) {
+		warn('No releases found. Skipping version validation.')
 	} else {
-		log(`   Latest tag: v${latestTag}`)
+		log(`   Latest git tag: ${latestTag ? `v${latestTag}` : 'none'}`)
+		log(`   Latest npm: ${npmVersion ? `v${npmVersion}` : 'none'}`)
+		log(`   Baseline (${releaseSource}): v${latestReleased}`)
 		log(`   Current version: v${currentVersion}`)
 
-		const bumpCheck = isValidBump(latestTag, currentVersion)
+		const bumpCheck = isValidBump(latestReleased, currentVersion)
 
 		if (!bumpCheck.valid) {
 			error(bumpCheck.reason)
 			hasErrors = true
 		} else if (bumpCheck.type === 'none') {
-			success('Version matches latest tag (no bump needed)')
+			warn(`Version ${currentVersion} matches latest release.`)
+			warn('Bump the version if you have new changes to release.')
 		} else {
-			success(`Valid ${bumpCheck.type} bump: ${latestTag} → ${currentVersion}`)
+			success(`Valid ${bumpCheck.type} bump: ${latestReleased} → ${currentVersion}`)
 		}
 	}
 
-	// 3. Check tag history for gaps
+	// 4. Check tag history for gaps
 	log(colors.blue('\n📜 Checking version history for gaps...\n'))
 	const allTags = getAllTags()
 
