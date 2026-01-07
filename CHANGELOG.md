@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.14.3](https://github.com/Arakiss/vestig/compare/v0.14.2...v0.14.3) (2026-01-07)
+
+### 🐛 Bug Fixes
+
+* **ci:** create .npmrc in package dir for bun publish auth ([827e227](https://github.com/Arakiss/vestig/commit/827e2277e8c5c81e9419e8ced3a4c93a45afee29))
+
 ## [0.14.2](https://github.com/Arakiss/vestig/compare/v0.14.1...v0.14.2) (2026-01-07)
 
 ### 🐛 Bug Fixes
