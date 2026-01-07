@@ -27,7 +27,7 @@
 	},
 	"hooks": {
 		"before:init": ["bun run validate:version"],
-		"after:bump": "node -e \"const fs=require('fs');['packages/vestig/package.json','packages/vestig-next/package.json'].forEach(p=>{const pkg=JSON.parse(fs.readFileSync(p));pkg.version='${version}';fs.writeFileSync(p,JSON.stringify(pkg,null,'\\t')+'\\n');});fs.writeFileSync('packages/vestig/src/version.ts','/**\\n * Vestig library version\\n * This is automatically updated during the release process\\n */\\nexport const VERSION = \\'${version}\\'\\n');\" && bun run format && git add ."
+		"after:bump": "node -e \"const fs=require('fs');['packages/vestig/package.json','packages/vestig-next/package.json'].forEach(p=>{const pkg=JSON.parse(fs.readFileSync(p));pkg.version='${version}';fs.writeFileSync(p,JSON.stringify(pkg,null,'\\t')+'\\n');});fs.writeFileSync('packages/vestig/src/version.ts','/**\\n * Vestig library version\\n * This is automatically updated during the release process\\n */\\nexport const VERSION = \\'${version}\\'\\n');let readme=fs.readFileSync('README.md','utf8');readme=readme.replace(/\\*\\*v[0-9]+\\.[0-9]+\\.[0-9]+\\*\\* · Beta/g,'**v${version}** · Beta');readme=readme.replace(/\\| \\*\\*Version\\*\\* \\| v[0-9]+\\.[0-9]+\\.[0-9]+ \\|/g,'| **Version** | v${version} |');fs.writeFileSync('README.md',readme);\" && bun run format && git add ."
 	},
 	"plugins": {
 		"@release-it/conventional-changelog": {
