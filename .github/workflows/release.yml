@@ -199,12 +199,15 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
+      # Note: Using 'bun publish' instead of 'npm publish' because Bun automatically
+      # converts workspace:* references to actual versions during publish.
+      # npm publish does NOT handle the workspace: protocol.
       - name: Publish vestig to npm
         id: npm_vestig
         if: steps.release.outputs.released == 'true'
         run: |
           cd packages/vestig
-          npm publish --access public
+          bun publish --access public
           echo "Published vestig@${{ steps.release.outputs.version }} to npm"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -214,7 +217,7 @@ jobs:
         if: steps.release.outputs.released == 'true'
         run: |
           cd packages/vestig-next
-          npm publish --access public
+          bun publish --access public
           echo "Published @vestig/next@${{ steps.release.outputs.version }} to npm"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

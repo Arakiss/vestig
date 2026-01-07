@@ -68,32 +68,35 @@ jobs:
           echo "vestig_express_version=$VESTIG_EXPRESS_VERSION" >> $GITHUB_OUTPUT
           echo "Publishing vestig@$VESTIG_VERSION, @vestig/next@$VESTIG_NEXT_VERSION, and @vestig/express@$VESTIG_EXPRESS_VERSION"
 
+      # Note: Using 'bun publish' instead of 'npm publish' because Bun automatically
+      # converts workspace:* references to actual versions during publish.
+      # npm publish does NOT handle the workspace: protocol.
       - name: Publish vestig (dry run)
         if: inputs.dry_run == true && (inputs.package == 'vestig' || inputs.package == 'all')
         run: |
           cd packages/vestig
-          npm publish --access public --dry-run
+          bun publish --access public --dry-run
           echo "Would publish vestig@${{ steps.versions.outputs.vestig_version }}"
 
       - name: Publish @vestig/next (dry run)
         if: inputs.dry_run == true && (inputs.package == '@vestig/next' || inputs.package == 'all')
         run: |
           cd packages/vestig-next
-          npm publish --access public --dry-run
+          bun publish --access public --dry-run
           echo "Would publish @vestig/next@${{ steps.versions.outputs.vestig_next_version }}"
 
       - name: Publish @vestig/express (dry run)
         if: inputs.dry_run == true && (inputs.package == '@vestig/express' || inputs.package == 'all')
         run: |
           cd packages/vestig-express
-          npm publish --access public --dry-run
+          bun publish --access public --dry-run
           echo "Would publish @vestig/express@${{ steps.versions.outputs.vestig_express_version }}"
 
       - name: Publish vestig
         if: inputs.dry_run != true && (inputs.package == 'vestig' || inputs.package == 'all')
         run: |
           cd packages/vestig
-          npm publish --access public
+          bun publish --access public
           echo "✅ Published vestig@${{ steps.versions.outputs.vestig_version }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -102,7 +105,7 @@ jobs:
         if: inputs.dry_run != true && (inputs.package == '@vestig/next' || inputs.package == 'all')
         run: |
           cd packages/vestig-next
-          npm publish --access public
+          bun publish --access public
           echo "✅ Published @vestig/next@${{ steps.versions.outputs.vestig_next_version }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -111,7 +114,7 @@ jobs:
         if: inputs.dry_run != true && (inputs.package == '@vestig/express' || inputs.package == 'all')
         run: |
           cd packages/vestig-express
-          npm publish --access public
+          bun publish --access public
           echo "✅ Published @vestig/express@${{ steps.versions.outputs.vestig_express_version }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
