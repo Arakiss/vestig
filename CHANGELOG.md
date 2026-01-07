@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.14.0](https://github.com/Arakiss/vestig/compare/v0.13.0...v0.14.0) (2026-01-07)
+
+### ✨ Features
+
+* **web:** enhanced code blocks with line numbers and highlighting ([eea0ed1](https://github.com/Arakiss/vestig/commit/eea0ed13abe1db460e0653db3a043442591f187b))
+
+### 🐛 Bug Fixes
+
+* **ci:** use bun publish to resolve workspace:* dependencies ([820e334](https://github.com/Arakiss/vestig/commit/820e334736373067ecb3725bc0efcb482908bcd6))
+* **release:** skip git hooks during release push ([0aa42a6](https://github.com/Arakiss/vestig/commit/0aa42a68556a4f286d1303d04824759061ddfa14))
+* **release:** update README version in release hook ([3bd6907](https://github.com/Arakiss/vestig/commit/3bd69074cbd3f6cf4a1bb7b5b46e681ef320f61b))
+* **web:** properly extract nested spans from Shiki HTML output ([f636b21](https://github.com/Arakiss/vestig/commit/f636b2110aa20fcf58bdcc5f3288b66bbcaa9615))
+* **web:** reduce excessive line-height in code blocks ([fe528be](https://github.com/Arakiss/vestig/commit/fe528be49bf298c69fee0ee1cb959914dc98b390))
+
+### ♻️ Refactoring
+
+* convert scripts to TypeScript and add strict validation ([e612525](https://github.com/Arakiss/vestig/commit/e6125259cef3e21992838a29e71a0f3ed226e4f5))
+
+### 📚 Documentation
+
+* add attribution for wide events concept ([b54e9db](https://github.com/Arakiss/vestig/commit/b54e9dbb8741e0d33729c19c4ae5d4d66328479a))
+* **changelog:** add Wide Events release notes for v0.13.0 ([2396333](https://github.com/Arakiss/vestig/commit/23963339e763709b41bfe04fc4685dda18ce2ad6))
+* sync sidebar navigation with all documentation pages ([6ab09cc](https://github.com/Arakiss/vestig/commit/6ab09cc3edc17d5ab1a85baadedbc292d4ca8b63))
+
 ## [0.13.0](https://github.com/Arakiss/vestig/compare/v0.12.0...v0.13.0) (2026-01-06)
 
 ### ✨ Features
