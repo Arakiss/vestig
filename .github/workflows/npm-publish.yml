@@ -51,11 +51,11 @@ jobs:
       - name: Build packages
         run: bun run build
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+      # Configure npm authentication for Bun
+      # Bun reads .npmrc from $HOME, so we create it there with the auth token
+      - name: Configure npm authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
       - name: Get versions
         id: versions
@@ -98,8 +98,6 @@ jobs:
           cd packages/vestig
           bun publish --access public
           echo "✅ Published vestig@${{ steps.versions.outputs.vestig_version }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @vestig/next
         if: inputs.dry_run != true && (inputs.package == '@vestig/next' || inputs.package == 'all')
@@ -107,8 +105,6 @@ jobs:
           cd packages/vestig-next
           bun publish --access public
           echo "✅ Published @vestig/next@${{ steps.versions.outputs.vestig_next_version }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @vestig/express
         if: inputs.dry_run != true && (inputs.package == '@vestig/express' || inputs.package == 'all')
@@ -116,8 +112,6 @@ jobs:
           cd packages/vestig-express
           bun publish --access public
           echo "✅ Published @vestig/express@${{ steps.versions.outputs.vestig_express_version }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
         run: |

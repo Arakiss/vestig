@@ -192,12 +192,12 @@ jobs:
       # =========================================================================
       # Publish to npm
       # =========================================================================
-      - name: Setup Node.js for npm publish
+      # Configure npm authentication for Bun
+      # Bun reads .npmrc from $HOME, so we create it there with the auth token
+      - name: Configure npm authentication
         if: steps.release.outputs.released == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
 
       # Note: Using 'bun publish' instead of 'npm publish' because Bun automatically
       # converts workspace:* references to actual versions during publish.
@@ -209,8 +209,6 @@ jobs:
           cd packages/vestig
           bun publish --access public
           echo "Published vestig@${{ steps.release.outputs.version }} to npm"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @vestig/next to npm
         id: npm_vestig_next
@@ -219,8 +217,6 @@ jobs:
           cd packages/vestig-next
           bun publish --access public
           echo "Published @vestig/next@${{ steps.release.outputs.version }} to npm"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     outputs:
       released: ${{ steps.release.outputs.released }}
