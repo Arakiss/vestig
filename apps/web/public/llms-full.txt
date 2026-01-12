@@ -2,7 +2,7 @@
 
 > Zero-dependency TypeScript logging with auto PII sanitization, native tracing, and multi-runtime support.
 
-Vestig is a lightweight structured logging library designed for modern TypeScript applications. It works seamlessly across Bun, Node.js, Deno, Edge runtimes (Vercel, Cloudflare Workers), and browsers.
+Vestig is a lightweight structured logging library designed for modern TypeScript applications. It works seamlessly across Bun, Node.js, Deno, Edge runtimes (Vercel Edge, Cloudflare Workers), and browsers.
 
 ## Quick Start
 
@@ -21,11 +21,14 @@ log.error('Request failed', { error: new Error('Timeout') })
 ## Key Features
 
 - **Zero Dependencies**: <5KB gzipped, no supply chain risks
-- **Multi-Runtime**: Works in Bun, Node, Deno, Edge, and browsers
-- **Auto PII Sanitization**: Redacts passwords, emails, credit cards automatically
-- **Native Tracing**: Built-in distributed tracing with span()
+- **Multi-Runtime**: Works in Bun, Node, Deno, Edge (Cloudflare Workers, Vercel Edge), and browsers
+- **Auto PII Sanitization**: Redacts passwords, emails, credit cards, SSNs automatically
+- **Native Tracing**: Built-in distributed tracing with span() and W3C Trace Context
 - **Context Propagation**: AsyncLocalStorage-based request correlation
-- **Smart Sampling**: Probability, rate-limit, and namespace-based sampling
+- **Smart Sampling**: Probability, rate-limit, namespace-based, and composite sampling
+- **Wide Events**: Canonical log lines for comprehensive request context with tail sampling
+- **Transports**: Console, HTTP, File, Datadog, Sentry - all with batching support
+- **Metrics**: Built-in Prometheus-format metrics export
 
 ## Documentation
 
@@ -33,22 +36,35 @@ log.error('Request failed', { error: new Error('Timeout') })
 - [Features Overview](/docs/features) - All features explained
 - [API Reference](/docs/api) - Complete API documentation
 
+### Core Concepts
+
+- [Logging Basics](/docs/core/logging) - Log levels, structured output
+- [Child Loggers](/docs/core/child-loggers) - Namespaced loggers
+- [Runtime Detection](/docs/runtime) - Multi-runtime support
+
 ### Feature Guides
 
-- [PII Sanitization](/docs/security/sanitization) - Automatic data redaction
+- [PII Sanitization](/docs/security/sanitization) - Automatic data redaction (GDPR, HIPAA, PCI-DSS)
 - [Native Tracing](/docs/tracing) - Distributed tracing with spans
 - [Context Propagation](/docs/tracing/context) - Request correlation
+- [W3C Trace Context](/docs/tracing/w3c) - traceparent and tracestate support
 - [Transports](/docs/transports) - Console, HTTP, File, Datadog, Sentry
 - [Sampling](/docs/sampling) - Control log volume
 
+### Wide Events
+
+- [Wide Events Overview](/docs/wide-events) - Canonical log lines
+- [Tail Sampling](/docs/wide-events/tail-sampling) - Outcome-based sampling
+
 ### Integration Guides
 
-- [Next.js](/docs/nextjs) - Server components, route handlers, middleware
-- [Express](/docs/express) - Middleware and request logging
+- [Next.js](/docs/nextjs) - Server components, route handlers, middleware, wide events
+- [Client Components](/docs/nextjs/client) - Browser-side logging with VestigProvider
 
-## Optional Packages
+## Packages
 
-- `@vestig/next` - Next.js integration with server/client components
+- `vestig` - Core logging library
+- `@vestig/next` - Next.js integration (server/client components, middleware, wide events)
 
 ## Links
 
@@ -67,9 +83,8 @@ log.error('Request failed', { error: new Error('Timeout') })
 
 ```bash
 bun add vestig
-# Optional packages:
+# Optional:
 bun add @vestig/next    # Next.js integration
-bun add @vestig/express # Express middleware
 ```
 
 ## Core API
@@ -94,8 +109,37 @@ const log = createLogger({
   sampling: {               // Optional sampling configuration
     type: 'probability',
     rate: 0.1               // Log 10% of messages
+  },
+  dedupe: {                 // Optional deduplication
+    enabled: true,
+    window: 5000,           // 5 second window
+    maxCount: 10
+  },
+  tailSampling: {           // For wide events
+    enabled: true,
+    sampleRate: 0.1,
+    alwaysKeepErrors: true,
+    slowThresholdMs: 1000
   }
 })
+```
+
+### createLoggerAsync(config?)
+
+Creates and initializes a logger asynchronously (for transports requiring async setup).
+
+```typescript
+const log = await createLoggerAsync({ level: 'info' })
+```
+
+### initLogger(logger)
+
+Initialize an existing logger's transports.
+
+```typescript
+const log = createLogger()
+log.addTransport(new FileTransport({ path: './app.log' }))
+await initLogger(log)
 ```
 
 ### log.{level}(message, metadata?)
@@ -121,6 +165,67 @@ dbLog.info('Query executed')  // namespace: 'app:database'
 const authLog = log.child('auth', { level: 'warn' })
 ```
 
+### log.span(name, callback, options?) / log.spanSync(name, callback, options?)
+
+Create traced operations with automatic namespace prefixing:
+
+```typescript
+const db = log.child('database')
+const result = await db.span('query', async (span) => {
+  span.setAttribute('table', 'users')
+  return await executeQuery()
+})
+// Span name: 'database:query'
+```
+
+### log.emitWideEvent(event)
+
+Emit a completed wide event through the logger's transports:
+
+```typescript
+log.emitWideEvent({
+  event_type: 'http.request',
+  status: 'success',
+  started_at: '2024-01-01T00:00:00Z',
+  ended_at: '2024-01-01T00:00:01Z',
+  duration_ms: 1000,
+  level: 'info',
+  fields: { http: { method: 'GET', path: '/api' } }
+})
+```
+
+### Logger Management
+
+```typescript
+log.setLevel('debug')       // Change log level
+log.getLevel()              // Get current level
+log.enable()                // Enable logging
+log.disable()               // Disable logging
+log.isEnabled()             // Check if enabled
+await log.flush()           // Flush buffered logs
+await log.destroy()         // Cleanup and destroy
+
+log.addTransport(transport) // Add transport
+log.removeTransport('name') // Remove by name
+log.getTransports()         // Get all transports
+```
+
+## Runtime Detection
+
+```typescript
+import {
+  RUNTIME,        // 'node' | 'bun' | 'deno' | 'edge' | 'browser' | 'worker' | 'unknown'
+  CAPABILITIES,   // { hasAsyncLocalStorage, hasProcess, hasPerformance, hasConsole, hasCrypto }
+  IS_NODE,        // boolean
+  IS_BUN,         // boolean
+  IS_DENO,        // boolean
+  IS_EDGE,        // boolean - Cloudflare Workers, Vercel Edge, etc.
+  IS_BROWSER,     // boolean
+  IS_WORKER,      // boolean - Web Workers
+  IS_SERVER,      // boolean - IS_NODE || IS_BUN || IS_DENO || IS_EDGE
+} from 'vestig'
+```
+
 ## Context API
 
 ### withContext(context, callback)
@@ -138,13 +243,7 @@ await withContext({ requestId: 'req-123', userId: 'user-456' }, async () => {
 
 ### withContextAsync(context, callback)
 
-Same as withContext but explicitly async:
-
-```typescript
-await withContextAsync({ traceId: 'trace-123' }, async () => {
-  await processRequest()
-})
-```
+Same as withContext but explicitly async.
 
 ### createCorrelationContext()
 
@@ -157,15 +256,48 @@ const ctx = createCorrelationContext()
 // Returns: { requestId, traceId, spanId }
 ```
 
+### ID Generation
+
+```typescript
+import { generateRequestId, generateTraceId, generateSpanId } from 'vestig'
+
+const requestId = generateRequestId()  // 'req-xxxxxxxx'
+const traceId = generateTraceId()      // 32-char hex
+const spanId = generateSpanId()        // 16-char hex
+```
+
+### W3C Trace Context
+
+```typescript
+import {
+  parseTraceparent,
+  createTraceparent,
+  parseTracestate,
+  createTracestate,
+  getTracestateValue,
+  setTracestateValue,
+  deleteTracestateKey,
+} from 'vestig'
+
+// traceparent header
+const parsed = parseTraceparent('00-traceId-spanId-01')
+const header = createTraceparent({ traceId, spanId, sampled: true })
+
+// tracestate header
+const state = parseTracestate('vendor1=value1,vendor2=value2')
+const header = createTracestate([{ key: 'myvendor', value: 'myvalue' }])
+const value = getTracestateValue(state, 'vendor1')
+const newState = setTracestateValue(state, 'vendor1', 'newvalue')
+const cleaned = deleteTracestateKey(state, 'vendor1')
+```
+
 ### getContext()
 
 Get current async context:
 
 ```typescript
 import { getContext } from 'vestig'
-
 const ctx = getContext()
-console.log(ctx?.requestId)
 ```
 
 ## Tracing API
@@ -180,10 +312,7 @@ import { span } from 'vestig'
 const result = await span('fetch-user', async (s) => {
   s.setAttribute('userId', '123')
   s.addEvent('cache-miss')
-
-  const user = await db.users.findById('123')
-
-  return user
+  return await db.users.findById('123')
 })
 ```
 
@@ -200,24 +329,41 @@ const parsed = spanSync('parse-json', (s) => {
 })
 ```
 
-### startSpan(name, options?) / endSpan()
-
-Manual span management:
+### Manual Span Management
 
 ```typescript
-import { startSpan, endSpan, getActiveSpan } from 'vestig'
+import {
+  startSpan,
+  endSpan,
+  getActiveSpan,
+  withActiveSpan,
+  clearActiveSpans,
+  getActiveSpanStackDepth,
+  withSpanContext,
+  withSpanContextAsync,
+} from 'vestig'
 
 startSpan('operation')
 try {
   const span = getActiveSpan()
   span?.setAttribute('key', 'value')
-  // ... work
 } finally {
   endSpan()
 }
+
+// Advanced: Run code with specific span as active
+withActiveSpan(mySpan, () => {
+  // mySpan is now the active span
+})
+
+// Get current stack depth
+const depth = getActiveSpanStackDepth()
+
+// Clear all active spans (cleanup)
+clearActiveSpans()
 ```
 
-### Span interface
+### Span Interface
 
 ```typescript
 interface Span {
@@ -239,9 +385,62 @@ interface Span {
 }
 ```
 
+## Wide Events API
+
+Wide events (canonical log lines) capture comprehensive context for entire operations.
+
+### createWideEvent(eventType, config?)
+
+```typescript
+import { createWideEvent } from 'vestig'
+
+const event = createWideEvent('http.request', {
+  context: { requestId: 'req-123' }
+})
+
+event.setField('http', 'method', 'POST')
+event.setField('http', 'path', '/api/users')
+event.setField('user', 'id', 'user-456')
+event.addError(new Error('Validation failed'))
+
+const completed = event.end({ status: 'error' })
+// completed is a WideEvent ready to emit
+```
+
+### Wide Event Context Management
+
+```typescript
+import {
+  withWideEvent,
+  withWideEventAsync,
+  getActiveWideEvent,
+} from 'vestig'
+
+await withWideEventAsync('http.request', async (event) => {
+  event.setField('http', 'method', 'GET')
+
+  // Nested code can access the event
+  const active = getActiveWideEvent()
+  active?.setField('db', 'queries', 5)
+})
+```
+
+### WideEventBuilder Interface
+
+```typescript
+interface WideEventBuilder {
+  setField(category: string, key: string, value: unknown): void
+  setFields(category: string, fields: Record<string, unknown>): void
+  addError(error: Error): void
+  setContext(context: LogContext): void
+  mergeContext(context: LogContext): void
+  end(options?: WideEventEndOptions): WideEvent
+}
+```
+
 ## Sampling API
 
-### Built-in samplers
+### Built-in Samplers
 
 ```typescript
 import { createLogger } from 'vestig'
@@ -281,9 +480,25 @@ const log4 = createLogger({
 })
 ```
 
+### Sampler Factory Functions
+
+```typescript
+import {
+  createSampler,
+  createSamplerFromConfig,
+  createProbabilitySampler,
+  createRateLimitSampler,
+  createNamespaceSampler,
+  createCompositeSampler,
+} from 'vestig'
+
+const sampler = createProbabilitySampler(0.1)
+const rateLimiter = createRateLimitSampler(100)
+```
+
 ## Transport API
 
-### Built-in transports
+### Built-in Transports
 
 ```typescript
 import {
@@ -296,46 +511,55 @@ import {
 } from 'vestig'
 
 // Console (default)
-const consoleTransport = new ConsoleTransport({
+new ConsoleTransport({
   structured: true,
   colors: true
 })
 
 // HTTP batch transport
-const httpTransport = new HTTPTransport({
+new HTTPTransport({
   name: 'api',
   url: 'https://logs.example.com/ingest',
   batchSize: 100,
   flushInterval: 5000,
-  headers: { 'Authorization': 'Bearer ...' }
+  headers: { 'Authorization': 'Bearer ...' },
+  retries: 3
 })
 
 // File transport (Node/Bun only)
-const fileTransport = new FileTransport({
+new FileTransport({
   name: 'file',
   path: '/var/log/app.log',
   maxSize: '10MB',
-  maxFiles: 5
+  maxFiles: 5,
+  compress: true
 })
 
 // Datadog transport
-const datadogTransport = new DatadogTransport({
+new DatadogTransport({
   name: 'datadog',
   apiKey: process.env.DD_API_KEY,
   service: 'my-app',
-  env: 'production'
+  env: 'production',
+  source: 'nodejs'
 })
 
 // Sentry transport (error monitoring)
-const sentryTransport = new SentryTransport({
+new SentryTransport({
   dsn: process.env.SENTRY_DSN,
   environment: 'production',
   release: '1.0.0',
   minLevel: 'warn'
 })
+
+// Wrap any transport for batching
+new BatchTransport(innerTransport, {
+  batchSize: 50,
+  flushInterval: 3000
+})
 ```
 
-### Adding transports
+### Adding/Removing Transports
 
 ```typescript
 const log = createLogger()
@@ -345,7 +569,7 @@ log.removeTransport('console')  // Remove by name
 
 ## Sanitization API
 
-### Built-in patterns
+### Built-in Patterns
 
 Automatically detected and sanitized:
 - Passwords (password, pwd, secret, etc.)
@@ -356,34 +580,99 @@ Automatically detected and sanitized:
 - JWTs
 - Bearer tokens
 
-### Custom sanitization
+### Custom Sanitization
 
 ```typescript
-import { createLogger, createSanitizer } from 'vestig'
+import { createLogger, createSanitizer, sanitize, PRESETS, COMMON_PATTERNS } from 'vestig'
 
 const log = createLogger({
   sanitize: true,
   sanitizeFields: ['customSecret', 'internalId']
 })
 
-// Or create a custom sanitizer
+// Standalone sanitizer
 const sanitizer = createSanitizer({
   fields: ['myField'],
   patterns: [/CUSTOM-\d+/g],
   replacement: '[HIDDEN]'
 })
+
+// Use presets
+const gdprSanitizer = createSanitizer(PRESETS.gdpr)
+const hipaaConfig = getPreset('hipaa')
+
+// Direct sanitization
+const clean = sanitize(data, ['password', 'ssn'])
+```
+
+## Deduplication API
+
+```typescript
+import { Deduplicator } from 'vestig'
+
+const dedupe = new Deduplicator({
+  enabled: true,
+  window: 5000,       // 5 second dedup window
+  maxCount: 10,       // After 10 duplicates, emit summary
+  hashFields: true    // Include metadata in dedup hash
+})
+
+const result = dedupe.shouldSuppress(message, level, namespace)
+// { suppressed: boolean, isFlush: boolean, suppressedCount?: number }
+
+dedupe.destroy()  // Cleanup
+```
+
+## Metrics API
+
+```typescript
+import { MetricsCollector, globalMetrics, createMetricsCollector } from 'vestig'
+
+// Use global metrics
+globalMetrics.increment('logs_total', { level: 'info' })
+globalMetrics.histogram('request_duration_ms', 150)
+const snapshot = globalMetrics.getMetrics()
+const prometheus = globalMetrics.toPrometheus()
+
+// Or create isolated collector
+const metrics = createMetricsCollector()
+```
+
+## Utilities
+
+### Error Handling
+
+```typescript
+import { serializeError, isError, getErrorMessage } from 'vestig'
+
+const serialized = serializeError(new Error('fail'))
+// { name, message, stack, cause?, code?, ... }
+
+if (isError(value)) { ... }
+const msg = getErrorMessage(error)
+```
+
+### CircularBuffer
+
+```typescript
+import { CircularBuffer } from 'vestig'
+
+const buffer = new CircularBuffer<LogEntry>({ maxSize: 1000 })
+buffer.push(entry)
+const items = buffer.toArray()
+buffer.clear()
 ```
 
 ## @vestig/next Integration
 
-### Server-side logging
+### Server-side Logging
 
 ```typescript
 // app/api/route.ts
 import { withVestigRouteHandler } from '@vestig/next'
 
-export const GET = withVestigRouteHandler(async (request, { log }) => {
-  log.info('API called')
+export const GET = withVestigRouteHandler(async (request, { log, context }) => {
+  log.info('API called', { path: request.url })
   return Response.json({ ok: true })
 })
 ```
@@ -401,19 +690,56 @@ export const myAction = withVestigServerAction(async (data, { log }) => {
 })
 ```
 
-### Client-side logging
+### Middleware
 
 ```typescript
-// app/page.tsx
-'use client'
-import { ClientHTTPTransport } from '@vestig/next/client'
-import { createLogger } from 'vestig'
+// middleware.ts
+import { createVestigMiddleware } from '@vestig/next'
 
-const log = createLogger()
-log.addTransport(new ClientHTTPTransport({
-  name: 'client',
-  url: '/api/vestig'
-}))
+export const middleware = createVestigMiddleware({
+  enableWideEvents: true,
+  tailSampling: { sampleRate: 0.1 }
+})
+```
+
+### Client-side Logging
+
+```typescript
+// app/providers.tsx
+'use client'
+import { VestigProvider } from '@vestig/next/client'
+
+export function Providers({ children }) {
+  return (
+    <VestigProvider endpoint="/api/vestig" namespace="client">
+      {children}
+    </VestigProvider>
+  )
+}
+
+// In components
+import { useLogger, useCorrelationContext } from '@vestig/next/client'
+
+function MyComponent() {
+  const log = useLogger()
+  const ctx = useCorrelationContext()
+
+  log.info('Component rendered', { ...ctx })
+}
+```
+
+### Wide Events in Next.js
+
+```typescript
+import { withVestigWideEvent } from '@vestig/next'
+
+export const GET = withVestigWideEvent(
+  'api.users.list',
+  async (request, { event, log }) => {
+    event.setField('user', 'count', 100)
+    return Response.json({ users: [] })
+  }
+)
 ```
 
 ## Environment Variables
@@ -427,22 +753,79 @@ VESTIG_ENABLED=true         # Enable/disable logging
 
 ## TypeScript Types
 
-Key exported types:
-
 ```typescript
 import type {
+  // Core
   Logger,
   LoggerConfig,
+  ResolvedLoggerConfig,
   LogLevel,
   LogEntry,
   LogMetadata,
   LogContext,
+  Runtime,
+  RuntimeCapabilities,
+
+  // Transports
   Transport,
   TransportConfig,
+  BatchTransportConfig,
+  HTTPTransportConfig,
+  FileTransportConfig,
+  DatadogTransportConfig,
+  SentryTransportConfig,
+  ConsoleTransportConfig,
+  RotationInterval,
+
+  // Tracing
   Span,
   SpanOptions,
   SpanCallback,
+  SpanSyncCallback,
+  SpanEvent,
+  SpanStatus,
+
+  // Sampling
   Sampler,
-  SamplingConfig
+  SamplerConfig,
+  SamplingConfig,
+  ProbabilitySamplerConfig,
+  RateLimitSamplerConfig,
+  NamespaceSamplerConfig,
+
+  // Wide Events
+  WideEvent,
+  WideEventBuilder,
+  WideEventConfig,
+  WideEventContext,
+  WideEventEndOptions,
+  WideEventFields,
+  WideEventStatus,
+  TailSamplingConfig,
+
+  // Sanitization
+  FieldMatcher,
+  SanitizePattern,
+  SanitizeConfig,
+  SanitizePreset,
+  SerializedError,
+
+  // Deduplication
+  DedupeConfig,
+  DedupeResult,
+
+  // Metrics
+  LoggerMetrics,
+
+  // Misc
+  CircularBufferConfig,
+  TracestateEntry,
 } from 'vestig'
+```
+
+## Version
+
+```typescript
+import { VERSION } from 'vestig'
+console.log(VERSION)  // e.g., '0.14.4'
 ```

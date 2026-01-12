@@ -1,5 +1,6 @@
 'use client'
 
+import { LLMsButton } from '@/components/docs/llms-button'
 import { InnerNav, Sidebar, type SidebarSection } from '@/components/layout'
 import {
 	Activity,
@@ -10,7 +11,6 @@ import {
 	Cpu,
 	DashboardSpeed,
 	DatabaseScript,
-	FastArrowRight,
 	Flash,
 	GitFork,
 	GraphUp,
@@ -129,7 +129,6 @@ const navigation: SidebarSection[] = [
 				href: '/docs/nextjs/database',
 				icon: <DatabaseScript className="h-4 w-4" />,
 			},
-			{ title: 'Express.js', href: '/docs/express', icon: <FastArrowRight className="h-4 w-4" /> },
 		],
 	},
 	{
@@ -181,7 +180,7 @@ export function DocsClientLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="min-h-screen bg-background">
 			<InnerNav section="Documentation" />
-			<Sidebar sections={navigation} />
+			<Sidebar sections={navigation} footer={<LLMsButton />} />
 
 			{/* Main content */}
 			<main id="main-content" className="lg:pl-64 pt-14">
