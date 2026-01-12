@@ -50,6 +50,14 @@ function log(color: ColorName, message: string): void {
 
 function getGitTags(): string[] {
 	try {
+		// Fetch latest tags from remote to ensure we have all tags
+		// This is important because CI may have created new tags that we don't have locally
+		try {
+			execSync('git fetch --tags --quiet', { cwd: ROOT, encoding: 'utf-8' })
+		} catch {
+			// Ignore fetch errors (e.g., no network) and continue with local tags
+		}
+
 		const output = execSync('git tag --sort=-version:refname', {
 			cwd: ROOT,
 			encoding: 'utf-8',
