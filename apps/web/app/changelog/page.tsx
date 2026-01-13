@@ -30,7 +30,16 @@ const changelog: ChangelogEntry[] = [
 	{
 		version: '0.18.0',
 		date: '2026-01-13',
-		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.16.0...v0.18.0',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.17.0...v0.18.0',
+		docs: [
+			'update README and landing page for v0.18.0',
+			'update hero badge to v0.18.0 — Auto-Instrumentation & OTLP',
+		],
+	},
+	{
+		version: '0.17.0',
+		date: '2026-01-13',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.16.0...v0.17.0',
 		features: [
 			'add instrumentFetch() for automatic fetch() span creation',
 			'add registerVestig() unified setup for Next.js instrumentation',
