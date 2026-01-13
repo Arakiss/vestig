@@ -28,6 +28,13 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
 	{
+		version: '0.15.1',
+		date: '2026-01-12',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.15.0...v0.15.1',
+		fixes: ['fetch remote tags before changelog validation'],
+		docs: ['add v0.14.4 and v0.15.0 to changelog page'],
+	},
+	{
 		version: '0.15.0',
 		date: '2026-01-12',
 		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.14.4...v0.15.0',

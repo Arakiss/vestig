@@ -1,5 +1,6 @@
 import { getContext } from '../context'
 import { generateSpanId, generateTraceId } from '../context/correlation'
+import { spanProcessors } from '../otlp/processor'
 import { getActiveSpan } from './context'
 import type { Span, SpanEvent, SpanOptions, SpanStatus } from './types'
 
@@ -41,6 +42,9 @@ export class SpanImpl implements Span {
 		if (options?.attributes) {
 			this._attributes = { ...options.attributes }
 		}
+
+		// Notify all registered span processors
+		spanProcessors.notifyStart(this)
 	}
 
 	// === Status accessors ===
@@ -127,6 +131,9 @@ export class SpanImpl implements Span {
 
 		this._endTime = performance.now()
 		this._ended = true
+
+		// Notify all registered span processors
+		spanProcessors.notifyEnd(this)
 	}
 
 	// === Serialization ===

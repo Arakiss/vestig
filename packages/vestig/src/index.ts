@@ -125,6 +125,17 @@ export {
 	withSpanContextAsync,
 } from './tracing'
 
+// OTLP - OpenTelemetry Protocol support
+export {
+	// Span processor registration
+	registerSpanProcessor,
+	unregisterSpanProcessor,
+	getSpanProcessors,
+	flushSpanProcessors,
+	shutdownSpanProcessors,
+} from './otlp'
+export type { SpanProcessor } from './otlp'
+
 // Sampling - factory functions for creating samplers
 export {
 	createSampler,
