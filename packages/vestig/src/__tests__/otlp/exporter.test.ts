@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
-import { OTLPExporter, OTLPExportError } from '../../otlp/exporter'
+import { OTLPExportError, OTLPExporter } from '../../otlp/exporter'
 import { spanProcessors } from '../../otlp/processor'
-import { SpanImpl } from '../../tracing/span'
 import type { OTLPExportTraceServiceRequest } from '../../otlp/types'
+import { SpanImpl } from '../../tracing/span'
 
 describe('OTLPExporter', () => {
 	let originalFetch: typeof global.fetch

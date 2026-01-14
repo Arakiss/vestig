@@ -5,8 +5,8 @@ import {
 	uninstrumentFetch,
 } from '../../instrumentation/fetch'
 import { getSpanProcessors, registerSpanProcessor, unregisterSpanProcessor } from '../../otlp'
-import type { Span } from '../../tracing/types'
 import type { SpanProcessor } from '../../otlp/processor'
+import type { Span } from '../../tracing/types'
 
 describe('instrumentFetch', () => {
 	// Store original fetch

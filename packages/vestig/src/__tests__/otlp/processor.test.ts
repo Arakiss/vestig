@@ -8,8 +8,8 @@ import {
 	unregisterSpanProcessor,
 } from '../../otlp/processor'
 import type { SpanProcessor } from '../../otlp/processor'
-import type { Span } from '../../tracing/types'
 import { SpanImpl } from '../../tracing/span'
+import type { Span } from '../../tracing/types'
 
 describe('SpanProcessor Registry', () => {
 	afterEach(async () => {

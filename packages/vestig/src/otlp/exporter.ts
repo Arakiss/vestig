@@ -5,9 +5,9 @@
  * using the OTLP/JSON protocol.
  */
 
+import type { Span } from '../tracing/types'
 import { VERSION } from '../version'
 import type { SpanProcessor } from './processor'
-import type { Span } from '../tracing/types'
 import {
 	type OTLPExportTraceServiceRequest,
 	type OTLPKeyValue,

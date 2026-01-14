@@ -28,6 +28,18 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
 	{
+		version: '0.19.0',
+		date: '2026-01-14',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.18.0...v0.19.0',
+		features: [
+			'add instrumentPostgres() for automatic database span creation',
+			'PostgreSQL driver-level instrumentation with precise timing',
+			'onQuery callback for external metrics (noisy neighbor detection)',
+			'global config integration with registerVestig()',
+		],
+		docs: ['update README with database instrumentation example'],
+	},
+	{
 		version: '0.18.0',
 		date: '2026-01-13',
 		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.17.0...v0.18.0',

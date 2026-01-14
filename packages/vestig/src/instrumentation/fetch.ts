@@ -5,9 +5,9 @@
  * Call once in your instrumentation.ts file.
  */
 
-import { span } from '../tracing/functions'
-import { getActiveSpan } from '../tracing/context'
 import { createTraceparent } from '../context/correlation'
+import { getActiveSpan } from '../tracing/context'
+import { span } from '../tracing/functions'
 import type { FetchInstrumentationState, InstrumentFetchOptions } from './types'
 
 /**
