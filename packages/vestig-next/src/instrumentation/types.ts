@@ -3,6 +3,7 @@
  */
 
 import type { InstrumentFetchOptions, TailSamplingConfig } from 'vestig'
+import type { DatabaseInstrumentConfig } from '../db/types'
 
 /**
  * OTLP configuration options
@@ -69,6 +70,36 @@ export interface AutoInstrumentConfig {
 	 * @default false
 	 */
 	console?: boolean
+
+	/**
+	 * Database instrumentation configuration
+	 *
+	 * When provided, this configuration is stored globally and can be
+	 * accessed by instrumentPostgres() for consistent settings.
+	 *
+	 * Note: You still need to wrap your postgres client with instrumentPostgres()
+	 * in your database setup file. This config just provides the default settings.
+	 *
+	 * @example
+	 * ```typescript
+	 * // instrumentation.ts
+	 * registerVestig({
+	 *   autoInstrument: {
+	 *     database: {
+	 *       slowQueryThreshold: 100,
+	 *       onQuery: (entry) => {
+	 *         if (entry.isSlow) sendToMetrics(entry)
+	 *       }
+	 *     }
+	 *   }
+	 * })
+	 *
+	 * // lib/db.ts
+	 * const client = instrumentPostgres(postgres(DATABASE_URL))
+	 * // ^ Will use the config from registerVestig()
+	 * ```
+	 */
+	database?: DatabaseInstrumentConfig
 }
 
 /**
@@ -122,6 +153,12 @@ export interface RegisterVestigResult {
 	 * Whether console capture was enabled
 	 */
 	consoleInstrumented: boolean
+
+	/**
+	 * Whether database instrumentation config was set
+	 * Note: You still need to use instrumentPostgres() in your db setup
+	 */
+	databaseConfigured: boolean
 
 	/**
 	 * Shutdown function to cleanup resources

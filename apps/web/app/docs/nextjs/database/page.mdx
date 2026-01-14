@@ -1,11 +1,11 @@
 export const metadata = {
-  title: 'Database Logging',
-  description: 'Query logging integration for Prisma and Drizzle ORMs.',
+  title: 'Database Instrumentation',
+  description: 'Automatic OTLP span creation and query logging for PostgreSQL, Prisma, and Drizzle.',
 }
 
-# Database Logging
+# Database Instrumentation
 
-Automatic query logging for Prisma and Drizzle ORMs with slow query detection, parameter sanitization, and correlation ID tracking.
+Automatic database instrumentation with OTLP span creation for observability backends (Jaeger, Honeycomb), plus query logging for Prisma and Drizzle ORMs with slow query detection, parameter sanitization, and precise timing metrics.
 
 ## Prisma Setup
 
@@ -49,11 +49,110 @@ prisma.$on('query', createPrismaQueryHandler({ logger }))
 export { prisma }
 ```
 
-## Drizzle Setup
+## PostgreSQL Auto-Instrumentation (Recommended)
 
-### Basic Setup
+For **OTLP span creation** and **precise timing metrics**, use `instrumentPostgres()` to wrap your postgres-js client at the driver level:
 
-Create a Vestig-compatible logger for Drizzle:
+```typescript
+// lib/db.ts
+import postgres from 'postgres'
+import { instrumentPostgres } from '@vestig/next/db'
+import { drizzle } from 'drizzle-orm/postgres-js'
+
+// Wrap the postgres client for automatic instrumentation
+const client = instrumentPostgres(postgres(process.env.DATABASE_URL!), {
+  slowQueryThreshold: 100,  // Mark queries over 100ms as slow
+  onQuery: (entry) => {
+    // Custom metrics callback (e.g., for noisy neighbor detection)
+    if (entry.isSlow) {
+      metrics.record('slow_query', {
+        table: entry.table,
+        duration: entry.duration,
+      })
+    }
+  }
+})
+
+// Use with Drizzle ORM
+export const db = drizzle(client)
+```
+
+### What Gets Instrumented
+
+`instrumentPostgres()` automatically instruments:
+
+- **Template literal queries**: `sql\`SELECT * FROM users\``
+- **Unsafe queries**: `sql.unsafe('SELECT * FROM users')`
+- **Transactions**: `sql.begin(async (tx) => { ... })`
+- **SQL files**: `sql.file('path/to/query.sql')`
+
+### OTLP Span Attributes
+
+Each query creates a span with OpenTelemetry semantic conventions:
+
+| Attribute | Description | Example |
+|-----------|-------------|---------|
+| `db.system` | Database system | `postgresql` |
+| `db.operation` | SQL operation | `SELECT`, `INSERT`, `UPDATE`, `DELETE` |
+| `db.statement` | SQL query (sanitized) | `SELECT * FROM users WHERE id = $1` |
+| `db.sql.table` | Table name (if detectable) | `users` |
+| `db.duration_ms` | Query duration | `42` |
+| `db.rows_affected` | Rows returned/affected | `10` |
+| `db.slow_query` | Exceeded threshold | `true` |
+| `db.name` | Database name (if configured) | `myapp_production` |
+
+### Integration with registerVestig()
+
+Configure database instrumentation globally in your `instrumentation.ts`:
+
+```typescript
+// instrumentation.ts
+import { registerVestig } from '@vestig/next/instrumentation'
+
+export function register() {
+  registerVestig({
+    serviceName: 'my-app',
+    otlp: {
+      endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    },
+    autoInstrument: {
+      fetch: true,
+      database: {
+        slowQueryThreshold: 100,
+        onQuery: (entry) => {
+          // Send to your metrics system
+          if (entry.isSlow) sendToMetrics(entry)
+        }
+      }
+    }
+  })
+}
+```
+
+Then `instrumentPostgres()` will automatically use these settings:
+
+```typescript
+// lib/db.ts
+import postgres from 'postgres'
+import { instrumentPostgres } from '@vestig/next/db'
+
+// Automatically uses config from registerVestig()
+const client = instrumentPostgres(postgres(process.env.DATABASE_URL!))
+```
+
+### Why Use instrumentPostgres()?
+
+| Feature | Drizzle Logger | instrumentPostgres() |
+|---------|---------------|---------------------|
+| **OTLP Spans** | ❌ | ✅ |
+| **Precise Timing** | ⚠️ Approximate | ✅ Exact |
+| **Transaction Spans** | ❌ | ✅ |
+| **Global Config** | ❌ | ✅ |
+| **Observability Backends** | ❌ | ✅ Jaeger, Honeycomb, etc. |
+
+## Drizzle Logger (Alternative)
+
+If you only need logging (no OTLP spans), use the Drizzle logger:
 
 ```typescript
 // lib/db.ts

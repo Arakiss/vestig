@@ -118,3 +118,44 @@ export const SENSITIVE_PATTERNS = [
 export function isSensitiveParam(name: string): boolean {
 	return SENSITIVE_PATTERNS.some((pattern) => pattern.test(name))
 }
+
+/**
+ * Configuration for database auto-instrumentation
+ *
+ * Used with registerVestig() to configure database instrumentation
+ * from the instrumentation.ts file.
+ */
+export interface DatabaseInstrumentConfig {
+	/**
+	 * Slow query threshold in milliseconds
+	 * Queries exceeding this will be marked as slow
+	 * @default 100
+	 */
+	slowQueryThreshold?: number
+
+	/**
+	 * Log level for query logging
+	 * - 'all': Log all queries
+	 * - 'slow': Only log slow queries
+	 * - 'none': Disable logging (spans still created)
+	 * @default 'slow' in production, 'all' in development
+	 */
+	logLevel?: 'all' | 'slow' | 'none'
+
+	/**
+	 * Callback when a query completes
+	 * Use this for external metrics (e.g., noisy neighbor detection)
+	 */
+	onQuery?: (entry: QueryLogEntry) => void
+
+	/**
+	 * Database system for OTLP semantic attributes
+	 * @default 'postgresql'
+	 */
+	dbSystem?: string
+
+	/**
+	 * Database name for OTLP attributes
+	 */
+	dbName?: string
+}

@@ -5,18 +5,45 @@
  */
 
 import {
+	type InstrumentFetchOptions,
 	instrumentFetch,
 	registerSpanProcessor,
 	shutdownSpanProcessors,
-	type InstrumentFetchOptions,
 } from 'vestig'
 import { OTLPExporter } from 'vestig/otlp'
+import type { DatabaseInstrumentConfig } from '../db/types'
 import type {
 	AutoInstrumentConfig,
 	OTLPConfig,
 	RegisterVestigOptions,
 	RegisterVestigResult,
 } from './types'
+
+/**
+ * Global database configuration store
+ *
+ * This allows instrumentPostgres() to pick up the config set by registerVestig()
+ * without requiring users to pass it explicitly.
+ */
+let globalDatabaseConfig: DatabaseInstrumentConfig | null = null
+
+/**
+ * Get the global database configuration
+ *
+ * Used internally by instrumentPostgres() to get default config
+ */
+export function getDatabaseConfig(): DatabaseInstrumentConfig | null {
+	return globalDatabaseConfig
+}
+
+/**
+ * Set the global database configuration
+ *
+ * Called by registerVestig() when database config is provided
+ */
+export function setDatabaseConfig(config: DatabaseInstrumentConfig | null): void {
+	globalDatabaseConfig = config
+}
 
 /**
  * Parse OTEL headers from environment variable
@@ -129,6 +156,34 @@ function setupFetch(config: AutoInstrumentConfig | undefined, debug: boolean): b
 
 	if (debug) {
 		console.log('[vestig] Fetch instrumentation enabled')
+	}
+
+	return true
+}
+
+/**
+ * Setup database configuration if provided
+ *
+ * This stores the config globally so instrumentPostgres() can access it
+ */
+function setupDatabase(config: AutoInstrumentConfig | undefined, debug: boolean): boolean {
+	const dbConfig = config?.database
+
+	if (!dbConfig) {
+		return false
+	}
+
+	// Store config globally for instrumentPostgres() to use
+	setDatabaseConfig(dbConfig)
+
+	if (debug) {
+		console.log('[vestig] Database instrumentation configured')
+		if (dbConfig.slowQueryThreshold) {
+			console.log(`[vestig]   Slow query threshold: ${dbConfig.slowQueryThreshold}ms`)
+		}
+		if (dbConfig.onQuery) {
+			console.log('[vestig]   onQuery callback registered')
+		}
 	}
 
 	return true
@@ -263,6 +318,7 @@ export function registerVestig(options: RegisterVestigOptions): RegisterVestigRe
 	// Track what was enabled
 	let otlpEnabled = false
 	let fetchInstrumented = false
+	let databaseConfigured = false
 	let consoleRestore: (() => void) | null = null
 
 	// Setup OTLP export
@@ -270,6 +326,9 @@ export function registerVestig(options: RegisterVestigOptions): RegisterVestigRe
 
 	// Setup fetch instrumentation
 	fetchInstrumented = setupFetch(autoInstrument, debug)
+
+	// Setup database configuration
+	databaseConfigured = setupDatabase(autoInstrument, debug)
 
 	// Setup console capture
 	consoleRestore = setupConsole(autoInstrument, debug)
@@ -283,10 +342,16 @@ export function registerVestig(options: RegisterVestigOptions): RegisterVestigRe
 		otlpEnabled,
 		fetchInstrumented,
 		consoleInstrumented: consoleRestore !== null,
+		databaseConfigured,
 		shutdown: async () => {
 			// Restore console
 			if (consoleRestore) {
 				consoleRestore()
+			}
+
+			// Clear database config
+			if (databaseConfigured) {
+				setDatabaseConfig(null)
 			}
 
 			// Shutdown span processors (flushes pending spans)

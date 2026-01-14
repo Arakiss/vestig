@@ -59,6 +59,13 @@ export {
 	type VestigDrizzleLoggerOptions,
 } from './drizzle'
 
+// PostgreSQL driver instrumentation
+export {
+	instrumentPostgres,
+	isPostgresInstrumented,
+	type PostgresInstrumentConfig,
+} from './postgres'
+
 // Core utilities
 export {
 	formatDuration,
@@ -72,6 +79,7 @@ export {
 export type {
 	QueryLogEntry,
 	DbLoggerConfig,
+	DatabaseInstrumentConfig,
 	PrismaQueryEvent,
 	PrismaLogEvent,
 	DrizzleLogger,
