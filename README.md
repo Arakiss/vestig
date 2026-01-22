@@ -11,7 +11,7 @@ A modern, runtime-agnostic structured logging library with automatic PII sanitiz
 [![Test Coverage](https://img.shields.io/badge/tests-1273%20passing-brightgreen.svg)](https://github.com/Arakiss/vestig)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-**v0.21.0** · Beta · Active Development
+**v0.22.0** · Beta · Active Development
 
 </div>
 
@@ -23,7 +23,7 @@ Vestig is in **active beta** with continuous development. The API is stable and 
 
 | Metric | Status |
 |--------|--------|
-| **Version** | v0.21.0 |
+| **Version** | v0.22.0 |
 | **Stage** | Beta - API stable |
 | **Tests** | 1273 passing |
 | **Core Coverage** | 81%+ |
