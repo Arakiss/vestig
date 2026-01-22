@@ -86,10 +86,13 @@ export {
 // Server Actions
 export {
 	withWideEvent,
+	withWideEventArgs,
 	createWideEventAction,
+	createWideEventActionWithArgs,
 	type WideEventActionOptions,
 	type WideEventActionContext,
 	type WideEventServerAction,
+	type WideEventServerActionWithArgs,
 } from './server-action'
 
 // Re-export core wide event types for convenience
