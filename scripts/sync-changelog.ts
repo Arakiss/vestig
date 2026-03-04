@@ -9,17 +9,19 @@
  * STRICT MODE: Fails (exit 1) if changelog is out of sync.
  *
  * Usage:
- *   bun scripts/sync-changelog.ts        # Check mode (exits with error if out of sync)
- *   bun scripts/sync-changelog.ts --fix  # Show instructions for what's missing
+ *   bun scripts/sync-changelog.ts            # Check mode (exits with error if out of sync)
+ *   bun scripts/sync-changelog.ts --fix      # Show instructions for what's missing
+ *   bun scripts/sync-changelog.ts --auto-fix # Automatically insert missing entries into page.tsx
  */
 
 import { execSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '..')
+const CHANGELOG_PATH = resolve(ROOT, 'apps/web/app/changelog/page.tsx')
 
 // ANSI color codes
 const colors = {
@@ -74,8 +76,7 @@ function getGitTags(): string[] {
 
 function getChangelogVersions(): string[] {
 	try {
-		const changelogPath = resolve(ROOT, 'apps/web/app/changelog/page.tsx')
-		const content = readFileSync(changelogPath, 'utf-8')
+		const content = readFileSync(CHANGELOG_PATH, 'utf-8')
 
 		// Extract versions from changelog entries
 		const versionMatches = content.matchAll(/version:\s*['"]([0-9]+\.[0-9]+\.[0-9]+)['"]/g)
@@ -156,20 +157,25 @@ function generateEntryCode(version: string, prevVersion: string | null, date: st
 		}
 	}
 
-	const lines: string[] = [
-		'\t{',
-		`\t\tversion: '${version}',`,
-		`\t\tdate: '${date}',`,
-		`\t\tgithubCompare: 'https://github.com/Arakiss/vestig/compare/v${prevVersion}...v${version}',`,
-	]
+	const lines: string[] = ['\t{', `\t\tversion: '${version}',`, `\t\tdate: '${date}',`]
+
+	if (prevVersion) {
+		lines.push(
+			`\t\tgithubCompare: 'https://github.com/Arakiss/vestig/compare/v${prevVersion}...v${version}',`,
+		)
+	}
 
 	for (const [key, items] of Object.entries(categorized)) {
 		if (items.length > 0) {
-			lines.push(`\t\t${key}: [`)
-			for (const item of items) {
-				lines.push(`\t\t\t'${item.replace(/'/g, "\\'")}',`)
+			if (items.length === 1) {
+				lines.push(`\t\t${key}: ['${items[0].replace(/'/g, "\\'")}'],`)
+			} else {
+				lines.push(`\t\t${key}: [`)
+				for (const item of items) {
+					lines.push(`\t\t\t'${item.replace(/'/g, "\\'")}',`)
+				}
+				lines.push('\t\t],')
 			}
-			lines.push('\t\t],')
 		}
 	}
 
@@ -178,8 +184,39 @@ function generateEntryCode(version: string, prevVersion: string | null, date: st
 	return lines.join('\n')
 }
 
+function insertEntriesIntoFile(entries: string[]): boolean {
+	try {
+		const content = readFileSync(CHANGELOG_PATH, 'utf-8')
+
+		// Find the insertion point: right after "const changelog: ChangelogEntry[] = ["
+		const marker = 'const changelog: ChangelogEntry[] = ['
+		const markerIndex = content.indexOf(marker)
+
+		if (markerIndex === -1) {
+			log('red', 'Error: Could not find changelog array in page.tsx')
+			return false
+		}
+
+		const insertionPoint = markerIndex + marker.length
+		const before = content.slice(0, insertionPoint)
+		const after = content.slice(insertionPoint)
+
+		// Build the new entries block (newest first, they're already sorted)
+		const newEntriesBlock = `\n${entries.join('\n')}`
+
+		const newContent = before + newEntriesBlock + after
+		writeFileSync(CHANGELOG_PATH, newContent, 'utf-8')
+
+		return true
+	} catch (err) {
+		log('red', `Error: Failed to write changelog page: ${err}`)
+		return false
+	}
+}
+
 function main(): void {
 	const fixMode = process.argv.includes('--fix')
+	const autoFixMode = process.argv.includes('--auto-fix')
 
 	log('bold', '\n🔍 Changelog Sync Validator\n')
 	console.log('━'.repeat(50))
@@ -203,25 +240,47 @@ function main(): void {
 		console.log(`   - v${version} (tagged on ${getTagDate(version)})`)
 	}
 
-	if (fixMode) {
+	// Generate entry code for all missing versions
+	const generatedEntries: string[] = []
+	for (let i = 0; i < missingVersions.length; i++) {
+		const version = missingVersions[i]
+		const prevVersionIndex = gitTags.indexOf(version) + 1
+		const prevVersion = prevVersionIndex < gitTags.length ? gitTags[prevVersionIndex] : null
+		const date = getTagDate(version)
+		generatedEntries.push(generateEntryCode(version, prevVersion, date))
+	}
+
+	if (autoFixMode) {
+		log('blue', '\n🔧 Auto-fixing: inserting missing entries into page.tsx...\n')
+
+		const success = insertEntriesIntoFile(generatedEntries)
+
+		if (success) {
+			log('green', `✅ Inserted ${missingVersions.length} entry/entries into page.tsx`)
+			log('yellow', '   Please review the changes and commit them.\n')
+			process.exit(0)
+		}
+
+		log('red', '❌ Auto-fix failed. Falling back to manual instructions.\n')
+		// Fall through to show suggestions
+	}
+
+	if (fixMode || autoFixMode) {
 		log('blue', '\n📝 Suggested changelog entries:\n')
 		console.log('Add these entries to apps/web/app/changelog/page.tsx:\n')
 
-		for (let i = 0; i < missingVersions.length; i++) {
-			const version = missingVersions[i]
-			const prevVersionIndex = gitTags.indexOf(version) + 1
-			const prevVersion = prevVersionIndex < gitTags.length ? gitTags[prevVersionIndex] : null
-			const date = getTagDate(version)
-
-			console.log(generateEntryCode(version, prevVersion, date))
+		for (const entry of generatedEntries) {
+			console.log(entry)
 			console.log('')
 		}
 	} else {
-		log('yellow', '\nRun with --fix to see suggested changelog entries:')
-		console.log('  bun scripts/sync-changelog.ts --fix\n')
+		log('yellow', '\nRun with --fix to see suggested entries:')
+		console.log('  bun scripts/sync-changelog.ts --fix')
+		log('yellow', '\nRun with --auto-fix to insert entries automatically:')
+		console.log('  bun scripts/sync-changelog.ts --auto-fix\n')
 	}
 
-	// STRICT: Always fail if changelog is out of sync
+	// STRICT: Always fail if changelog is out of sync (unless auto-fix succeeded — it exits 0 above)
 	log('red', '\n❌ Push blocked: Changelog is out of sync with git tags.')
 	log('yellow', '   Please update apps/web/app/changelog/page.tsx before pushing.\n')
 	process.exit(1)
