@@ -6,11 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [0.22.0](https://github.com/Arakiss/vestig/compare/v0.20.0...v0.22.0) (2026-01-22)
+## [0.22.0](https://github.com/Arakiss/vestig/compare/v0.21.0...v0.22.0) (2026-01-22)
+
+### 📚 Documentation
+
+* **docs:** add OTLP Export, Instrumentation, and Cloudflare/Edge documentation pages ([#7](https://github.com/Arakiss/vestig/pull/7))
+* **llms:** rewrite llms.txt generation to follow llms-full.txt standard (41 pages, was 2)
+
+## [0.21.0](https://github.com/Arakiss/vestig/compare/v0.20.0...v0.21.0) (2026-01-22)
 
 ### ✨ Features
 
-* **wide-events:** add withWideEventArgs() for incremental adoption ([c3872d9](https://github.com/Arakiss/vestig/commit/c3872d9cb06c494ecc0567c86d4e85ff3b56875b)), closes [#2](https://github.com/Arakiss/vestig/issues/2) [#2](https://github.com/Arakiss/vestig/issues/2)
+* **wide-events:** add withWideEventArgs() for incremental adoption ([c3872d9](https://github.com/Arakiss/vestig/commit/c3872d9cb06c494ecc0567c86d4e85ff3b56875b)), closes [#2](https://github.com/Arakiss/vestig/issues/2)
 
 ## [0.20.0](https://github.com/Arakiss/vestig/compare/v0.19.0...v0.20.0) (2026-01-22)
 
