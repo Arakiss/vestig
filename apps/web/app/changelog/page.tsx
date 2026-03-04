@@ -28,6 +28,21 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
 	{
+		version: '0.22.0',
+		date: '2026-01-22',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.21.0...v0.22.0',
+		docs: [
+			'add OTLP Export, Instrumentation, and Cloudflare/Edge documentation pages',
+			'rewrite llms.txt generation to follow llms-full.txt standard (41 pages, was 2)',
+		],
+	},
+	{
+		version: '0.21.0',
+		date: '2026-01-22',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.20.0...v0.21.0',
+		features: ['add withWideEventArgs() for incremental wide event adoption'],
+	},
+	{
 		version: '0.20.0',
 		date: '2026-01-22',
 		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.19.0...v0.20.0',
