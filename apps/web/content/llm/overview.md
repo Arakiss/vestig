@@ -28,6 +28,7 @@ log.error('Request failed', { error: new Error('Timeout') })
 - **Smart Sampling**: Probability, rate-limit, namespace-based, and composite sampling
 - **Wide Events**: Canonical log lines for comprehensive request context with tail sampling
 - **Transports**: Console, HTTP, File, Datadog, Sentry - all with batching support
+- **OTLP Export**: Send traces to Jaeger, Honeycomb, Grafana Cloud, Vercel, Datadog, Axiom
 - **Metrics**: Built-in Prometheus-format metrics export
 
 ## Documentation
@@ -50,6 +51,7 @@ log.error('Request failed', { error: new Error('Timeout') })
 - [W3C Trace Context](/docs/tracing/w3c) - traceparent and tracestate support
 - [Transports](/docs/transports) - Console, HTTP, File, Datadog, Sentry
 - [Sampling](/docs/sampling) - Control log volume
+- [OTLP Export](/docs/tracing/otlp) - Export spans to observability backends
 
 ### Wide Events
 
@@ -60,6 +62,8 @@ log.error('Request failed', { error: new Error('Timeout') })
 
 - [Next.js](/docs/nextjs) - Server components, route handlers, middleware, wide events
 - [Client Components](/docs/nextjs/client) - Browser-side logging with VestigProvider
+- [Instrumentation](/docs/nextjs/instrumentation) - Unified Next.js setup with registerVestig()
+- [Cloudflare & Edge](/docs/deployments/cloudflare) - Edge runtime deployment guide
 
 ## Packages
 

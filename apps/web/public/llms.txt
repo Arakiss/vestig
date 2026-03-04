@@ -2,72 +2,68 @@
 
 > Zero-dependency TypeScript logging with auto PII sanitization, native tracing, and multi-runtime support.
 
-Vestig is a lightweight structured logging library designed for modern TypeScript applications. It works seamlessly across Bun, Node.js, Deno, Edge runtimes (Vercel Edge, Cloudflare Workers), and browsers.
+- [Full documentation](https://vestig.dev/llms-full.txt)
 
-## Quick Start
+## Getting Started
+- [Introduction](https://vestig.dev/docs): Introduction
+- [Installation](https://vestig.dev/docs/getting-started): Installation
+- [Features Overview](https://vestig.dev/docs/features): Features Overview
 
-```bash
-bun add vestig
-# or: npm install vestig
-```
+## Core Concepts
+- [Logging Basics](https://vestig.dev/docs/core/logging): Logging Basics
+- [Log Levels](https://vestig.dev/docs/core/levels): Log Levels
+- [Structured Output](https://vestig.dev/docs/core/structured): Structured Output
+- [Child Loggers](https://vestig.dev/docs/core/child-loggers): Child Loggers
+- [Runtime Detection](https://vestig.dev/docs/runtime): Runtime Detection
 
-```typescript
-import { log } from 'vestig'
+## Tracing
+- [Overview](https://vestig.dev/docs/tracing): Overview
+- [Spans](https://vestig.dev/docs/tracing/spans): Spans
+- [Context Propagation](https://vestig.dev/docs/tracing/context): Context Propagation
+- [W3C Trace Context](https://vestig.dev/docs/tracing/w3c): W3C Trace Context
+- [OTLP Export](https://vestig.dev/docs/tracing/otlp): OTLP Export
 
-log.info('Application started', { version: '1.0.0' })
-log.error('Request failed', { error: new Error('Timeout') })
-```
+## Transports
+- [Overview](https://vestig.dev/docs/transports): Overview
 
-## Key Features
+## Sampling
+- [Overview](https://vestig.dev/docs/sampling): Overview
+- [Advanced Sampling](https://vestig.dev/docs/sampling/advanced): Advanced Sampling
 
-- **Zero Dependencies**: <5KB gzipped, no supply chain risks
-- **Multi-Runtime**: Works in Bun, Node, Deno, Edge (Cloudflare Workers, Vercel Edge), and browsers
-- **Auto PII Sanitization**: Redacts passwords, emails, credit cards, SSNs automatically
-- **Native Tracing**: Built-in distributed tracing with span() and W3C Trace Context
-- **Context Propagation**: AsyncLocalStorage-based request correlation
-- **Smart Sampling**: Probability, rate-limit, namespace-based, and composite sampling
-- **Wide Events**: Canonical log lines for comprehensive request context with tail sampling
-- **Transports**: Console, HTTP, File, Datadog, Sentry - all with batching support
-- **Metrics**: Built-in Prometheus-format metrics export
+## Wide Events
+- [Overview](https://vestig.dev/docs/wide-events): Overview
+- [Tail Sampling](https://vestig.dev/docs/wide-events/tail-sampling): Tail Sampling
 
-## Documentation
+## Security
+- [PII Sanitization](https://vestig.dev/docs/security/sanitization): PII Sanitization
 
-- [Getting Started](/docs/getting-started) - Installation and basic usage
-- [Features Overview](/docs/features) - All features explained
-- [API Reference](/docs/api) - Complete API documentation
+## Integrations
+- [Next.js](https://vestig.dev/docs/nextjs): Next.js
+- [Next.js Middleware](https://vestig.dev/docs/nextjs/middleware): Next.js Middleware
+- [Server Components](https://vestig.dev/docs/nextjs/server-components): Server Components
+- [Route Handlers](https://vestig.dev/docs/nextjs/route-handlers): Route Handlers
+- [Server Actions](https://vestig.dev/docs/nextjs/server-actions): Server Actions
+- [Client Components](https://vestig.dev/docs/nextjs/client): Client Components
+- [Wide Events](https://vestig.dev/docs/nextjs/wide-events): Wide Events
+- [Dev Overlay](https://vestig.dev/docs/nextjs/dev-overlay): Dev Overlay
+- [Web Vitals](https://vestig.dev/docs/nextjs/web-vitals): Web Vitals
+- [Error Boundary](https://vestig.dev/docs/nextjs/error-boundary): Error Boundary
+- [Database Logging](https://vestig.dev/docs/nextjs/database): Database Logging
+- [Instrumentation](https://vestig.dev/docs/nextjs/instrumentation): Instrumentation
 
-### Core Concepts
+## Deployments
+- [Cloudflare & Edge](https://vestig.dev/docs/deployments/cloudflare): Cloudflare & Edge
 
-- [Logging Basics](/docs/core/logging) - Log levels, structured output
-- [Child Loggers](/docs/core/child-loggers) - Namespaced loggers
-- [Runtime Detection](/docs/runtime) - Multi-runtime support
+## Advanced
+- [Error Handling](https://vestig.dev/docs/advanced/error-handling): Error Handling
+- [Error Recovery](https://vestig.dev/docs/advanced/error-recovery): Error Recovery
+- [Performance Tuning](https://vestig.dev/docs/advanced/performance): Performance Tuning
+- [Memory Management](https://vestig.dev/docs/advanced/memory-management): Memory Management
+- [Custom Transports](https://vestig.dev/docs/advanced/custom-transports): Custom Transports
 
-### Feature Guides
+## Guides
+- [Migration from Pino](https://vestig.dev/docs/guides/migration-from-pino): Migration from Pino
 
-- [PII Sanitization](/docs/security/sanitization) - Automatic data redaction (GDPR, HIPAA, PCI-DSS)
-- [Native Tracing](/docs/tracing) - Distributed tracing with spans
-- [Context Propagation](/docs/tracing/context) - Request correlation
-- [W3C Trace Context](/docs/tracing/w3c) - traceparent and tracestate support
-- [Transports](/docs/transports) - Console, HTTP, File, Datadog, Sentry
-- [Sampling](/docs/sampling) - Control log volume
-
-### Wide Events
-
-- [Wide Events Overview](/docs/wide-events) - Canonical log lines
-- [Tail Sampling](/docs/wide-events/tail-sampling) - Outcome-based sampling
-
-### Integration Guides
-
-- [Next.js](/docs/nextjs) - Server components, route handlers, middleware, wide events
-- [Client Components](/docs/nextjs/client) - Browser-side logging with VestigProvider
-
-## Packages
-
-- `vestig` - Core logging library
-- `@vestig/next` - Next.js integration (server/client components, middleware, wide events)
-
-## Links
-
-- [GitHub Repository](https://github.com/Arakiss/vestig)
-- [npm Package](https://www.npmjs.com/package/vestig)
-- [Changelog](/changelog)
+## API Reference
+- [vestig](https://vestig.dev/docs/api): vestig
+- [@vestig/next](https://vestig.dev/docs/api/next): @vestig/next

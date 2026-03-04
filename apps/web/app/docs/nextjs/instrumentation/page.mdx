@@ -1,0 +1,363 @@
+export const metadata = {
+  title: 'Next.js Instrumentation',
+  description: 'One-call setup for OTLP export, fetch instrumentation, console capture, and database config in Next.js with registerVestig().',
+}
+
+# Next.js Instrumentation
+
+Next.js provides an `instrumentation.ts` file that runs **once** when the server starts — before any request is handled. This is the ideal place to initialize observability.
+
+`registerVestig()` turns that single file into a complete instrumentation setup: **OTLP export**, **automatic fetch instrumentation**, **console capture**, and **database configuration** — all in one call.
+
+```typescript
+import { registerVestig } from '@vestig/next/instrumentation'
+```
+
+## Quick Start
+
+### 1. Create `instrumentation.ts`
+
+Add the file to your project root (next to `next.config.ts`):
+
+```typescript
+// instrumentation.ts
+import { registerVestig } from '@vestig/next/instrumentation'
+
+export function register() {
+  registerVestig({
+    serviceName: 'my-app',
+  })
+}
+```
+
+### 2. Set environment variables
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.example.com/v1/traces
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer your-token
+```
+
+### 3. Start your app
+
+OTLP export and fetch instrumentation are now active. Every outgoing `fetch()` call is traced automatically, and spans are exported to your configured endpoint.
+
+---
+
+## RegisterVestigOptions
+
+Top-level options passed to `registerVestig()`:
+
+<Table>
+  <TableHead>
+    <TableRow>
+      <TableHeader>Option</TableHeader>
+      <TableHeader>Type</TableHeader>
+      <TableHeader>Default</TableHeader>
+      <TableHeader>Description</TableHeader>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    <TableRow>
+      <TableCell>`serviceName`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>Required</TableCell>
+      <TableCell>Service name used in OTLP resource attributes</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`otlp`</TableCell>
+      <TableCell>`OTLPConfig`</TableCell>
+      <TableCell>—</TableCell>
+      <TableCell>OTLP export configuration (endpoint, headers, batching)</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`autoInstrument`</TableCell>
+      <TableCell>`AutoInstrumentConfig`</TableCell>
+      <TableCell>—</TableCell>
+      <TableCell>Auto-instrumentation options for fetch, console, and database</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`tailSampling`</TableCell>
+      <TableCell>`TailSamplingConfig`</TableCell>
+      <TableCell>—</TableCell>
+      <TableCell>Tail sampling configuration for wide events</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`debug`</TableCell>
+      <TableCell>`boolean`</TableCell>
+      <TableCell>`false`</TableCell>
+      <TableCell>Enable debug logging for initialization diagnostics</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+## OTLPConfig
+
+Controls how spans are exported to your observability backend:
+
+<Table>
+  <TableHead>
+    <TableRow>
+      <TableHeader>Option</TableHeader>
+      <TableHeader>Type</TableHeader>
+      <TableHeader>Default</TableHeader>
+      <TableHeader>Description</TableHeader>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    <TableRow>
+      <TableCell>`endpoint`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>`OTEL_EXPORTER_OTLP_ENDPOINT` env var</TableCell>
+      <TableCell>OTLP endpoint URL for traces</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`headers`</TableCell>
+      <TableCell>`Record<string, string>`</TableCell>
+      <TableCell>`OTEL_EXPORTER_OTLP_HEADERS` env var</TableCell>
+      <TableCell>Custom authentication headers</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`serviceVersion`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>—</TableCell>
+      <TableCell>Service version string (e.g. `'1.0.0'`)</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`environment`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>`VERCEL_ENV` or `NODE_ENV`</TableCell>
+      <TableCell>Deployment environment name</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`resourceAttributes`</TableCell>
+      <TableCell>`Record<string, unknown>`</TableCell>
+      <TableCell>—</TableCell>
+      <TableCell>Additional OTLP resource attributes</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`batchSize`</TableCell>
+      <TableCell>`number`</TableCell>
+      <TableCell>`100`</TableCell>
+      <TableCell>Number of spans per export batch</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`flushInterval`</TableCell>
+      <TableCell>`number`</TableCell>
+      <TableCell>`5000`</TableCell>
+      <TableCell>Flush interval in milliseconds</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+## AutoInstrumentConfig
+
+Controls what gets automatically instrumented at startup:
+
+<Table>
+  <TableHead>
+    <TableRow>
+      <TableHeader>Option</TableHeader>
+      <TableHeader>Type</TableHeader>
+      <TableHeader>Default</TableHeader>
+      <TableHeader>Description</TableHeader>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    <TableRow>
+      <TableCell>`fetch`</TableCell>
+      <TableCell>`boolean \| InstrumentFetchOptions`</TableCell>
+      <TableCell>`true`</TableCell>
+      <TableCell>Auto-instrument all `fetch()` calls with tracing spans</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`console`</TableCell>
+      <TableCell>`boolean`</TableCell>
+      <TableCell>`false`</TableCell>
+      <TableCell>Capture `console.error` calls as spans</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`database`</TableCell>
+      <TableCell>`DatabaseInstrumentConfig`</TableCell>
+      <TableCell>—</TableCell>
+      <TableCell>Database instrumentation config (used by `instrumentPostgres()`)</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+## RegisterVestigResult
+
+`registerVestig()` returns an object describing what was enabled:
+
+```typescript
+interface RegisterVestigResult {
+  /** Whether OTLP export was enabled */
+  otlpEnabled: boolean
+
+  /** Whether fetch was instrumented */
+  fetchInstrumented: boolean
+
+  /** Whether console capture was enabled */
+  consoleInstrumented: boolean
+
+  /** Whether database instrumentation config was set */
+  databaseConfigured: boolean
+
+  /** Shutdown function to flush pending spans and cleanup */
+  shutdown: () => Promise<void>
+}
+```
+
+Use the result to verify initialization or trigger a graceful shutdown.
+
+---
+
+## Full Configuration Example
+
+A complete setup with all available options:
+
+```typescript
+// instrumentation.ts
+import { registerVestig } from '@vestig/next/instrumentation'
+
+export function register() {
+  const result = registerVestig({
+    serviceName: 'my-app',
+    otlp: {
+      endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+      headers: {
+        'Authorization': `Bearer ${process.env.OTEL_AUTH_TOKEN}`,
+      },
+      serviceVersion: '1.0.0',
+      environment: process.env.VERCEL_ENV,
+      resourceAttributes: {
+        'cloud.region': 'us-east-1',
+      },
+      batchSize: 100,
+      flushInterval: 5000,
+    },
+    autoInstrument: {
+      fetch: {
+        captureHeaders: ['content-type', 'x-request-id'],
+        ignoreUrls: ['/health', /^\/_next/],
+      },
+      console: true,
+      database: {
+        slowQueryThreshold: 100,
+      },
+    },
+    debug: process.env.NODE_ENV === 'development',
+  })
+
+  console.log('Vestig initialized:', {
+    otlp: result.otlpEnabled,
+    fetch: result.fetchInstrumented,
+  })
+}
+```
+
+---
+
+## Environment Variables
+
+`registerVestig()` auto-reads several environment variables when the corresponding option is not explicitly set in config:
+
+- **`OTEL_EXPORTER_OTLP_ENDPOINT`** -- OTLP traces endpoint. If missing and no `otlp.endpoint` is provided, OTLP export is skipped.
+- **`OTEL_EXPORTER_OTLP_HEADERS`** -- Comma-separated `key=value` pairs for authentication headers. Merged with any `otlp.headers` you set in code (code takes precedence).
+- **`VERCEL_ENV`** -- Deployment environment on Vercel (`production`, `preview`, or `development`). Used as the default for `otlp.environment`.
+- **`NODE_ENV`** -- Fallback environment when `VERCEL_ENV` is not set.
+
+### Header format
+
+The `OTEL_EXPORTER_OTLP_HEADERS` variable uses comma-separated key-value pairs:
+
+```bash
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer your-token,X-Custom=value
+```
+
+Values containing `=` are handled correctly -- only the first `=` is treated as the separator.
+
+---
+
+## Vercel Deployment
+
+Vercel has built-in support for OpenTelemetry. When you enable **Observability** in your Vercel project settings, Vercel provides an OTLP endpoint automatically.
+
+To connect Vestig:
+
+1. Enable Observability in your Vercel project dashboard
+2. Set `OTEL_EXPORTER_OTLP_ENDPOINT` in your project environment variables
+3. `VERCEL_ENV` is set automatically by Vercel to `production`, `preview`, or `development`
+4. The endpoint auto-appends `/v1/traces` if missing -- you can provide the base URL or the full path
+
+```typescript
+// instrumentation.ts
+import { registerVestig } from '@vestig/next/instrumentation'
+
+export function register() {
+  registerVestig({
+    serviceName: 'my-app',
+    // No otlp config needed — reads from env vars
+  })
+}
+```
+
+No additional configuration is required. `registerVestig()` reads `OTEL_EXPORTER_OTLP_ENDPOINT` and `VERCEL_ENV` from the environment automatically.
+
+---
+
+## Debug Mode
+
+Enable debug mode during development to see exactly what was initialized:
+
+```typescript
+registerVestig({
+  serviceName: 'my-app',
+  debug: process.env.NODE_ENV === 'development',
+})
+```
+
+When enabled, `registerVestig()` logs initialization status to the console:
+
+```
+[vestig] Initializing for my-app...
+[vestig] OTLP enabled: https://otel.example.com/v1/traces
+[vestig] Fetch instrumentation enabled
+[vestig] Database instrumentation configured
+[vestig]   Slow query threshold: 100ms
+[vestig] Console capture enabled
+[vestig] Initialization complete
+```
+
+This helps verify that your endpoint is correctly resolved and all expected instrumentations are active.
+
+---
+
+## Graceful Shutdown
+
+The `shutdown()` function flushes any pending spans and cleans up resources. Use it to ensure no data is lost when your process exits:
+
+```typescript
+export function register() {
+  const { shutdown } = registerVestig({ serviceName: 'my-app' })
+
+  process.on('SIGTERM', async () => {
+    await shutdown()
+    process.exit(0)
+  })
+}
+```
+
+`shutdown()` performs three things in order:
+
+1. Restores `console.error` if console capture was enabled
+2. Clears the global database configuration
+3. Flushes all pending spans via the span processor pipeline
+
+---
+
+## Next Steps
+
+- [OTLP Export](/docs/tracing/otlp) — Configure backends like Jaeger, Honeycomb, Grafana Cloud
+- [Database Logging](/docs/nextjs/database) — Prisma, Drizzle, and PostgreSQL instrumentation
+- [Cloudflare & Edge](/docs/deployments/cloudflare) — Edge runtime deployment guide
+- [Next.js Integration](/docs/nextjs) — Full overview of `@vestig/next`
