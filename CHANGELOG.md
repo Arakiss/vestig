@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.22.1](https://github.com/Arakiss/vestig/compare/v0.22.0...v0.22.1) (2026-03-04)
+
+### 🐛 Bug Fixes
+
+* **changelog:** add v0.21.0 and v0.22.0 to web changelog and add --auto-fix mode ([#9](https://github.com/Arakiss/vestig/issues/9)) ([c335fc9](https://github.com/Arakiss/vestig/commit/c335fc96dd2dd617f2540f7c5516c2d8c08f6ddd))
+
+### 📚 Documentation
+
+* add OTLP, instrumentation, and Cloudflare/Edge documentation ([#7](https://github.com/Arakiss/vestig/issues/7)) ([5fd52b3](https://github.com/Arakiss/vestig/commit/5fd52b30c210f2c905e70b1366c8e1cdbce55128))
+* **changelog:** add missing v0.21.0 entry and fix v0.22.0 ([#8](https://github.com/Arakiss/vestig/issues/8)) ([2508e7e](https://github.com/Arakiss/vestig/commit/2508e7ed8fc09d17f7ffa33f721df7028df839fe))
+
 ## [0.22.0](https://github.com/Arakiss/vestig/compare/v0.21.0...v0.22.0) (2026-01-22)
 
 ### 📚 Documentation
