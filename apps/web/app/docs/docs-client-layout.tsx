@@ -7,6 +7,7 @@ import {
 	Antenna,
 	ArrowRight,
 	Book,
+	Cloud,
 	Code,
 	Cpu,
 	DashboardSpeed,
@@ -55,6 +56,7 @@ const navigation: SidebarSection[] = [
 			{ title: 'Spans', href: '/docs/tracing/spans' },
 			{ title: 'Context Propagation', href: '/docs/tracing/context' },
 			{ title: 'W3C Trace Context', href: '/docs/tracing/w3c' },
+			{ title: 'OTLP Export', href: '/docs/tracing/otlp', badge: 'New' },
 		],
 	},
 	{
@@ -128,6 +130,18 @@ const navigation: SidebarSection[] = [
 				title: 'Database Logging',
 				href: '/docs/nextjs/database',
 				icon: <DatabaseScript className="h-4 w-4" />,
+			},
+			{ title: 'Instrumentation', href: '/docs/nextjs/instrumentation', badge: 'New' },
+		],
+	},
+	{
+		title: 'Deployments',
+		items: [
+			{
+				title: 'Cloudflare & Edge',
+				href: '/docs/deployments/cloudflare',
+				icon: <Cloud className="h-4 w-4" />,
+				badge: 'New',
 			},
 		],
 	},

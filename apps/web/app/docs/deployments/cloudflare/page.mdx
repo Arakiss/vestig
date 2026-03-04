@@ -1,0 +1,231 @@
+export const metadata = {
+  title: 'Cloudflare Workers & Edge Deployment',
+  description: 'Deploy Vestig on Cloudflare Workers, Vercel Edge Runtime, and other Edge environments. OTLP export, context management, and best practices for Edge runtimes.',
+}
+
+# Cloudflare Workers & Edge Deployment
+
+Vestig works fully on Edge runtimes with zero configuration changes. Logging, tracing, OTLP export, PII sanitization, wide events, and sampling all work out of the box on Cloudflare Workers, Vercel Edge Runtime, and Deno Deploy.
+
+## Overview
+
+Edge runtimes run JavaScript at the network edge, close to your users. Unlike traditional Node.js servers, they use web-standard APIs and have shorter execution time limits. Vestig is built entirely on these web standards — no Node.js-specific dependencies like `http`, `net`, or `fs` — so everything works natively on Edge.
+
+**What works on Edge runtimes:**
+
+- **Logging** — Structured logging with all log levels
+- **Tracing** — Span creation, nesting, and attribute tracking
+- **OTLP Export** — Send traces to Honeycomb, Grafana, Jaeger, or any OTLP backend
+- **PII Sanitization** — All sanitization presets (GDPR, HIPAA, PCI-DSS)
+- **Wide Events** — Rich event aggregation across request lifecycles
+- **Sampling** — Head and tail sampling strategies
+- **W3C Trace Context** — Full `traceparent` and `tracestate` propagation
+
+## Runtime Detection
+
+Vestig automatically detects Edge runtimes through its `runtime.ts` module. The detection logic checks for platform-specific globals:
+
+```typescript
+// Vercel Edge Runtime
+if ('EdgeRuntime' in globalThis) return 'edge'
+
+// Next.js Edge via env
+if (process.env.NEXT_RUNTIME === 'edge') return 'edge'
+
+// Cloudflare Workers: has caches + Request + Response, no window, no process.versions.node
+if ('caches' in globalThis && typeof Request === 'function'
+    && typeof Response === 'function'
+    && typeof window === 'undefined' && !hasNodeVersion()) return 'edge'
+```
+
+Once detected, you can use the convenience flags anywhere in your code:
+
+```typescript
+import { IS_EDGE, IS_SERVER, RUNTIME } from 'vestig'
+
+// IS_EDGE = true on CF Workers, Vercel Edge, Deno Deploy
+// IS_SERVER = IS_NODE || IS_BUN || IS_DENO || IS_EDGE
+// RUNTIME = 'edge' on all Edge runtimes
+```
+
+These flags are resolved once at startup and remain constant for the lifetime of the isolate.
+
+## OTLP on Edge
+
+The `OTLPExporter` uses native `fetch()` under the hood, making it fully compatible with Edge runtimes. There are no Node.js APIs involved — no `http` module, no `net` sockets, no filesystem access. Pure web standards.
+
+Edge runtimes have shorter execution time limits than traditional servers, so you should tune the exporter for smaller batches, more frequent flushes, and shorter timeouts:
+
+```typescript
+import { registerSpanProcessor, span } from 'vestig'
+import { OTLPExporter } from 'vestig/otlp'
+
+const exporter = new OTLPExporter({
+  endpoint: 'https://api.honeycomb.io/v1/traces',
+  serviceName: 'my-worker',
+  headers: { 'x-honeycomb-team': HONEYCOMB_API_KEY },
+  batchSize: 25,        // Smaller batches for Edge
+  flushInterval: 1000,  // More frequent flushes
+  timeout: 5000,        // Shorter timeout
+  maxRetries: 1,        // Fewer retries (execution time limits)
+})
+
+registerSpanProcessor(exporter)
+```
+
+These settings keep the exporter well within the typical 30-second CPU time limit of Cloudflare Workers while ensuring spans are reliably delivered.
+
+## Context Management
+
+Vestig adapts its context management strategy based on the runtime:
+
+- **Node.js / Bun / Deno** — Uses `AsyncLocalStorage` for proper request isolation across async boundaries
+- **Edge runtimes (Cloudflare Workers)** — Falls back to `GlobalContextManager`, a stack-based global context
+
+The `GlobalContextManager` works correctly for sequential operations within a single request. Since Cloudflare Workers handle one request at a time per isolate, this is safe for most deployments. Concurrent requests in the same isolate can potentially share context, but this is rare in practice.
+
+The API is identical regardless of runtime:
+
+```typescript
+import { withContext, getContext } from 'vestig'
+
+// Works the same on Edge — context is propagated within the execution
+await withContext({ requestId: 'req-123' }, async () => {
+  const ctx = getContext()
+  // ctx.requestId === 'req-123'
+})
+```
+
+## Basic Cloudflare Worker Example
+
+A complete Cloudflare Worker with logging, tracing, and OTLP export:
+
+```typescript
+import { createLogger, span, withContext, createCorrelationContext } from 'vestig'
+import { OTLPExporter, registerSpanProcessor, shutdownSpanProcessors } from 'vestig/otlp'
+
+const log = createLogger({ namespace: 'worker' })
+
+// Setup OTLP (run once at module level)
+const exporter = new OTLPExporter({
+  endpoint: 'https://api.honeycomb.io/v1/traces',
+  serviceName: 'my-worker',
+  headers: { 'x-honeycomb-team': 'your-api-key' },
+  batchSize: 25,
+  timeout: 5000,
+})
+registerSpanProcessor(exporter)
+
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const context = createCorrelationContext()
+
+    return withContext(context, async () => {
+      return span('worker:request', async (s) => {
+        s.setAttribute('http.method', request.method)
+        s.setAttribute('http.url', request.url)
+
+        log.info('Request received', { method: request.method })
+
+        const result = await handleRequest(request)
+
+        s.setAttribute('http.status_code', result.status)
+
+        // Ensure spans are flushed before Worker terminates
+        ctx.waitUntil(exporter.forceFlush())
+
+        return result
+      })
+    })
+  },
+}
+```
+
+**Important**: Always use `ctx.waitUntil()` to flush spans. Cloudflare Workers terminate immediately after the response is sent. Without `waitUntil`, pending spans would be lost. The `ExecutionContext.waitUntil()` method extends the Worker's lifetime to complete background tasks like flushing telemetry.
+
+## Next.js Edge Routes
+
+Vestig works seamlessly in Next.js Edge API routes. Add `export const runtime = 'edge'` to opt into Edge execution:
+
+```typescript
+// app/api/fast/route.ts
+export const runtime = 'edge'
+
+import { span } from 'vestig'
+import { log } from '@/lib/logger'
+
+export async function GET(request: Request) {
+  return span('api:fast', async (s) => {
+    s.setAttribute('runtime', 'edge')
+    log.info('Edge API called')
+    return Response.json({ fast: true })
+  })
+}
+```
+
+Vestig detects the Edge runtime automatically via the `NEXT_RUNTIME` environment variable and adjusts its behavior accordingly.
+
+## W3C Trace Context Propagation
+
+For cross-service correlation, parse incoming `traceparent` headers and propagate them to downstream services:
+
+```typescript
+import { parseTraceparent, createTraceparent, span } from 'vestig'
+
+export default {
+  async fetch(request: Request) {
+    // Parse incoming trace context
+    const traceparent = request.headers.get('traceparent')
+    const parsed = traceparent ? parseTraceparent(traceparent) : null
+
+    return span('worker:handle', async (s) => {
+      // Propagate to downstream services
+      const outgoing = createTraceparent({
+        traceId: parsed?.traceId ?? s.traceId,
+        spanId: s.spanId,
+        sampled: true,
+      })
+
+      const response = await fetch('https://api.example.com/data', {
+        headers: { 'traceparent': outgoing },
+      })
+
+      return new Response(await response.text())
+    })
+  },
+}
+```
+
+This ensures a single trace ID follows a request from the Edge Worker through any number of downstream services, giving you a complete picture in your tracing backend.
+
+## Feature Compatibility Matrix
+
+| Feature | CF Workers | Vercel Edge | Node.js |
+|---------|:----------:|:-----------:|:-------:|
+| Logging | ✅ | ✅ | ✅ |
+| Structured Output | ✅ | ✅ | ✅ |
+| PII Sanitization | ✅ | ✅ | ✅ |
+| Tracing (spans) | ✅ | ✅ | ✅ |
+| OTLP Export | ✅ | ✅ | ✅ |
+| Wide Events | ✅ | ✅ | ✅ |
+| Context (AsyncLocalStorage) | ❌ Global fallback | ❌ Global fallback | ✅ |
+| File Transport | ❌ | ❌ | ✅ |
+| Console Capture | ✅ | ✅ | ✅ |
+| W3C Trace Context | ✅ | ✅ | ✅ |
+
+## Best Practices for Edge Deployments
+
+- **Flush before termination** — Always use `ctx.waitUntil(exporter.forceFlush())` in Cloudflare Workers to ensure spans are exported before the isolate shuts down
+- **Smaller batches** — Use `batchSize: 25` and `flushInterval: 1000` to stay within execution time limits
+- **Shorter timeouts** — Edge functions have strict CPU time budgets; use `timeout: 5000` to avoid hitting them
+- **Fewer retries** — Set `maxRetries: 1` to prevent retry loops from exhausting execution time
+- **Log sparingly** — Edge runtimes have no persistent storage; rely on OTLP export for observability rather than high-volume console logging
+- **Trace context** — Propagate `traceparent` headers to downstream services for end-to-end distributed tracing
+
+## Related
+
+- [OTLP Export](/docs/tracing/otlp) — Configure OTLP backends
+- [Tracing Overview](/docs/tracing) — Span creation and management
+- [Runtime Detection](/docs/runtime) — How Vestig detects environments
+- [Context Propagation](/docs/tracing/context) — Request correlation
+- [W3C Trace Context](/docs/tracing/w3c) — traceparent and tracestate

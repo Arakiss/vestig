@@ -24,6 +24,7 @@ export const navigationConfig: NavigationConfig = {
 				{ label: 'Native Tracing', href: '/docs/tracing' },
 				{ label: 'Sampling', href: '/docs/sampling' },
 				{ label: 'Transports', href: '/docs/transports' },
+				{ label: 'OTLP Export', href: '/docs/tracing/otlp' },
 			],
 		},
 		{
@@ -32,6 +33,7 @@ export const navigationConfig: NavigationConfig = {
 				{ label: 'Next.js', href: '/docs/nextjs' },
 				{ label: 'Express', href: '/docs/api' },
 				{ label: 'Core API', href: '/docs/api' },
+				{ label: 'Cloudflare & Edge', href: '/docs/deployments/cloudflare' },
 			],
 		},
 		{

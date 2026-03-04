@@ -1,0 +1,476 @@
+export const metadata = {
+  title: 'OTLP Export',
+  description: 'Export traces to any OpenTelemetry-compatible backend using the OTLP protocol. Zero dependencies, native fetch, Edge-compatible.',
+}
+
+# OTLP Export
+
+Export traces to any OpenTelemetry-compatible backend with zero additional dependencies.
+
+## Overview
+
+The **OpenTelemetry Protocol (OTLP)** is the standard wire format for sending telemetry data to observability backends. Vestig ships a built-in OTLP exporter that:
+
+- **Zero dependencies** — uses native `fetch()` instead of the heavy `@opentelemetry/exporter-trace-otlp-http` SDK
+- **Batches and retries** — automatically buffers spans and retries with exponential backoff
+- **Edge-compatible** — works on Cloudflare Workers, Vercel Edge Functions, and any runtime with `fetch()`
+- **Universal backend support** — Jaeger, Honeycomb, Grafana Cloud, Vercel, Datadog, Axiom, and any OTLP-compatible collector
+
+## Quick Start
+
+```typescript
+import { registerSpanProcessor, span } from 'vestig'
+import { OTLPExporter } from 'vestig/otlp'
+
+const exporter = new OTLPExporter({
+  endpoint: 'https://otel.example.com/v1/traces',
+  serviceName: 'my-app',
+})
+
+registerSpanProcessor(exporter)
+
+// Your spans are now exported to the OTLP endpoint
+await span('db:query', async (s) => {
+  s.setAttribute('db.table', 'users')
+  return await db.select().from(users)
+})
+```
+
+## Configuration Reference
+
+<Table>
+  <TableHead>
+    <TableRow>
+      <TableHeader>Option</TableHeader>
+      <TableHeader>Type</TableHeader>
+      <TableHeader>Default</TableHeader>
+      <TableHeader>Description</TableHeader>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    <TableRow>
+      <TableCell>`endpoint`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>Required</TableCell>
+      <TableCell>OTLP endpoint URL for traces</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`serviceName`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>Required</TableCell>
+      <TableCell>Service name, maps to `service.name` resource attribute</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`serviceVersion`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>--</TableCell>
+      <TableCell>Service version, maps to `service.version`</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`environment`</TableCell>
+      <TableCell>`string`</TableCell>
+      <TableCell>--</TableCell>
+      <TableCell>Deployment environment, maps to `deployment.environment`</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`headers`</TableCell>
+      <TableCell>`Record<string, string>`</TableCell>
+      <TableCell>--</TableCell>
+      <TableCell>Custom HTTP headers for authentication</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`resourceAttributes`</TableCell>
+      <TableCell>`Record<string, unknown>`</TableCell>
+      <TableCell>--</TableCell>
+      <TableCell>Additional OTLP resource attributes</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`batchSize`</TableCell>
+      <TableCell>`number`</TableCell>
+      <TableCell>`100`</TableCell>
+      <TableCell>Max spans to batch before sending</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`flushInterval`</TableCell>
+      <TableCell>`number`</TableCell>
+      <TableCell>`5000`</TableCell>
+      <TableCell>Interval in ms between automatic flushes</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`timeout`</TableCell>
+      <TableCell>`number`</TableCell>
+      <TableCell>`30000`</TableCell>
+      <TableCell>Request timeout in ms</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`maxRetries`</TableCell>
+      <TableCell>`number`</TableCell>
+      <TableCell>`3`</TableCell>
+      <TableCell>Maximum retry attempts on failure</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`retryDelay`</TableCell>
+      <TableCell>`number`</TableCell>
+      <TableCell>`1000`</TableCell>
+      <TableCell>Initial retry delay in ms (doubles each attempt)</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`enabled`</TableCell>
+      <TableCell>`boolean`</TableCell>
+      <TableCell>`true`</TableCell>
+      <TableCell>Enable/disable the exporter</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+The exporter also sets the following resource attributes automatically:
+
+- `telemetry.sdk.name` — `vestig`
+- `telemetry.sdk.version` — current Vestig version
+- `telemetry.sdk.language` — `javascript`
+
+## Backend-Specific Setup
+
+### Jaeger
+
+Local development with Jaeger (default OTLP HTTP port):
+
+```typescript
+import { OTLPExporter } from 'vestig/otlp'
+
+const exporter = new OTLPExporter({
+  endpoint: 'http://localhost:4318/v1/traces',
+  serviceName: 'my-app',
+})
+```
+
+### Honeycomb
+
+```typescript
+import { OTLPExporter } from 'vestig/otlp'
+
+const exporter = new OTLPExporter({
+  endpoint: 'https://api.honeycomb.io/v1/traces',
+  serviceName: 'my-app',
+  headers: {
+    'x-honeycomb-team': process.env.HONEYCOMB_API_KEY!,
+  },
+})
+```
+
+### Grafana Cloud
+
+```typescript
+import { OTLPExporter } from 'vestig/otlp'
+
+const exporter = new OTLPExporter({
+  endpoint: 'https://otlp-gateway-prod-us-east-0.grafana.net/otlp/v1/traces',
+  serviceName: 'my-app',
+  headers: {
+    'Authorization': `Basic ${btoa(`${instanceId}:${process.env.GRAFANA_API_KEY}`)}`,
+  },
+})
+```
+
+### Vercel
+
+Vercel sets standard OpenTelemetry environment variables automatically:
+
+```typescript
+import { OTLPExporter } from 'vestig/otlp'
+
+const exporter = new OTLPExporter({
+  endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT!,
+  serviceName: 'my-app',
+  environment: process.env.VERCEL_ENV,
+})
+```
+
+### Datadog
+
+```typescript
+import { OTLPExporter } from 'vestig/otlp'
+
+const exporter = new OTLPExporter({
+  endpoint: 'https://trace.agent.datadoghq.com/v1/traces',
+  serviceName: 'my-app',
+  headers: {
+    'DD-API-KEY': process.env.DD_API_KEY!,
+  },
+})
+```
+
+### Axiom
+
+```typescript
+import { OTLPExporter } from 'vestig/otlp'
+
+const exporter = new OTLPExporter({
+  endpoint: 'https://api.axiom.co/v1/traces',
+  serviceName: 'my-app',
+  headers: {
+    'Authorization': `Bearer ${process.env.AXIOM_API_TOKEN}`,
+    'X-Axiom-Dataset': 'traces',
+  },
+})
+```
+
+## SpanProcessor Interface
+
+The `OTLPExporter` implements the `SpanProcessor` interface, which is how Vestig notifies external systems about span lifecycle events.
+
+```typescript
+import type { SpanProcessor } from 'vestig'
+
+interface SpanProcessor {
+  onStart?(span: Span): void
+  onEnd(span: Span): void
+  forceFlush?(): Promise<void>
+  shutdown?(): Promise<void>
+}
+```
+
+- **`onStart`** — called when a span begins (optional, used for real-time streaming)
+- **`onEnd`** — called when a span finishes (required, this is where batching exporters collect spans)
+- **`forceFlush`** — send all buffered data immediately
+- **`shutdown`** — flush remaining data and release resources
+
+### Creating a Custom Processor
+
+```typescript
+import type { SpanProcessor } from 'vestig'
+import { registerSpanProcessor } from 'vestig'
+
+const consoleProcessor: SpanProcessor = {
+  onStart(span) {
+    console.log(`[span:start] ${span.name}`)
+  },
+  onEnd(span) {
+    const duration = span.endTime! - span.startTime
+    console.log(`[span:end] ${span.name} (${duration.toFixed(1)}ms)`)
+  },
+  forceFlush() {
+    return Promise.resolve()
+  },
+  shutdown() {
+    return Promise.resolve()
+  },
+}
+
+registerSpanProcessor(consoleProcessor)
+```
+
+### Management Functions
+
+Vestig provides global functions for managing all registered processors:
+
+<Table>
+  <TableHead>
+    <TableRow>
+      <TableHeader>Function</TableHeader>
+      <TableHeader>Description</TableHeader>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    <TableRow>
+      <TableCell>`registerSpanProcessor(processor)`</TableCell>
+      <TableCell>Register a processor globally</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`unregisterSpanProcessor(processor)`</TableCell>
+      <TableCell>Remove a registered processor</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`getSpanProcessors()`</TableCell>
+      <TableCell>List all registered processors</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`flushSpanProcessors()`</TableCell>
+      <TableCell>Flush all processors (send buffered data)</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`shutdownSpanProcessors()`</TableCell>
+      <TableCell>Shutdown all processors (flush and release)</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+All management functions are importable from `vestig` or `vestig/otlp`.
+
+## Graceful Shutdown
+
+Always flush pending spans before your process exits. Undelivered spans in the buffer are lost if the process terminates without flushing.
+
+```typescript
+import { shutdownSpanProcessors } from 'vestig'
+
+process.on('SIGTERM', async () => {
+  await shutdownSpanProcessors()
+  process.exit(0)
+})
+```
+
+For Next.js apps, place this in your `instrumentation.ts`:
+
+```typescript
+import { registerSpanProcessor, shutdownSpanProcessors } from 'vestig'
+import { OTLPExporter } from 'vestig/otlp'
+
+export function register() {
+  const exporter = new OTLPExporter({
+    endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT!,
+    serviceName: 'my-app',
+  })
+
+  registerSpanProcessor(exporter)
+
+  process.on('SIGTERM', async () => {
+    await shutdownSpanProcessors()
+    process.exit(0)
+  })
+}
+```
+
+## Error Handling
+
+Export failures throw `OTLPExportError`, which provides structured error details:
+
+```typescript
+import { OTLPExportError } from 'vestig/otlp'
+```
+
+### Properties
+
+<Table>
+  <TableHead>
+    <TableRow>
+      <TableHeader>Property</TableHeader>
+      <TableHeader>Type</TableHeader>
+      <TableHeader>Description</TableHeader>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    <TableRow>
+      <TableCell>`statusCode`</TableCell>
+      <TableCell>`number`</TableCell>
+      <TableCell>HTTP status code (`0` for network errors)</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`responseBody`</TableCell>
+      <TableCell>`string | undefined`</TableCell>
+      <TableCell>Response body from the backend, if available</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`cause`</TableCell>
+      <TableCell>`Error | undefined`</TableCell>
+      <TableCell>Underlying error (e.g., network failure)</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+### Helper Getters
+
+<Table>
+  <TableHead>
+    <TableRow>
+      <TableHeader>Getter</TableHeader>
+      <TableHeader>Returns `true` when</TableHeader>
+    </TableRow>
+  </TableHead>
+  <TableBody>
+    <TableRow>
+      <TableCell>`isNetworkError`</TableCell>
+      <TableCell>Status code is `0` (fetch failed entirely)</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`isTimeout`</TableCell>
+      <TableCell>Status code is `408` (request timed out)</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`isClientError`</TableCell>
+      <TableCell>Status code is `4xx` (bad request, auth failure)</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`isServerError`</TableCell>
+      <TableCell>Status code is `5xx` (backend unavailable)</TableCell>
+    </TableRow>
+    <TableRow>
+      <TableCell>`isRetryable`</TableCell>
+      <TableCell>Network error, timeout, or server error</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+
+The exporter automatically retries on retryable errors (network, timeout, 5xx) with exponential backoff. Client errors (4xx) are **not** retried since they indicate a configuration problem.
+
+## Advanced
+
+### Conversion Utilities
+
+For advanced use cases, Vestig exports the low-level conversion functions used internally by the exporter:
+
+```typescript
+import {
+  toOTLPSpan,
+  toOTLPAttributes,
+  toOTLPAttributeValue,
+  toOTLPStatusCode,
+  msToNano,
+  isoToNano,
+} from 'vestig/otlp'
+```
+
+- **`toOTLPSpan(span, epochStartMs)`** — convert a Vestig Span to the OTLP wire format
+- **`toOTLPAttributes(attrs)`** — convert a `Record<string, unknown>` to OTLP key-value pairs
+- **`toOTLPAttributeValue(value)`** — convert a single value to an OTLP attribute value
+- **`toOTLPStatusCode(status)`** — convert a Vestig span status to an OTLP status code
+- **`msToNano(ms)`** — convert milliseconds to nanosecond string (OTLP timestamp format)
+- **`isoToNano(isoString)`** — convert an ISO date string to nanosecond string
+
+### OTLP Enums
+
+Standard OTLP enums are available for building custom payloads:
+
+```typescript
+import { OTLPStatusCode, OTLPSpanKind, OTLPSeverityNumber } from 'vestig/otlp'
+
+OTLPStatusCode.UNSET   // 0
+OTLPStatusCode.OK      // 1
+OTLPStatusCode.ERROR   // 2
+
+OTLPSpanKind.INTERNAL  // 1
+OTLPSpanKind.SERVER    // 2
+OTLPSpanKind.CLIENT    // 3
+OTLPSpanKind.PRODUCER  // 4
+OTLPSpanKind.CONSUMER  // 5
+
+OTLPSeverityNumber.DEBUG  // 5
+OTLPSeverityNumber.INFO   // 9
+OTLPSeverityNumber.WARN   // 13
+OTLPSeverityNumber.ERROR  // 17
+OTLPSeverityNumber.FATAL  // 21
+```
+
+## Edge Compatibility
+
+The OTLP exporter works on Edge runtimes — Cloudflare Workers, Vercel Edge Functions, Deno Deploy — because it relies solely on the `fetch()` API rather than Node.js-specific modules like `http` or `net`.
+
+For Edge environments, consider smaller batch sizes and shorter flush intervals since Edge functions have shorter execution windows:
+
+```typescript
+const exporter = new OTLPExporter({
+  endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT!,
+  serviceName: 'edge-api',
+  batchSize: 10,
+  flushInterval: 1000,
+  timeout: 5000,
+})
+```
+
+## Related
+
+- [Tracing Overview](/docs/tracing) — How tracing works in Vestig
+- [Spans](/docs/tracing/spans) — Deep dive into the Span API
+- [Context Propagation](/docs/tracing/context) — AsyncLocalStorage-based context flow
+- [Instrumentation](/docs/nextjs/instrumentation) — Unified Next.js setup with registerVestig()
+- [Cloudflare & Edge](/docs/deployments/cloudflare) — Edge runtime deployment guide
