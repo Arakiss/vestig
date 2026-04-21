@@ -28,6 +28,12 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
 	{
+		version: '0.23.0',
+		date: '2026-04-21',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.22.1...v0.23.0',
+		features: ['harden log delivery and next exports'],
+	},
+	{
 		version: '0.22.1',
 		date: '2026-03-04',
 		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.22.0...v0.22.1',
