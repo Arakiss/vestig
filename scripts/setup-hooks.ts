@@ -152,10 +152,17 @@ function setupHooks(): void {
 		// Check if hook already exists (and is not a sample)
 		if (existsSync(hookPath) && !hookPath.endsWith('.sample')) {
 			const existing = readFileSync(hookPath, 'utf8')
-			if (existing.includes('vestig') || existing.includes('validate-version')) {
+			if (existing === hook.content) {
 				console.log(`   ✓ ${hook.name} hook already installed`)
 				continue
 			}
+
+			if (existing.includes('validate-version') || existing.includes('LLM context validation')) {
+				writeFileSync(hookPath, hook.content, { mode: 0o755 })
+				console.log(`   ✓ Updated ${hook.name} hook`)
+				continue
+			}
+
 			// Backup existing hook
 			copyFileSync(hookPath, `${hookPath}.backup`)
 			console.log(`   ⚠️  Backed up existing ${hook.name} to ${hook.name}.backup`)
