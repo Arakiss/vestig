@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.23.0](https://github.com/Arakiss/vestig/compare/v0.22.1...v0.23.0) (2026-04-21)
+
+### ✨ Features
+
+* harden log delivery and next exports ([9cd51d1](https://github.com/Arakiss/vestig/commit/9cd51d1a68ad8c4132d657d38810d0c165981b6a)), closes [#4](https://github.com/Arakiss/vestig/issues/4) [#5](https://github.com/Arakiss/vestig/issues/5) [#10](https://github.com/Arakiss/vestig/issues/10)
+
 ## [0.22.1](https://github.com/Arakiss/vestig/compare/v0.22.0...v0.22.1) (2026-03-04)
 
 ### 🐛 Bug Fixes
