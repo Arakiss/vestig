@@ -37,7 +37,7 @@
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
-		"@tailwindcss/postcss": "^4.1.18",
+		"@tailwindcss/postcss": "^4.2.4",
 		"@types/js-yaml": "^4.0.9",
 		"@types/mdx": "catalog:",
 		"@types/node": "catalog:",
