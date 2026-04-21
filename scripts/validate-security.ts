@@ -59,6 +59,12 @@ function main(): void {
 	if (!ci.includes('bun audit')) {
 		fail('CI security scan must run bun audit')
 	}
+	if (ci.includes('npm install --save-dev @commitlint')) {
+		fail('CI commit validation must not install npm packages into the workspace')
+	}
+	if (!ci.includes('bun scripts/validate-commits.ts')) {
+		fail('CI pull-request commit validation must run the Bun commit validator')
+	}
 
 	for (const path of ['.github/workflows/release.yml', '.github/workflows/npm-publish.yml']) {
 		const workflow = requireFile(path)

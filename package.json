@@ -22,7 +22,7 @@
 	},
 	"scripts": {
 		"build": "bun run --filter 'vestig' build && bun run --filter '@vestig/next' build && bun run --filter '@vestig/web' build",
-		"test": "bun run --filter '*' test",
+		"test": "bun run --filter '*' test && bun test scripts/__tests__/*.test.ts",
 		"lint": "biome check .",
 		"format": "biome format --write .",
 		"format:check": "biome format .",

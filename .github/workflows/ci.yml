@@ -115,42 +115,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '24'
-
-      - name: Install commitlint
-        run: |
-          npm install --save-dev @commitlint/cli @commitlint/config-conventional
-
-      - name: Create commitlint config
-        run: |
-          echo "module.exports = {
-            extends: ['@commitlint/config-conventional'],
-            rules: {
-              'type-enum': [2, 'always', [
-                'feat',     // New feature
-                'fix',      // Bug fix
-                'docs',     // Documentation
-                'style',    // Formatting, no code change
-                'refactor', // Code change that neither fixes nor adds
-                'perf',     // Performance improvement
-                'test',     // Adding tests
-                'build',    // Build system or dependencies
-                'ci',       // CI configuration
-                'chore',    // Other changes
-                'revert'    // Revert commit
-              ]],
-              'subject-case': [0],  // Allow any case in subject
-              'body-max-line-length': [0]  // No limit on body line length
-            }
-          };" > commitlint.config.js
+          bun-version: 'latest'
 
       - name: Validate PR commits
         run: |
           echo "Validating commits from ${{ github.event.pull_request.base.sha }} to ${{ github.event.pull_request.head.sha }}"
-          npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+          bun scripts/validate-commits.ts --from=${{ github.event.pull_request.base.sha }} --to=${{ github.event.pull_request.head.sha }}
 
   # ===========================================================================
   # Authorship Protection Check
