@@ -26,7 +26,7 @@
 	"files": ["dist"],
 	"sideEffects": false,
 	"scripts": {
-		"build": "tsc && bun ../../scripts/fix-esm-imports.ts dist",
+		"build": "rm -rf dist && tsc && bun ../../scripts/fix-esm-imports.ts dist",
 		"build:clean": "rm -rf dist && tsc && bun ../../scripts/fix-esm-imports.ts dist",
 		"test": "bun test --coverage",
 		"test:watch": "bun test --watch",

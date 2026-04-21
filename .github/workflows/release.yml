@@ -85,6 +85,9 @@ jobs:
       - name: Build packages
         run: bun run build
 
+      - name: Validate package contents
+        run: bun run validate:package-contents
+
       - name: Run type checking
         run: bun run typecheck
 

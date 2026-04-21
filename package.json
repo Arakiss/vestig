@@ -34,6 +34,7 @@
 		"validate:changelog": "bun scripts/sync-changelog.ts",
 		"validate:release-notes": "bun scripts/validate-release-notes.ts",
 		"validate:security": "bun scripts/validate-security.ts",
+		"validate:package-contents": "bun scripts/validate-package-contents.ts",
 		"validate:llms": "bun scripts/validate-llms.ts",
 		"prepare": "bun scripts/setup-hooks.ts"
 	},
