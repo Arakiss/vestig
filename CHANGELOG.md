@@ -38,6 +38,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Bun regression coverage for batch flush failure visibility, in-flight flush awaiting, failed-batch retention, HTTP custom fetch behavior, sanitizer preset handling, public Next.js exports, provider `endpoint={false}`, and ESM dist rewriting.
 - Hardened Vercel deployment configuration so external PR branches do not receive authorization-required deployment comments.
 
+### Publication Status
+
+- `vestig@0.23.0` is published on npm.
+- `@vestig/next@0.23.0` is pending npm package-level Trusted Publisher setup; npm still serves `@vestig/next@0.22.1` until that scoped package publishes.
+
+### Thanks
+
+- Thanks to [@adonay1991](https://github.com/adonay1991) for the production RFC that surfaced the log-delivery and sanitizer failure modes behind this release.
+- Thanks to [@combiths](https://github.com/combiths) for reporting the ESM package import failure.
+- Thanks to [@ouedyan](https://github.com/ouedyan) for the `@vestig/next` public export and optional client transport reports/PR.
+
 ## [0.22.1](https://github.com/Arakiss/vestig/compare/v0.22.0...v0.22.1) (2026-03-04)
 
 ### 🐛 Bug Fixes

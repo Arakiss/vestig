@@ -14,7 +14,7 @@ import { extractRequestMetadata } from '../utils/metadata'
 import { createRequestTiming, formatDuration } from '../utils/timing'
 
 type NextRequest = Request & { nextUrl?: URL }
-type RouteContext = { params: Promise<Record<string, string>> }
+type RouteContext = { params: Promise<RouteHandlerContext['params']> }
 
 export interface RouteHandlerOptions extends WithVestigOptions {
 	/** Log level for the route handler logger */
@@ -75,7 +75,7 @@ const DEFAULT_OPTIONS: RouteHandlerOptions = {
 export function withVestig<T = Response>(
 	handler: RouteHandler<T>,
 	options: RouteHandlerOptions = {},
-): (request: NextRequest, routeContext?: RouteContext) => Promise<T> {
+): (request: NextRequest, routeContext: RouteContext) => Promise<T> {
 	const mergedOptions = { ...DEFAULT_OPTIONS, ...options }
 
 	return async (request: NextRequest, routeContext?: RouteContext) => {

@@ -24,6 +24,8 @@ interface ChangelogEntry {
 	breaking?: string[]
 	refactoring?: string[]
 	cicd?: string[]
+	publication?: string[]
+	thanks?: string[]
 }
 
 const changelog: ChangelogEntry[] = [
@@ -49,6 +51,15 @@ const changelog: ChangelogEntry[] = [
 		],
 		cicd: [
 			'Harden Vercel deployment config so external PR branches do not receive authorization-required deployment comments',
+		],
+		publication: [
+			'vestig@0.23.0 is published on npm',
+			'@vestig/next@0.23.0 is pending package-level Trusted Publisher setup; npm still serves @vestig/next@0.22.1 until that scoped package publishes',
+		],
+		thanks: [
+			'@adonay1991 for the production RFC that surfaced the log-delivery and sanitizer failure modes behind this release',
+			'@combiths for reporting the ESM package import failure',
+			'@ouedyan for the @vestig/next public export and optional client transport reports/PR',
 		],
 	},
 	{
@@ -483,6 +494,8 @@ const sectionConfig = {
 	breaking: { emoji: '⚠️', title: 'Breaking Changes', color: 'text-red-400' },
 	refactoring: { emoji: '♻️', title: 'Refactoring', color: 'text-purple-400' },
 	cicd: { emoji: '🔧', title: 'CI/CD', color: 'text-gray-400' },
+	publication: { emoji: '📦', title: 'Publication', color: 'text-violet-400' },
+	thanks: { emoji: '🙏', title: 'Thanks', color: 'text-orange-400' },
 }
 
 function ChangeSection({
@@ -590,6 +603,8 @@ export default function ChangelogPage() {
 									<ChangeSection items={entry.tests} type="tests" />
 									<ChangeSection items={entry.refactoring} type="refactoring" />
 									<ChangeSection items={entry.cicd} type="cicd" />
+									<ChangeSection items={entry.publication} type="publication" />
+									<ChangeSection items={entry.thanks} type="thanks" />
 								</div>
 							</article>
 						))}

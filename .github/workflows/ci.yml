@@ -12,7 +12,9 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   quality-checks:
@@ -55,6 +57,12 @@ jobs:
       - name: Run BiomeJS formatting check
         run: bun run format:check
 
+      - name: Validate release notes
+        run: bun run validate:release-notes
+
+      - name: Validate LLM context
+        run: bun run validate:llms
+
       - name: Build packages
         run: bun run build
 
@@ -62,8 +70,7 @@ jobs:
         run: bun run typecheck
 
       - name: Run tests
-        run: bun run test || echo "No tests found or tests failed"
-        continue-on-error: true
+        run: bun run test
 
       - name: Report build size
         run: |
@@ -89,7 +96,10 @@ jobs:
       - name: Security audit
         run: |
           echo "Running security audit..."
-          bun pm audit || true
+          bun audit
+
+      - name: Validate security policy and release hardening
+        run: bun run validate:security
 
   # ===========================================================================
   # Commit Message Lint (Conventional Commits)
@@ -108,7 +118,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install commitlint
         run: |

@@ -45,13 +45,14 @@ permissions:
 
 env:
   BUN_VERSION: 'latest'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ===========================================================================
-  # Semantic Release
+  # Vestig Release
   # ===========================================================================
   release:
-    name: Semantic Release
+    name: Vestig Release
     runs-on: ubuntu-latest
     # Only run on main branch
     if: github.ref == 'refs/heads/main'
@@ -227,8 +228,6 @@ jobs:
           cd packages/vestig
           npm publish --provenance --access public
           echo "Published vestig@${{ steps.release.outputs.version }} to npm"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @vestig/next to npm
         id: npm_vestig_next
@@ -237,8 +236,6 @@ jobs:
           cd packages/vestig-next
           npm publish --provenance --access public
           echo "Published @vestig/next@${{ steps.release.outputs.version }} to npm"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     outputs:
       released: ${{ steps.release.outputs.released }}

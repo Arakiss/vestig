@@ -30,6 +30,7 @@ permissions:
 
 env:
   BUN_VERSION: 'latest'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   publish:
@@ -105,8 +106,6 @@ jobs:
           cd packages/vestig
           npm publish --provenance --access public
           echo "✅ Published vestig@${{ steps.versions.outputs.vestig_version }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish @vestig/next
         if: inputs.dry_run != true && (inputs.package == '@vestig/next' || inputs.package == 'all')
@@ -114,8 +113,6 @@ jobs:
           cd packages/vestig-next
           npm publish --provenance --access public
           echo "✅ Published @vestig/next@${{ steps.versions.outputs.vestig_next_version }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
         run: |

@@ -251,14 +251,26 @@ for (const section of navigation) {
 	}
 }
 
-// Append the API reference from content/llm/
+// Append supplemental agent-facing references from content/llm/.
 try {
-	const apiRef = readFileSync(join(contentDir, 'api-reference.md'), 'utf-8')
-	fullParts.push(apiRef.trim())
-	pageCount++
-	console.log('  + Appended api-reference.md')
+	const supplementalFiles = readdirSync(contentDir)
+		.filter((file) => file.endsWith('.md'))
+		.sort((a, b) => {
+			if (a === 'agent-quickstart.md') return -1
+			if (b === 'agent-quickstart.md') return 1
+			if (a === 'api-reference.md') return 1
+			if (b === 'api-reference.md') return -1
+			return a.localeCompare(b)
+		})
+
+	for (const file of supplementalFiles) {
+		const content = readFileSync(join(contentDir, file), 'utf-8')
+		fullParts.push(content.trim())
+		pageCount++
+		console.log(`  + Appended ${file}`)
+	}
 } catch {
-	console.warn('⚠ api-reference.md not found')
+	console.warn('⚠ content/llm supplemental references not found')
 }
 
 const llmsFullTxt = fullParts.join('\n\n---\n\n')

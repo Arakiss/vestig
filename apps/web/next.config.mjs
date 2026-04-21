@@ -4,11 +4,6 @@ import createMDX from '@next/mdx'
 const nextConfig = {
 	pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
 	transpilePackages: ['vestig'],
-	experimental: {
-		mdxRs: {
-			mdxType: 'gfm', // Enable GitHub Flavored Markdown (tables, strikethrough, etc.)
-		},
-	},
 	async headers() {
 		return [
 			{

@@ -23,8 +23,7 @@ interface Hook {
 // Pre-push hook: validates versions, docs, and changelog before pushing to remote
 const PRE_PUSH_HOOK = `#!/bin/sh
 #
-# Pre-push hook: Validate version consistency, docs, and changelog before pushing
-# This prevents version jumps, sync issues, outdated changelogs, and missing docs
+# Pre-push hook: Validate version consistency, docs, release notes, security, and LLM context
 #
 
 # Only run on pushes to main branch
@@ -70,6 +69,39 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+echo ""
+echo "🔍 Running release notes validation..."
+bun scripts/validate-release-notes.ts
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Push blocked: Release notes are too thin or out of policy"
+    echo ""
+    exit 1
+fi
+
+echo ""
+echo "🔍 Running security policy validation..."
+bun scripts/validate-security.ts
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Push blocked: Security policy or release hardening validation failed"
+    echo ""
+    exit 1
+fi
+
+echo ""
+echo "🔍 Running LLM context validation..."
+bun scripts/validate-llms.ts
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Push blocked: LLM context is missing required guidance"
+    echo ""
+    exit 1
+fi
+
 exit 0
 `
 
@@ -90,7 +122,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Regenerate llms.txt if LLM content files changed
-if git diff --cached --name-only | grep -q "apps/web/content/llm/"; then
+if git diff --cached --name-only | grep -qE "apps/web/content/llm/|apps/web/app/docs/"; then
     echo "📝 LLM content changed, regenerating llms.txt..."
     cd apps/web && bun run prebuild && cd ../..
     git add apps/web/public/llms.txt apps/web/public/llms-full.txt

@@ -12956,6 +12956,224 @@ export const config = {
 
 ---
 
+# Agent Quickstart
+
+This page is written for coding agents that need to install, configure, or debug Vestig without reading the whole documentation site first.
+
+## Canonical Packages
+
+- Use `vestig` for the runtime-agnostic logger, transports, sanitization, tracing, sampling, and wide events.
+- Use `@vestig/next` only for Next.js App Router integration, React provider/hooks, middleware helpers, route handlers, web vitals, and Next-specific server helpers.
+- Use Bun for repository commands. Do not introduce Vitest; this repository uses `bun test`.
+
+## Canonical Imports
+
+```ts
+import {
+	BatchTransportError,
+	ConsoleTransport,
+	HTTPTransport,
+	createLogger,
+} from 'vestig'
+
+import { configureServerLogger } from '@vestig/next'
+import { VestigProvider } from '@vestig/next/client'
+```
+
+## Minimal Logger Setup
+
+```ts
+import { ConsoleTransport, createLogger } from 'vestig'
+
+export const logger = createLogger({
+	namespace: 'app',
+	level: 'info',
+	transports: [new ConsoleTransport({ structured: true })],
+	sanitize: 'gdpr',
+})
+```
+
+## Runtime Constraints
+
+- Node.js packages are ESM. Relative imports in published `dist` files must include explicit `.js` or `/index.js` specifiers.
+- Edge and Worker runtimes should call `logger.flush()` before a request, cron, or background task finishes.
+- Cloudflare Workers should attach flush work to `ctx.waitUntil(logger.flush())` and handle rejection.
+- Browser code should use `@vestig/next/client` and should not import server-only helpers.
+
+## Failure Behavior
+
+`BatchTransport.flush()` rejects with `BatchTransportError` when delivery retries are exhausted. The failed batch is retained for a later flush.
+
+```ts
+try {
+	await logger.flush()
+} catch (error) {
+	if (error instanceof BatchTransportError) {
+		console.error('Vestig delivery failed', {
+			transport: error.transport,
+			entries: error.entries.length,
+			cause: error.cause,
+		})
+	}
+}
+```
+
+Use `throwOnError: false` only when legacy non-throwing flush behavior is intentional, and pair it with `onError` so failures remain observable.
+
+```ts
+new HTTPTransport({
+	url: 'https://logs.example.com/internal/logs',
+	throwOnError: false,
+	onError(error, entries) {
+		console.error('log delivery failed', { error, entries: entries.length })
+	},
+})
+```
+
+## Service Binding or Custom Fetch
+
+`HTTPTransport` accepts a custom `fetch` implementation. This is the preferred pattern for Cloudflare service bindings or runtimes that wrap `fetch`.
+
+```ts
+new HTTPTransport({
+	url: 'https://internal/logs',
+	fetch: (input, init) => env.API_SERVICE.fetch(input, init),
+	timeout: 5000,
+})
+```
+
+## Sanitization
+
+Use `sanitize: 'gdpr'` or `VESTIG_SANITIZE=gdpr` when the GDPR preset is intended. Use `VESTIG_SANITIZE_PRESET=gdpr` when environment configuration should be explicit.
+
+Plain string `metadata.error` values stay in metadata. Real `Error` objects are serialized to top-level `entry.error`.
+
+## Next.js Client Provider
+
+Use `endpoint={false}` when an app wants React context and hooks without sending browser logs to an HTTP endpoint.
+
+```tsx
+<VestigProvider initialContext={context} endpoint={false}>
+	{children}
+</VestigProvider>
+```
+
+Default behavior remains `endpoint="/api/vestig"`.
+
+## Next.js Server Logger
+
+```ts
+import { configureServerLogger } from '@vestig/next'
+import type { LogLevel } from 'vestig'
+
+configureServerLogger({
+	namespace: 'web',
+	level: (process.env.LOG_LEVEL ?? 'info') as LogLevel,
+	structured: process.env.NODE_ENV === 'production',
+})
+```
+
+## Release Checks
+
+Before claiming a Vestig change is ready, run the relevant Bun checks:
+
+```sh
+bun run test
+bun run typecheck
+bun run build
+bun run validate:docs
+bun run validate:llms
+```
+
+For release work, also run:
+
+```sh
+bun run validate:release-notes
+bun run validate:security
+```
+
+---
+
+# Vestig
+
+> Zero-dependency TypeScript logging with auto PII sanitization, native tracing, and multi-runtime support.
+
+Vestig is a lightweight structured logging library designed for modern TypeScript applications. It works seamlessly across Bun, Node.js, Deno, Edge runtimes (Vercel Edge, Cloudflare Workers), and browsers.
+
+## Quick Start
+
+```bash
+bun add vestig
+# or: npm install vestig
+```
+
+```typescript
+import { log } from 'vestig'
+
+log.info('Application started', { version: '1.0.0' })
+log.error('Request failed', { error: new Error('Timeout') })
+```
+
+## Key Features
+
+- **Zero Dependencies**: <5KB gzipped, no supply chain risks
+- **Multi-Runtime**: Works in Bun, Node, Deno, Edge (Cloudflare Workers, Vercel Edge), and browsers
+- **Auto PII Sanitization**: Redacts passwords, emails, credit cards, SSNs automatically
+- **Native Tracing**: Built-in distributed tracing with span() and W3C Trace Context
+- **Context Propagation**: AsyncLocalStorage-based request correlation
+- **Smart Sampling**: Probability, rate-limit, namespace-based, and composite sampling
+- **Wide Events**: Canonical log lines for comprehensive request context with tail sampling
+- **Transports**: Console, HTTP, File, Datadog, Sentry - all with batching support
+- **OTLP Export**: Send traces to Jaeger, Honeycomb, Grafana Cloud, Vercel, Datadog, Axiom
+- **Metrics**: Built-in Prometheus-format metrics export
+
+## Documentation
+
+- [Getting Started](/docs/getting-started) - Installation and basic usage
+- [Features Overview](/docs/features) - All features explained
+- [API Reference](/docs/api) - Complete API documentation
+
+### Core Concepts
+
+- [Logging Basics](/docs/core/logging) - Log levels, structured output
+- [Child Loggers](/docs/core/child-loggers) - Namespaced loggers
+- [Runtime Detection](/docs/runtime) - Multi-runtime support
+
+### Feature Guides
+
+- [PII Sanitization](/docs/security/sanitization) - Automatic data redaction (GDPR, HIPAA, PCI-DSS)
+- [Native Tracing](/docs/tracing) - Distributed tracing with spans
+- [Context Propagation](/docs/tracing/context) - Request correlation
+- [W3C Trace Context](/docs/tracing/w3c) - traceparent and tracestate support
+- [Transports](/docs/transports) - Console, HTTP, File, Datadog, Sentry
+- [Sampling](/docs/sampling) - Control log volume
+- [OTLP Export](/docs/tracing/otlp) - Export spans to observability backends
+
+### Wide Events
+
+- [Wide Events Overview](/docs/wide-events) - Canonical log lines
+- [Tail Sampling](/docs/wide-events/tail-sampling) - Outcome-based sampling
+
+### Integration Guides
+
+- [Next.js](/docs/nextjs) - Server components, route handlers, middleware, wide events
+- [Client Components](/docs/nextjs/client) - Browser-side logging with VestigProvider
+- [Instrumentation](/docs/nextjs/instrumentation) - Unified Next.js setup with registerVestig()
+- [Cloudflare & Edge](/docs/deployments/cloudflare) - Edge runtime deployment guide
+
+## Packages
+
+- `vestig` - Core logging library
+- `@vestig/next` - Next.js integration (server/client components, middleware, wide events)
+
+## Links
+
+- [GitHub Repository](https://github.com/Arakiss/vestig)
+- [npm Package](https://www.npmjs.com/package/vestig)
+- [Changelog](/changelog)
+
+---
+
 # Vestig - Complete API Reference
 
 > This document provides a comprehensive reference for AI assistants working with Vestig.

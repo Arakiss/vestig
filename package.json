@@ -13,9 +13,9 @@
 		"@types/react": "^19.0.0",
 		"@types/react-dom": "^19.0.0",
 		"// Next.js 16": "",
-		"next": "^16.1.0",
+		"next": "16.2.3",
 		"// MDX": "",
-		"@next/mdx": "^16.0.10",
+		"@next/mdx": "16.2.3",
 		"@mdx-js/loader": "^3.1.0",
 		"@mdx-js/react": "^3.1.1",
 		"@types/mdx": "^2.0.13"
@@ -27,19 +27,20 @@
 		"format": "biome format --write .",
 		"format:check": "biome format .",
 		"typecheck": "bun run --filter '*' typecheck",
-		"release": "release-it",
+		"release": "bun scripts/release.ts",
 		"bench": "bun run packages/vestig/bench/index.ts",
 		"validate:version": "bun scripts/validate-version.ts",
 		"validate:docs": "bun scripts/validate-docs.ts",
 		"validate:changelog": "bun scripts/sync-changelog.ts",
+		"validate:release-notes": "bun scripts/validate-release-notes.ts",
+		"validate:security": "bun scripts/validate-security.ts",
+		"validate:llms": "bun scripts/validate-llms.ts",
 		"prepare": "bun scripts/setup-hooks.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
-		"@release-it/conventional-changelog": "^10.0.4",
 		"mitata": "^1.0.34",
-		"pino": "^10.1.0",
-		"release-it": "^19.1.0",
+		"pino": "^10.3.1",
 		"typescript": "^5.9.3",
 		"winston": "^3.19.0"
 	}

@@ -15,6 +15,9 @@ import type {
 	Transport,
 } from 'vestig'
 
+export type RouteParamValue = string | string[] | undefined
+export type RouteParams = Record<string, RouteParamValue>
+
 // Re-export core types for convenience
 export type {
 	Logger,
@@ -48,7 +51,7 @@ export interface RouteHandlerContext {
 	/** Correlation context (requestId, traceId, spanId) */
 	ctx: LogContext
 	/** Route params from Next.js */
-	params: Record<string, string>
+	params: RouteParams
 	/** Request timing utilities */
 	timing: {
 		/** Start time in ms */
