@@ -31,7 +31,25 @@ const changelog: ChangelogEntry[] = [
 		version: '0.23.0',
 		date: '2026-04-21',
 		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.22.1...v0.23.0',
-		features: ['harden log delivery and next exports'],
+		features: [
+			'BatchTransport.flush() now surfaces exhausted delivery failures with BatchTransportError instead of resolving silently',
+			'Failed batches are retained for a later flush, and manual flushes now wait for in-flight auto-flush work',
+			'HTTPTransport supports custom fetch implementations for service-binding and edge-runtime integrations',
+			'@vestig/next exports configureServerLogger and ServerLoggerOptions from the public entrypoint (#4)',
+			'VestigProvider supports endpoint={false} for client context/hooks without browser HTTP transport initialization (#5)',
+		],
+		fixes: [
+			'Stop injecting the forbidden Connection: keep-alive header from HTTPTransport',
+			'Honor configured sanitizer presets and sanitizer configs instead of always using the default sanitizer',
+			'Preserve plain string metadata.error values in metadata while still serializing real Error objects',
+			'Rewrite built relative ESM specifiers to explicit .js or /index.js paths for Node-compatible ESM loaders (#10)',
+		],
+		tests: [
+			'Add Bun regression coverage for batch flush visibility, retained failures, sanitizer presets, HTTP custom fetch, Next.js public exports, endpoint={false}, and dist ESM rewriting',
+		],
+		cicd: [
+			'Harden Vercel deployment config so external PR branches do not receive authorization-required deployment comments',
+		],
 	},
 	{
 		version: '0.22.1',

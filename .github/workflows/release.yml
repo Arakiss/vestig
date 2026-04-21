@@ -40,6 +40,7 @@ on:
 permissions:
   contents: write
   issues: write
+  id-token: write
   pull-requests: write
 
 env:
@@ -196,7 +197,7 @@ jobs:
         if: steps.release.outputs.released == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       # Resolve workspace:* references to actual versions before publishing
@@ -224,7 +225,7 @@ jobs:
         if: steps.release.outputs.released == 'true'
         run: |
           cd packages/vestig
-          npm publish --access public
+          npm publish --provenance --access public
           echo "Published vestig@${{ steps.release.outputs.version }} to npm"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -234,7 +235,7 @@ jobs:
         if: steps.release.outputs.released == 'true'
         run: |
           cd packages/vestig-next
-          npm publish --access public
+          npm publish --provenance --access public
           echo "Published @vestig/next@${{ steps.release.outputs.version }} to npm"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

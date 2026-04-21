@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Private security report
+    url: https://github.com/Arakiss/vestig/security/advisories/new
+    about: Report suspected vulnerabilities privately instead of opening a public issue
   - name: Questions & Discussions
     url: https://github.com/Arakiss/vestig/discussions
     about: Ask questions and discuss Vestig with the community

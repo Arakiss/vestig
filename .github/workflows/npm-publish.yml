@@ -26,6 +26,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 env:
   BUN_VERSION: 'latest'
@@ -53,7 +54,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Get versions
@@ -88,21 +89,21 @@ jobs:
         if: inputs.dry_run == true && (inputs.package == 'vestig' || inputs.package == 'all')
         run: |
           cd packages/vestig
-          npm publish --access public --dry-run
+          npm publish --provenance --access public --dry-run
           echo "Would publish vestig@${{ steps.versions.outputs.vestig_version }}"
 
       - name: Publish @vestig/next (dry run)
         if: inputs.dry_run == true && (inputs.package == '@vestig/next' || inputs.package == 'all')
         run: |
           cd packages/vestig-next
-          npm publish --access public --dry-run
+          npm publish --provenance --access public --dry-run
           echo "Would publish @vestig/next@${{ steps.versions.outputs.vestig_next_version }}"
 
       - name: Publish vestig
         if: inputs.dry_run != true && (inputs.package == 'vestig' || inputs.package == 'all')
         run: |
           cd packages/vestig
-          npm publish --access public
+          npm publish --provenance --access public
           echo "✅ Published vestig@${{ steps.versions.outputs.vestig_version }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -111,7 +112,7 @@ jobs:
         if: inputs.dry_run != true && (inputs.package == '@vestig/next' || inputs.package == 'all')
         run: |
           cd packages/vestig-next
-          npm publish --access public
+          npm publish --provenance --access public
           echo "✅ Published @vestig/next@${{ steps.versions.outputs.vestig_next_version }}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

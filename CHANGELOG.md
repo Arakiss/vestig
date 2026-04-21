@@ -8,9 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.23.0](https://github.com/Arakiss/vestig/compare/v0.22.1...v0.23.0) (2026-04-21)
 
-### ✨ Features
+### Reliability
 
-* harden log delivery and next exports ([9cd51d1](https://github.com/Arakiss/vestig/commit/9cd51d1a68ad8c4132d657d38810d0c165981b6a)), closes [#4](https://github.com/Arakiss/vestig/issues/4) [#5](https://github.com/Arakiss/vestig/issues/5) [#10](https://github.com/Arakiss/vestig/issues/10)
+- `BatchTransport.flush()` now rejects with `BatchTransportError` when delivery retries are exhausted, making edge-runtime `waitUntil(logger.flush()).catch(...)` handlers useful instead of silently resolving.
+- Failed batches are retained for a later flush instead of being lost after a failed delivery attempt.
+- Manual flushes now wait for in-flight auto-flush work, so a runtime shutdown or cron completion can observe delivery already started by the timer.
+- `destroy()` now flushes retained failed entries as well as buffered entries.
+- Added `onError`, `onDrop`, and `throwOnError: false` for applications that need explicit observability or legacy non-throwing behavior.
+
+### Runtime and Packaging
+
+- `HTTPTransport` no longer injects the forbidden/hop-by-hop `Connection: keep-alive` header.
+- `HTTPTransport` now accepts a custom `fetch` implementation for service-binding and edge-runtime integrations.
+- Built packages now rewrite relative ESM specifiers in `dist` to explicit `.js` or `/index.js` paths, fixing Node-compatible ESM loaders that could not resolve extensionless imports. Closes [#10](https://github.com/Arakiss/vestig/issues/10).
+
+### Sanitization
+
+- Logger sanitization now honors configured presets and sanitizer configs instead of treating every truthy `sanitize` value as the default sanitizer.
+- `VESTIG_SANITIZE=gdpr` and `VESTIG_SANITIZE_PRESET=gdpr` now configure the GDPR preset correctly.
+- Plain string `metadata.error` values remain in metadata; only actual `Error` values are serialized to the top-level `entry.error` field.
+
+### Next.js
+
+- `@vestig/next` now exports `configureServerLogger` and the `ServerLoggerOptions` type from the public entrypoint. Closes [#4](https://github.com/Arakiss/vestig/issues/4).
+- `VestigProvider` now supports `endpoint={false}` for apps that want client context/hooks without initializing the browser HTTP transport. Closes [#5](https://github.com/Arakiss/vestig/issues/5).
+
+### Tests and Operations
+
+- Added Bun regression coverage for batch flush failure visibility, in-flight flush awaiting, failed-batch retention, HTTP custom fetch behavior, sanitizer preset handling, public Next.js exports, provider `endpoint={false}`, and ESM dist rewriting.
+- Hardened Vercel deployment configuration so external PR branches do not receive authorization-required deployment comments.
 
 ## [0.22.1](https://github.com/Arakiss/vestig/compare/v0.22.0...v0.22.1) (2026-03-04)
 
