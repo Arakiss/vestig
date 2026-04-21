@@ -10,6 +10,11 @@ updates:
     labels:
       - "dependencies"
       - "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "actions/*"
+          - "oven-sh/*"
 
   - package-ecosystem: "npm"
     directory: "/"
@@ -20,3 +25,17 @@ updates:
       timezone: "Etc/UTC"
     labels:
       - "dependencies"
+    groups:
+      docs-runtime:
+        patterns:
+          - "shiki"
+          - "@shikijs/*"
+          - "@mdx-js/*"
+          - "@next/mdx"
+      next-runtime:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
