@@ -9,6 +9,7 @@ const DEFAULTS = {
 	flushInterval: 5000,
 	maxRetries: 3,
 	retryDelay: 1000,
+	throwOnError: true,
 } as const
 
 /**
@@ -26,11 +27,15 @@ export abstract class BatchTransport implements Transport {
 	protected readonly flushInterval: number
 	protected readonly maxRetries: number
 	protected readonly retryDelay: number
+	protected readonly throwOnError: boolean
 
 	private flushTimer: ReturnType<typeof setInterval> | null = null
 	private isFlushing = false
 	private isDestroyed = false
 	private failedBatch: LogEntry[] | null = null
+	private flushPromise: Promise<void> | null = null
+	private readonly onErrorCallback?: (error: Error) => void
+	private readonly onDropCallback?: (entries: readonly LogEntry[]) => void
 
 	constructor(config: BatchTransportConfig) {
 		this.config = {
@@ -44,10 +49,13 @@ export abstract class BatchTransport implements Transport {
 		this.flushInterval = config.flushInterval ?? DEFAULTS.flushInterval
 		this.maxRetries = config.maxRetries ?? DEFAULTS.maxRetries
 		this.retryDelay = config.retryDelay ?? DEFAULTS.retryDelay
+		this.throwOnError = config.throwOnError ?? DEFAULTS.throwOnError
+		this.onErrorCallback = config.onError
+		this.onDropCallback = config.onDrop
 
 		this.buffer = new CircularBuffer<LogEntry>({
 			maxSize: this.batchSize * 2, // Allow some overflow before dropping
-			onDrop: (items) => this.onDrop(items as LogEntry[]),
+			onDrop: (items) => this.handleDrop(items as LogEntry[]),
 		})
 	}
 
@@ -89,24 +97,49 @@ export abstract class BatchTransport implements Transport {
 	 * Flush all buffered entries
 	 */
 	async flush(): Promise<void> {
-		if (this.isFlushing || (this.buffer.size === 0 && !this.failedBatch)) return
+		while (true) {
+			if (this.flushPromise) {
+				await this.flushPromise
+			} else {
+				if (this.buffer.size === 0 && !this.failedBatch) return
 
+				const promise = this.flushOnce()
+				this.flushPromise = promise
+
+				try {
+					await promise
+				} finally {
+					if (this.flushPromise === promise) {
+						this.flushPromise = null
+					}
+				}
+			}
+
+			// If new entries arrived while the previous batch was in flight, drain them too.
+			// Do not immediately retry a failed batch here; the failure has already been reported.
+			if (this.buffer.size === 0 || this.failedBatch) return
+		}
+	}
+
+	private async flushOnce(): Promise<void> {
 		this.isFlushing = true
 
 		try {
-			// Include any previously failed batch entries
-			const failedEntries = this.failedBatch
-			this.failedBatch = null
-
-			const newEntries = this.buffer.toArray()
-			this.buffer.clear()
-
-			const entries = failedEntries ? [...failedEntries, ...newEntries] : newEntries
-
+			const entries = this.takePendingEntries()
 			await this.sendWithRetry(entries)
 		} finally {
 			this.isFlushing = false
 		}
+	}
+
+	private takePendingEntries(): LogEntry[] {
+		const failedEntries = this.failedBatch
+		this.failedBatch = null
+
+		const newEntries = this.buffer.toArray()
+		this.buffer.clear()
+
+		return failedEntries ? [...failedEntries, ...newEntries] : newEntries
 	}
 
 	/**
@@ -120,8 +153,8 @@ export abstract class BatchTransport implements Transport {
 			this.flushTimer = null
 		}
 
-		// Final flush
-		if (this.buffer.size > 0) {
+		// Final flush, including a retained failed batch from an earlier attempt.
+		if (this.buffer.size > 0 || this.failedBatch) {
 			await this.flush()
 		}
 	}
@@ -131,15 +164,20 @@ export abstract class BatchTransport implements Transport {
 	 */
 	protected async sendWithRetry(entries: LogEntry[]): Promise<void> {
 		let lastError: Error = new Error('Unknown error')
+		const attempts = Math.max(1, this.maxRetries)
 
-		for (let attempt = 0; attempt < this.maxRetries; attempt++) {
+		for (let attempt = 0; attempt < attempts; attempt++) {
 			try {
 				await this.send(entries)
 				return
 			} catch (err) {
 				lastError = err instanceof Error ? err : new Error(String(err))
 
-				if (attempt < this.maxRetries - 1) {
+				if (!this.isRetryableError(lastError)) {
+					break
+				}
+
+				if (attempt < attempts - 1) {
 					// Exponential backoff: 1s, 2s, 4s, etc.
 					const delay = this.retryDelay * 2 ** attempt
 					await this.sleep(delay)
@@ -152,8 +190,22 @@ export abstract class BatchTransport implements Transport {
 		// Note: Only ONE failed batch is retained to prevent unbounded growth
 		this.failedBatch = entries
 
+		const error = new BatchTransportError(
+			`[${this.name}] Failed to send ${entries.length} entries after ${attempts} attempt${attempts === 1 ? '' : 's'}`,
+			{
+				transport: this.name,
+				batchSize: entries.length,
+				attempts,
+				cause: lastError,
+			},
+		)
+
 		// Call error handler for logging/monitoring
-		this.onSendError(lastError, entries)
+		this.handleSendError(error, entries)
+
+		if (this.throwOnError) {
+			throw error
+		}
 	}
 
 	/**
@@ -176,9 +228,24 @@ export abstract class BatchTransport implements Transport {
 	 */
 	protected onSendError(error: Error, entries: LogEntry[]): void {
 		console.error(
-			`[${this.name}] Failed to send ${entries.length} entries after ${this.maxRetries} retries:`,
-			error.message,
+			`[${this.name}] Failed to send ${entries.length} entries after ${Math.max(1, this.maxRetries)} attempts:`,
+			error.cause instanceof Error ? error.cause.message : error.message,
 		)
+	}
+
+	private handleDrop(entries: LogEntry[]): void {
+		this.onDropCallback?.(entries)
+		this.onDrop(entries)
+	}
+
+	private handleSendError(error: BatchTransportError, entries: LogEntry[]): void {
+		this.onErrorCallback?.(error)
+		this.onSendError(error, entries)
+	}
+
+	private isRetryableError(error: Error): boolean {
+		const candidate = error as Error & { isRetryable?: unknown }
+		return typeof candidate.isRetryable === 'boolean' ? candidate.isRetryable : true
 	}
 
 	/**
@@ -201,8 +268,37 @@ export abstract class BatchTransport implements Transport {
 		return {
 			buffered: stats.size,
 			dropped: stats.dropped,
-			isFlushing: this.isFlushing,
+			isFlushing: this.isFlushing || this.flushPromise !== null,
 			pendingRetry: this.failedBatch?.length ?? 0,
 		}
+	}
+}
+
+/**
+ * Error emitted by BatchTransport when a batch cannot be delivered after retries.
+ *
+ * The failed entries remain retained for the next flush attempt unless the process exits.
+ */
+export class BatchTransportError extends Error {
+	readonly transport: string
+	readonly batchSize: number
+	readonly attempts: number
+	override readonly cause?: Error
+
+	constructor(
+		message: string,
+		options: {
+			transport: string
+			batchSize: number
+			attempts: number
+			cause?: Error
+		},
+	) {
+		super(message, options.cause ? { cause: options.cause } : undefined)
+		this.name = 'BatchTransportError'
+		this.transport = options.transport
+		this.batchSize = options.batchSize
+		this.attempts = options.attempts
+		this.cause = options.cause
 	}
 }

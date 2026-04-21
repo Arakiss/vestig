@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { BatchTransportError } from '../transports/batch'
 import { HTTPTransport, HTTPTransportError } from '../transports/http'
 import type { LogEntry } from '../types'
 
@@ -132,6 +133,39 @@ describe('HTTPTransport', () => {
 			expect(headers['X-Custom-Header']).toBe('custom-value')
 		})
 
+		test('should not set Connection header by default', async () => {
+			const transport = new HTTPTransport({
+				url: 'https://logs.example.com',
+			})
+
+			transport.log(createEntry())
+			await transport.flush()
+
+			const headers = fetchCalls[0].options.headers as Record<string, string>
+			expect(headers.Connection).toBeUndefined()
+			expect(headers.connection).toBeUndefined()
+		})
+
+		test('should use custom fetch implementation', async () => {
+			const customFetch = mock(async (url: string, options: RequestInit) => {
+				fetchCalls.push({ url, options })
+				return new Response(JSON.stringify({ success: true }), {
+					status: 200,
+					statusText: 'OK',
+				})
+			})
+			const transport = new HTTPTransport({
+				url: 'https://logs.example.com',
+				fetch: customFetch as unknown as typeof fetch,
+			})
+
+			transport.log(createEntry())
+			await transport.flush()
+
+			expect(customFetch).toHaveBeenCalled()
+			expect(fetchCalls[0].url).toBe('https://logs.example.com')
+		})
+
 		test('should send entries as JSON body', async () => {
 			const transport = new HTTPTransport({
 				url: 'https://logs.example.com',
@@ -184,7 +218,7 @@ describe('HTTPTransport', () => {
 			transport.log(createEntry())
 
 			// The flush will retry and eventually fail
-			await transport.flush()
+			await expect(transport.flush()).rejects.toThrow(BatchTransportError)
 
 			// The transport handles errors internally, so we need to check differently
 			// Let's test the error class directly
@@ -206,7 +240,7 @@ describe('HTTPTransport', () => {
 			})
 
 			transport.log(createEntry())
-			await transport.flush()
+			await expect(transport.flush()).rejects.toThrow(BatchTransportError)
 
 			// Error is handled internally
 		})

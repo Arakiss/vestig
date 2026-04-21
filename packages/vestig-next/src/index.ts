@@ -36,7 +36,13 @@
  */
 
 // Server Components
-export { getLogger, getRequestContext, createChildLogger } from './server/server-component'
+export {
+	getLogger,
+	getRequestContext,
+	createChildLogger,
+	configureServerLogger,
+} from './server/server-component'
+export type { ServerLoggerOptions } from './server/server-component'
 
 // Route Handlers
 export { withVestig, createRouteHandlers } from './server/route-handler'

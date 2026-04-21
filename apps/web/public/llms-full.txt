@@ -6844,13 +6844,18 @@ interface VestigProviderProps {
   children: React.ReactNode
 
   // Correlation context from server
-  correlationContext?: CorrelationContext
+  initialContext?: LogContext
 
-  // Logger configuration
-  config?: LoggerConfig
+  // Remote client log endpoint.
+  // Defaults to '/api/vestig'; set to false for correlation-only mode.
+  endpoint?: string | false
 
-  // Log streaming endpoint (for real-time viewing)
-  endpoint?: string
+  // Logger options
+  namespace?: string
+  context?: Record<string, unknown>
+  level?: LogLevel
+  structured?: boolean
+  sanitize?: boolean | SanitizePreset | SanitizeConfig
 }
 ```
 
@@ -6872,7 +6877,18 @@ const ctx = await getRequestContext()
 
 ```
 
-### With Log Streaming
+### With Custom Log Endpoint
+
+```typescript
+
+  {children}
+
+```
+
+### Correlation-Only Mode
+
+Use `endpoint={false}` when you want `VestigProvider`, `useLogger()`, and
+`useCorrelationContext()` without remote browser log delivery.
 
 ```typescript
 
@@ -12739,9 +12755,13 @@ Provider component for client-side logging.
 ```typescript
 interface VestigProviderProps {
   children: React.ReactNode
-  correlationContext?: CorrelationContext
-  config?: LoggerConfig
-  endpoint?: string  // Log streaming endpoint
+  initialContext?: LogContext
+  endpoint?: string | false  // Defaults to '/api/vestig'; false disables remote delivery
+  namespace?: string
+  context?: Record<string, unknown>
+  level?: LogLevel
+  structured?: boolean
+  sanitize?: boolean | SanitizePreset | SanitizeConfig
 }
 ```
 

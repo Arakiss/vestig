@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
+import { BatchTransportError } from '../transports/batch'
 import { DatadogTransport, DatadogTransportError } from '../transports/datadog'
 import type { LogEntry } from '../types'
 
@@ -403,7 +404,7 @@ describe('DatadogTransport', () => {
 	})
 
 	describe('error handling', () => {
-		test('should handle API errors gracefully', async () => {
+		test('should surface API errors after retries', async () => {
 			global.fetch = mock(async () => {
 				return new Response('Unauthorized', {
 					status: 401,
@@ -413,25 +414,29 @@ describe('DatadogTransport', () => {
 
 			const transport = new DatadogTransport({
 				apiKey: 'invalid-key',
+				maxRetries: 1,
+				retryDelay: 1,
 			})
 
 			transport.log(createEntry())
-			// Should not throw
-			await transport.flush()
+			await expect(transport.flush()).rejects.toThrow(BatchTransportError)
+			expect(transport.getStats().pendingRetry).toBe(1)
 		})
 
-		test('should handle network errors gracefully', async () => {
+		test('should surface network errors after retries', async () => {
 			global.fetch = mock(async () => {
 				throw new Error('Network error')
 			}) as unknown as typeof fetch
 
 			const transport = new DatadogTransport({
 				apiKey: 'test-api-key',
+				maxRetries: 1,
+				retryDelay: 1,
 			})
 
 			transport.log(createEntry())
-			// Should not throw
-			await transport.flush()
+			await expect(transport.flush()).rejects.toThrow(BatchTransportError)
+			expect(transport.getStats().pendingRetry).toBe(1)
 		})
 	})
 

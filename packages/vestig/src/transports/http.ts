@@ -43,6 +43,7 @@ export class HTTPTransport extends BatchTransport {
 	private readonly timeout: number
 	private readonly transform?: (entries: LogEntry[]) => unknown
 	private readonly keepAlive: boolean
+	private readonly fetchImpl: typeof fetch
 
 	constructor(config: HTTPTransportConfig) {
 		super({
@@ -56,11 +57,12 @@ export class HTTPTransport extends BatchTransport {
 		this.timeout = config.timeout ?? DEFAULTS.timeout
 		this.transform = config.transform
 		this.keepAlive = config.keepAlive ?? DEFAULTS.keepAlive
+		this.fetchImpl = config.fetch ?? fetch
 
-		// Build headers with optional keep-alive
+		// Build headers. Do not set hop-by-hop Connection headers; fetch runtimes
+		// either manage connection reuse themselves or forbid that header.
 		this.headers = {
 			...DEFAULTS.headers,
-			...(this.keepAlive ? { Connection: 'keep-alive' } : {}),
 			...config.headers,
 		}
 	}
@@ -76,7 +78,7 @@ export class HTTPTransport extends BatchTransport {
 		const timeoutId = setTimeout(() => controller.abort(), this.timeout)
 
 		try {
-			const response = await fetch(this.url, {
+			const response = await this.fetchImpl(this.url, {
 				method: this.method,
 				headers: this.headers,
 				body,

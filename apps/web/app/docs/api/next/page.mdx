@@ -212,9 +212,13 @@ Provider component for client-side logging.
 ```typescript
 interface VestigProviderProps {
   children: React.ReactNode
-  correlationContext?: CorrelationContext
-  config?: LoggerConfig
-  endpoint?: string  // Log streaming endpoint
+  initialContext?: LogContext
+  endpoint?: string | false  // Defaults to '/api/vestig'; false disables remote delivery
+  namespace?: string
+  context?: Record<string, unknown>
+  level?: LogLevel
+  structured?: boolean
+  sanitize?: boolean | SanitizePreset | SanitizeConfig
 }
 ```
 
@@ -232,8 +236,8 @@ export default async function RootLayout({ children }) {
     <html>
       <body>
         <VestigProvider
-          correlationContext={ctx}
-          config={{ level: 'debug' }}
+          initialContext={ctx}
+          level="debug"
         >
           {children}
         </VestigProvider>

@@ -7,6 +7,7 @@ describe('ENV_VARS', () => {
 		expect(ENV_VARS.ENABLED).toBe('VESTIG_ENABLED')
 		expect(ENV_VARS.STRUCTURED).toBe('VESTIG_STRUCTURED')
 		expect(ENV_VARS.SANITIZE).toBe('VESTIG_SANITIZE')
+		expect(ENV_VARS.SANITIZE_PRESET).toBe('VESTIG_SANITIZE_PRESET')
 	})
 })
 
@@ -20,6 +21,7 @@ describe('getDefaultConfig', () => {
 		process.env.VESTIG_ENABLED = undefined
 		process.env.VESTIG_STRUCTURED = undefined
 		process.env.VESTIG_SANITIZE = undefined
+		process.env.VESTIG_SANITIZE_PRESET = undefined
 		// Clean context vars
 		for (const key of Object.keys(process.env)) {
 			if (key.startsWith('VESTIG_CONTEXT_')) {
@@ -82,6 +84,28 @@ describe('getDefaultConfig', () => {
 		expect(config.sanitize).toBe(false)
 	})
 
+	test('should parse preset from VESTIG_SANITIZE env var', () => {
+		process.env.VESTIG_SANITIZE = 'gdpr'
+		const config = getDefaultConfig()
+
+		expect(config.sanitize).toBe('gdpr')
+	})
+
+	test('should parse VESTIG_SANITIZE_PRESET env var', () => {
+		process.env.VESTIG_SANITIZE_PRESET = 'hipaa'
+		const config = getDefaultConfig()
+
+		expect(config.sanitize).toBe('hipaa')
+	})
+
+	test('should let VESTIG_SANITIZE=false disable preset env var', () => {
+		process.env.VESTIG_SANITIZE = 'false'
+		process.env.VESTIG_SANITIZE_PRESET = 'gdpr'
+		const config = getDefaultConfig()
+
+		expect(config.sanitize).toBe(false)
+	})
+
 	test('should parse VESTIG_CONTEXT_* env vars', () => {
 		process.env.VESTIG_CONTEXT_APP = 'myapp'
 		process.env.VESTIG_CONTEXT_VERSION = '1.0.0'
@@ -117,6 +141,7 @@ describe('mergeConfig', () => {
 		process.env.VESTIG_ENABLED = undefined
 		process.env.VESTIG_STRUCTURED = undefined
 		process.env.VESTIG_SANITIZE = undefined
+		process.env.VESTIG_SANITIZE_PRESET = undefined
 	})
 
 	afterEach(() => {

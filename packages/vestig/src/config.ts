@@ -1,5 +1,11 @@
 import { parseLogLevel } from './levels'
-import type { LogContext, LogLevel, LoggerConfig, ResolvedLoggerConfig } from './types'
+import type {
+	LogContext,
+	LogLevel,
+	LoggerConfig,
+	ResolvedLoggerConfig,
+	SanitizePreset,
+} from './types'
 
 /**
  * Environment variable names
@@ -9,7 +15,17 @@ export const ENV_VARS = {
 	ENABLED: 'VESTIG_ENABLED',
 	STRUCTURED: 'VESTIG_STRUCTURED',
 	SANITIZE: 'VESTIG_SANITIZE',
+	SANITIZE_PRESET: 'VESTIG_SANITIZE_PRESET',
 } as const
+
+const SANITIZE_PRESETS = new Set<SanitizePreset>([
+	'none',
+	'minimal',
+	'default',
+	'gdpr',
+	'hipaa',
+	'pci-dss',
+])
 
 /**
  * Get environment variable safely (works in all runtimes)
@@ -35,6 +51,34 @@ function isProduction(): boolean {
 function parseBool(value: string | undefined, fallback: boolean): boolean {
 	if (value === undefined) return fallback
 	return value.toLowerCase() === 'true' || value === '1'
+}
+
+function parseSanitize(
+	value: string | undefined,
+	preset: string | undefined,
+): boolean | SanitizePreset {
+	const normalizedPreset = preset?.toLowerCase()
+
+	if (value === undefined) {
+		return normalizedPreset && SANITIZE_PRESETS.has(normalizedPreset as SanitizePreset)
+			? (normalizedPreset as SanitizePreset)
+			: true
+	}
+
+	const normalized = value.toLowerCase()
+	if (normalized === 'false' || normalized === '0') {
+		return false
+	}
+	if (normalized === 'true' || normalized === '1') {
+		return normalizedPreset && SANITIZE_PRESETS.has(normalizedPreset as SanitizePreset)
+			? (normalizedPreset as SanitizePreset)
+			: true
+	}
+	if (SANITIZE_PRESETS.has(normalized as SanitizePreset)) {
+		return normalized as SanitizePreset
+	}
+
+	return true
 }
 
 /**
@@ -63,7 +107,7 @@ export function getDefaultConfig(): ResolvedLoggerConfig {
 		level: parseLogLevel(getEnv(ENV_VARS.LEVEL), isProd ? 'warn' : 'info'),
 		enabled: parseBool(getEnv(ENV_VARS.ENABLED), true),
 		structured: parseBool(getEnv(ENV_VARS.STRUCTURED), isProd),
-		sanitize: parseBool(getEnv(ENV_VARS.SANITIZE), true),
+		sanitize: parseSanitize(getEnv(ENV_VARS.SANITIZE), getEnv(ENV_VARS.SANITIZE_PRESET)),
 		sanitizeFields: [],
 		context: getEnvContext(),
 		namespace: '',

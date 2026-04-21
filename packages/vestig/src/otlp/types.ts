@@ -229,7 +229,6 @@ export function toOTLPStatusCode(status: SpanStatus): OTLPStatusCode {
 			return OTLPStatusCode.OK
 		case 'error':
 			return OTLPStatusCode.ERROR
-		case 'unset':
 		default:
 			return OTLPStatusCode.UNSET
 	}

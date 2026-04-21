@@ -35,8 +35,8 @@ export interface VestigProviderProps {
 	children: ReactNode
 	/** Initial correlation context (e.g., from server) */
 	initialContext?: LogContext
-	/** Override endpoint URL (default: '/api/vestig') */
-	endpoint?: string
+	/** Override endpoint URL, or set to false to disable remote client log delivery */
+	endpoint?: string | false
 	/** Logger namespace (default: 'client') */
 	namespace?: string
 	/** Additional static context */
@@ -54,7 +54,7 @@ function generateClientRequestId(): string {
  * Provider component for client-side vestig logging
  *
  * Provides:
- * - Automatic log batching and sending to server
+ * - Optional log batching and sending to server
  * - Request correlation with server
  * - React context for accessing logger
  *
@@ -89,14 +89,12 @@ export function VestigProvider({
 }: VestigProviderProps) {
 	const [isConnected, setIsConnected] = useState(false)
 	const [initError, setInitError] = useState<Error | null>(null)
-	const transportRef = useRef<ClientHTTPTransport | null>(null)
 	const loggerRef = useRef<Logger | null>(null)
 
-	// Create transport once
 	const transport = useMemo(() => {
-		if (transportRef.current) return transportRef.current
+		if (endpoint === false) return null
 
-		transportRef.current = new ClientHTTPTransport({
+		return new ClientHTTPTransport({
 			name: 'vestig-client',
 			url: endpoint,
 			batchSize: 20,
@@ -104,8 +102,6 @@ export function VestigProvider({
 			onFlushSuccess: () => setIsConnected(true),
 			onFlushError: () => setIsConnected(false),
 		})
-
-		return transportRef.current
 	}, [endpoint])
 
 	// Create correlation context
@@ -119,7 +115,7 @@ export function VestigProvider({
 		[initialContext],
 	)
 
-	// Create logger with transport
+	// Create logger with optional transport
 	const logger = useMemo(() => {
 		if (loggerRef.current) return loggerRef.current
 
@@ -134,7 +130,10 @@ export function VestigProvider({
 			},
 		})
 
-		log.addTransport(transport)
+		if (transport) {
+			log.addTransport(transport)
+		}
+
 		loggerRef.current = log
 
 		return log
@@ -142,6 +141,12 @@ export function VestigProvider({
 
 	// Initialize transport on mount
 	useEffect(() => {
+		if (!transport) {
+			setIsConnected(false)
+			setInitError(null)
+			return
+		}
+
 		transport
 			.init()
 			.then(() => {

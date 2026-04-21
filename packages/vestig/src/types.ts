@@ -305,6 +305,16 @@ export interface BatchTransportConfig extends TransportConfig {
 	maxRetries?: number
 	/** Delay between retries in ms (default: 1000) */
 	retryDelay?: number
+	/**
+	 * Whether flush() rejects after all retry attempts fail (default: true).
+	 * Set to false to keep pre-0.23 behavior where failures are only reported
+	 * through onError/console and retained for the next flush.
+	 */
+	throwOnError?: boolean
+	/** Called when a batch fails after all retry attempts. */
+	onError?: (error: Error) => void
+	/** Called when entries are dropped because the in-memory buffer is full. */
+	onDrop?: (entries: readonly LogEntry[]) => void
 }
 
 /**
@@ -322,9 +332,15 @@ export interface HTTPTransportConfig extends BatchTransportConfig {
 	/** Transform entries before sending */
 	transform?: (entries: LogEntry[]) => unknown
 	/**
+	 * Fetch implementation to use for delivery.
+	 * Useful for runtimes such as Cloudflare Service Bindings where calls
+	 * must go through env.SERVICE.fetch rather than global fetch.
+	 */
+	fetch?: typeof fetch
+	/**
 	 * Enable keep-alive connections (default: true).
-	 * When true, adds Connection: keep-alive header and enables
-	 * the fetch keepalive option for browser page-unload scenarios.
+	 * When true, enables the fetch keepalive option for browser page-unload
+	 * scenarios. Vestig does not set hop-by-hop Connection headers.
 	 */
 	keepAlive?: boolean
 }

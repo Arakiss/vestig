@@ -255,12 +255,11 @@ const ctx = useCorrelationContext()
 ```typescript
 <VestigProvider
   initialContext={ctx}    // From getRequestContext()
-  endpoint="/api/vestig"  // Where to send client logs
+  endpoint="/api/vestig"  // Where to send client logs (default)
+  // endpoint={false}     // Disable remote delivery; keep hooks/correlation only
   namespace="client"      // Base namespace for client logs
   level="info"            // Minimum log level
   sanitize="default"      // PII sanitization preset
-  batchSize={10}          // Batch size for HTTP transport
-  flushInterval={2000}    // Flush interval in ms
 >
 ```
 

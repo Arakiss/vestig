@@ -20,11 +20,13 @@ import type {
 	Logger,
 	LoggerConfig,
 	ResolvedLoggerConfig,
+	SanitizeConfig,
+	SerializedError,
 	Transport,
 } from './types'
 import { Deduplicator } from './utils/dedupe'
 import { isError, serializeError } from './utils/error'
-import { sanitize } from './utils/sanitize'
+import { Sanitizer } from './utils/sanitize'
 
 /**
  * Format variadic arguments into message and metadata
@@ -76,6 +78,75 @@ function formatArgs(args: unknown[]): { message: string; metadata: LogMetadata }
 	return { message: String(first), metadata }
 }
 
+function createAdditionalFieldMatchers(fields: string[]): NonNullable<SanitizeConfig['fields']> {
+	return fields.map((field) => ({
+		type: 'contains' as const,
+		value: field,
+	}))
+}
+
+function createLoggerSanitizer(config: ResolvedLoggerConfig): Sanitizer | null {
+	if (!config.sanitize || config.sanitize === 'none') {
+		return null
+	}
+
+	const additionalFields = createAdditionalFieldMatchers(config.sanitizeFields)
+
+	if (config.sanitize === true) {
+		return Sanitizer.fromPresetWithOverrides('default', {
+			fields: additionalFields,
+		})
+	}
+
+	if (typeof config.sanitize === 'string') {
+		return Sanitizer.fromPresetWithOverrides(config.sanitize, {
+			fields: additionalFields,
+		})
+	}
+
+	return new Sanitizer({
+		...config.sanitize,
+		fields: [...(config.sanitize.fields ?? []), ...additionalFields],
+	})
+}
+
+function normalizeMetadataErrors(metadata: LogMetadata): LogMetadata {
+	const error = metadata.error
+	if (!isError(error)) {
+		return metadata
+	}
+
+	return {
+		...metadata,
+		error: serializeError(error),
+	}
+}
+
+function isSerializedError(value: unknown): value is SerializedError {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		typeof (value as Partial<SerializedError>).name === 'string' &&
+		typeof (value as Partial<SerializedError>).message === 'string'
+	)
+}
+
+function splitSerializedError(metadata: LogMetadata): {
+	metadata: LogMetadata
+	error?: SerializedError
+} {
+	const error = metadata.error
+	if (!isSerializedError(error)) {
+		return { metadata }
+	}
+
+	const { error: _, ...rest } = metadata
+	return {
+		metadata: rest,
+		error,
+	}
+}
+
 /**
  * Check if FinalizationRegistry is available in the current runtime.
  * Edge runtimes (Cloudflare Workers, Vercel Edge, etc.) don't support FinalizationRegistry
@@ -116,9 +187,11 @@ export class LoggerImpl implements Logger {
 	private sampler: Sampler | null = null
 	private deduplicator: Deduplicator | null = null
 	private tailSampler: TailSampler | null = null
+	private sanitizer: Sanitizer | null = null
 
 	constructor(config?: LoggerConfig) {
 		this.config = mergeConfig(config)
+		this.sanitizer = createLoggerSanitizer(this.config)
 
 		// Initialize sampler if configured
 		if (this.config.sampling) {
@@ -158,28 +231,23 @@ export class LoggerImpl implements Logger {
 		// Get context from async storage
 		const asyncContext = getContext()
 
-		// Sanitize metadata if enabled
-		// Note: sanitize() can return null/undefined for edge cases, so we fallback to empty object
-		const sanitizedMetadata = this.config.sanitize
-			? ((sanitize(metadata, this.config.sanitizeFields) as LogMetadata) ?? {})
-			: metadata
+		const normalizedMetadata = normalizeMetadataErrors(metadata)
+		const sanitizedMetadata =
+			((this.sanitizer?.sanitize(normalizedMetadata) as LogMetadata | undefined) ??
+				normalizedMetadata) ||
+			{}
+		const { metadata: entryMetadata, error } = splitSerializedError(sanitizedMetadata)
 
 		// Build log entry
 		const entry: LogEntry = {
 			timestamp: new Date().toISOString(),
 			level,
 			message,
-			metadata: Object.keys(sanitizedMetadata).length > 0 ? sanitizedMetadata : undefined,
+			metadata: Object.keys(entryMetadata).length > 0 ? entryMetadata : undefined,
 			context: this.mergeContext(asyncContext),
 			runtime: RUNTIME,
 			namespace: this.config.namespace || undefined,
-			error: sanitizedMetadata.error as LogEntry['error'],
-		}
-
-		// Remove error from metadata since it's top-level
-		if (entry.metadata?.error) {
-			const { error: _, ...rest } = entry.metadata
-			entry.metadata = Object.keys(rest).length > 0 ? rest : undefined
+			error,
 		}
 
 		// Apply sampling if configured
@@ -536,9 +604,8 @@ export class LoggerImpl implements Logger {
 			error: event.error,
 		}
 
-		// Sanitize metadata if enabled
-		if (this.config.sanitize && entry.metadata) {
-			entry.metadata = (sanitize(entry.metadata, this.config.sanitizeFields) as LogMetadata) ?? {}
+		if (this.sanitizer && entry.metadata) {
+			entry.metadata = (this.sanitizer.sanitize(entry.metadata) as LogMetadata) ?? {}
 		}
 
 		// Send to all enabled transports (no regular sampling/dedupe for wide events)

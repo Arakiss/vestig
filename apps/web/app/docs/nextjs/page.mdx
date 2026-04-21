@@ -61,8 +61,8 @@ export default async function RootLayout({ children }) {
     <html>
       <body>
         <VestigProvider
-          correlationContext={ctx}
-          config={{ level: 'debug' }}
+          initialContext={ctx}
+          level="debug"
         >
           {children}
         </VestigProvider>

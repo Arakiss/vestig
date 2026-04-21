@@ -103,7 +103,7 @@ export type { DedupeResult } from './utils/dedupe'
 // Transports
 export { ConsoleTransport } from './transports/console'
 export type { ConsoleTransportConfig } from './transports/console'
-export { BatchTransport } from './transports/batch'
+export { BatchTransport, BatchTransportError } from './transports/batch'
 export { HTTPTransport, HTTPTransportError } from './transports/http'
 export { FileTransport } from './transports/file'
 export { DatadogTransport, DatadogTransportError } from './transports/datadog'

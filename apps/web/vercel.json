@@ -1,5 +1,15 @@
 {
 	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"git": {
+		"deploymentEnabled": {
+			"main": true,
+			"develop": true,
+			"*": false
+		}
+	},
+	"github": {
+		"silent": true
+	},
 	"installCommand": "cd ../.. && bun install",
 	"buildCommand": "cd ../.. && bun run --filter vestig build && bun run --filter @vestig/next build && cd apps/web && bun run build"
 }

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
-import { BatchTransport } from '../transports/batch'
+import { BatchTransport, BatchTransportError } from '../transports/batch'
 import type { LogEntry } from '../types'
 
 /**
@@ -62,7 +62,7 @@ describe('BatchTransport', () => {
 	})
 
 	afterEach(async () => {
-		await transport.destroy()
+		await transport.destroy().catch(() => {})
 	})
 
 	describe('constructor', () => {
@@ -156,6 +156,41 @@ describe('BatchTransport', () => {
 			// Should only send once
 			expect(transport.sendCalls.length).toBe(1)
 		})
+
+		test('should await an in-flight flush and then drain entries added during it', async () => {
+			let releaseSend: (() => void) | undefined
+			const slowTransport = new (class extends TestBatchTransport {
+				protected async send(entries: LogEntry[]): Promise<void> {
+					this.sendCalls.push(entries)
+					if (this.sendCalls.length > 1) return
+					await new Promise<void>((resolve) => {
+						releaseSend = resolve
+					})
+				}
+			})({
+				name: 'slow',
+				batchSize: 2,
+				retryDelay: 1,
+			})
+
+			slowTransport.log(createEntry({ message: 'first' }))
+			slowTransport.log(createEntry({ message: 'second' }))
+
+			await new Promise((resolve) => setTimeout(resolve, 10))
+			expect(slowTransport.getStats().isFlushing).toBe(true)
+
+			slowTransport.log(createEntry({ message: 'third' }))
+			const finalFlush = slowTransport.flush()
+
+			releaseSend?.()
+			await finalFlush
+
+			expect(slowTransport.sendCalls.length).toBe(2)
+			expect(slowTransport.sendCalls[0].map((entry) => entry.message)).toEqual(['first', 'second'])
+			expect(slowTransport.sendCalls[1].map((entry) => entry.message)).toEqual(['third'])
+
+			await slowTransport.destroy()
+		})
 	})
 
 	describe('init', () => {
@@ -205,17 +240,42 @@ describe('BatchTransport', () => {
 			// Timer should be stopped, so no auto-flush (entry was logged after destroy)
 			expect(transport.sendCalls.length).toBe(0)
 		})
+
+		test('should flush retained failed batch during destroy', async () => {
+			const t = new TestBatchTransport({
+				name: 'retry-on-destroy',
+				batchSize: 5,
+				maxRetries: 1,
+				retryDelay: 1,
+			})
+
+			t.shouldFail = true
+			t.log(createEntry({ message: 'retained' }))
+
+			await expect(t.flush()).rejects.toThrow(BatchTransportError)
+			expect(t.getStats().pendingRetry).toBe(1)
+
+			t.shouldFail = false
+			await t.destroy()
+
+			expect(t.sendCalls.length).toBe(1)
+			expect(t.sendCalls[0][0].message).toBe('retained')
+			expect(t.getStats().pendingRetry).toBe(0)
+		})
 	})
 
 	describe('retry logic', () => {
 		test('should retry on failure', async () => {
 			transport.shouldFail = true
 
-			await transport.testSendWithRetry([createEntry()])
+			await expect(transport.testSendWithRetry([createEntry()])).rejects.toThrow(
+				BatchTransportError,
+			)
 
 			// Should have tried maxRetries times
 			expect(transport.failCount).toBe(3)
 			expect(transport.errorCalls.length).toBe(1)
+			expect(transport.errorCalls[0].error).toBeInstanceOf(BatchTransportError)
 		})
 
 		test('should succeed on retry', async () => {
@@ -243,10 +303,34 @@ describe('BatchTransport', () => {
 		test('should call onSendError after all retries fail', async () => {
 			transport.shouldFail = true
 
-			await transport.testSendWithRetry([createEntry()])
+			await expect(transport.testSendWithRetry([createEntry()])).rejects.toThrow(
+				BatchTransportError,
+			)
 
 			expect(transport.errorCalls.length).toBe(1)
-			expect(transport.errorCalls[0].error.message).toBe('Test send failure')
+			expect(transport.errorCalls[0].error.cause).toBeInstanceOf(Error)
+			expect(transport.errorCalls[0].error.cause?.message).toBe('Test send failure')
+		})
+
+		test('should support onError callback and non-throwing failure mode', async () => {
+			const errors: Error[] = []
+			const nonThrowingTransport = new TestBatchTransport({
+				name: 'non-throwing',
+				maxRetries: 1,
+				retryDelay: 1,
+				throwOnError: false,
+				onError: (error) => errors.push(error),
+			})
+			nonThrowingTransport.shouldFail = true
+
+			nonThrowingTransport.log(createEntry())
+			await expect(nonThrowingTransport.flush()).resolves.toBeUndefined()
+
+			expect(errors.length).toBe(1)
+			expect(errors[0]).toBeInstanceOf(BatchTransportError)
+			expect(nonThrowingTransport.getStats().pendingRetry).toBe(1)
+
+			await nonThrowingTransport.destroy().catch(() => {})
 		})
 	})
 
@@ -267,7 +351,7 @@ describe('BatchTransport', () => {
 
 			transport.log(createEntry())
 			transport.log(createEntry())
-			await transport.flush()
+			await expect(transport.flush()).rejects.toThrow(BatchTransportError)
 
 			const stats = transport.getStats()
 			expect(stats.pendingRetry).toBe(2)
@@ -280,7 +364,7 @@ describe('BatchTransport', () => {
 
 			transport.log(createEntry({ message: 'Entry 1' }))
 			transport.log(createEntry({ message: 'Entry 2' }))
-			await transport.flush()
+			await expect(transport.flush()).rejects.toThrow(BatchTransportError)
 
 			// Entries should be stored for retry
 			expect(transport.getStats().pendingRetry).toBe(2)
@@ -306,21 +390,21 @@ describe('BatchTransport', () => {
 			// First flush fails
 			transport.log(createEntry({ message: 'Batch 1 Entry 1' }))
 			transport.log(createEntry({ message: 'Batch 1 Entry 2' }))
-			await transport.flush()
+			await expect(transport.flush()).rejects.toThrow(BatchTransportError)
 
 			expect(transport.getStats().pendingRetry).toBe(2)
 			expect(transport.errorCalls.length).toBe(1)
 
 			// Second flush also fails (includes first failed batch + new entries)
 			transport.log(createEntry({ message: 'Batch 2 Entry 1' }))
-			await transport.flush()
+			await expect(transport.flush()).rejects.toThrow(BatchTransportError)
 
 			// Failed batch now contains all 3 entries (2 from first fail + 1 new)
 			expect(transport.getStats().pendingRetry).toBe(3)
 			expect(transport.errorCalls.length).toBe(2)
 
 			// Third flush fails again
-			await transport.flush()
+			await expect(transport.flush()).rejects.toThrow(BatchTransportError)
 
 			// Still same 3 entries pending (no new entries added)
 			expect(transport.getStats().pendingRetry).toBe(3)
@@ -331,7 +415,7 @@ describe('BatchTransport', () => {
 			transport.shouldFail = true
 
 			transport.log(createEntry())
-			await transport.flush()
+			await expect(transport.flush()).rejects.toThrow(BatchTransportError)
 
 			expect(transport.getStats().pendingRetry).toBe(1)
 
@@ -363,7 +447,7 @@ describe('BatchTransport', () => {
 			transport.shouldFail = true
 
 			transport.log(createEntry())
-			await transport.flush()
+			await expect(transport.flush()).rejects.toThrow(BatchTransportError)
 
 			expect(transport.getStats().pendingRetry).toBe(1)
 

@@ -115,6 +115,20 @@ describe('VestigProvider', () => {
 		}
 		expect(allProps).toBeDefined()
 	})
+
+	test('VestigProvider should allow disabling remote HTTP transport', async () => {
+		const { VestigProvider } = await import('../../client/provider')
+
+		type ProviderProps = React.ComponentProps<typeof VestigProvider>
+		const props: ProviderProps = {
+			children: null,
+			endpoint: false,
+		}
+
+		const fnString = VestigProvider.toString()
+		expect(props.endpoint).toBe(false)
+		expect(fnString).toMatch(/endpoint === (false|!1)/)
+	})
 })
 
 describe('useVestigContext', () => {
@@ -274,6 +288,12 @@ describe('Provider default values', () => {
 		const { VestigProvider } = await import('../../client/provider')
 		const fnString = VestigProvider.toString()
 		expect(fnString).toContain('/api/vestig')
+	})
+
+	test('endpoint false should disable remote transport', async () => {
+		const { VestigProvider } = await import('../../client/provider')
+		const fnString = VestigProvider.toString()
+		expect(fnString).toMatch(/endpoint === (false|!1)/)
 	})
 
 	test('default namespace should be client', async () => {

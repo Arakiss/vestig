@@ -121,8 +121,8 @@ export interface VestigProviderProps {
 	children: React.ReactNode
 	/** Initial correlation context (e.g., from server) */
 	initialContext?: LogContext
-	/** Override endpoint URL */
-	endpoint?: string
+	/** Override endpoint URL, or set to false to disable remote client log delivery */
+	endpoint?: string | false
 	/** Logger namespace */
 	namespace?: string
 	/** Additional static context */

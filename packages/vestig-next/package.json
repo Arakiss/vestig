@@ -58,8 +58,8 @@
 	"files": ["dist"],
 	"sideEffects": false,
 	"scripts": {
-		"build": "tsc",
-		"build:clean": "rm -rf dist && tsc",
+		"build": "tsc && bun ../../scripts/fix-esm-imports.ts dist",
+		"build:clean": "rm -rf dist && tsc && bun ../../scripts/fix-esm-imports.ts dist",
 		"test": "bun test",
 		"test:watch": "bun test --watch",
 		"test:coverage": "bun test --coverage",

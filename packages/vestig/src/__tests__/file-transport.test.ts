@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { BatchTransportError } from '../transports/batch'
 import { FileTransport } from '../transports/file'
 import type { LogEntry } from '../types'
 
@@ -176,12 +177,14 @@ describe('FileTransport', () => {
 		test('should throw if not initialized', async () => {
 			const transport = new FileTransport({
 				path: TEST_LOG_PATH,
+				maxRetries: 1,
+				retryDelay: 1,
 			})
 
 			transport.log(createEntry())
 
-			// Flush should handle the error internally
-			await transport.flush()
+			await expect(transport.flush()).rejects.toThrow(BatchTransportError)
+			expect(transport.getStats().pendingRetry).toBe(1)
 		})
 	})
 

@@ -16,7 +16,7 @@
     },
     "apps/web": {
       "name": "@vestig/web",
-      "version": "0.0.0",
+      "version": "0.17.0",
       "dependencies": {
         "@hookform/resolvers": "^5.2.2",
         "@mdx-js/loader": "catalog:",
@@ -91,7 +91,7 @@
     },
     "packages/vestig": {
       "name": "vestig",
-      "version": "0.8.0",
+      "version": "0.22.1",
       "devDependencies": {
         "@types/node": "catalog:",
         "typescript": "catalog:",
@@ -99,7 +99,7 @@
     },
     "packages/vestig-next": {
       "name": "@vestig/next",
-      "version": "0.8.0",
+      "version": "0.22.1",
       "dependencies": {
         "vestig": "workspace:*",
         "web-vitals": "^4.2.4",

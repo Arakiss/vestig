@@ -255,6 +255,44 @@ describe('LoggerImpl', () => {
 			expect(output.metadata.customSecret).toBe('[REDACTED]')
 			expect(output.metadata.normal).toBe('safe')
 		})
+
+		test('should honor sanitize preset names', () => {
+			const logger = new LoggerImpl({ sanitize: 'gdpr', structured: true })
+			logger.info('Task failed', {
+				agentProvider: 'elevenlabs',
+				error: 'Request timeout after 60000ms',
+				phone: '555-555-1234',
+			})
+
+			const output = JSON.parse(consoleOutput[0].output)
+			expect(output.metadata.agentProvider).toBe('elevenlabs')
+			expect(output.metadata.error).toBe('Request timeout after 60000ms')
+			expect(output.metadata.phone).toBe('[REDACTED]')
+			expect(output.error).toBeUndefined()
+		})
+
+		test('should keep string error metadata instead of lifting it to top-level error', () => {
+			const logger = new LoggerImpl({ sanitize: 'gdpr', structured: true })
+			logger.error('Provider call failed', { error: 'Request timeout after 120000ms' })
+
+			const output = JSON.parse(consoleOutput[0].output)
+			expect(output.metadata.error).toBe('Request timeout after 120000ms')
+			expect(output.error).toBeUndefined()
+		})
+
+		test('should serialize Error values in metadata to top-level error', () => {
+			const logger = new LoggerImpl({ sanitize: true, structured: true })
+			logger.error('Provider call failed', {
+				error: new Error('Connection timeout'),
+				phase: 'send',
+			})
+
+			const output = JSON.parse(consoleOutput[0].output)
+			expect(output.error.name).toBe('Error')
+			expect(output.error.message).toBe('Connection timeout')
+			expect(output.metadata.phase).toBe('send')
+			expect(output.metadata.error).toBeUndefined()
+		})
 	})
 
 	describe('child loggers', () => {
