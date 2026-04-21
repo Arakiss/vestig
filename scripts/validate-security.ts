@@ -83,7 +83,10 @@ function main(): void {
 	}
 
 	requireIncludes('.github/dependabot.yml', 'package-ecosystem: "github-actions"')
-	requireIncludes('.github/dependabot.yml', 'package-ecosystem: "npm"')
+	requireIncludes('.github/dependabot.yml', 'package-ecosystem: "bun"')
+	if (requireFile('.github/dependabot.yml').includes('package-ecosystem: "npm"')) {
+		fail('Dependabot JavaScript updates must use the Bun ecosystem, not npm')
+	}
 
 	console.log('security: policy, CI, and publish hardening checks passed')
 }

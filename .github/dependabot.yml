@@ -16,7 +16,7 @@ updates:
           - "actions/*"
           - "oven-sh/*"
 
-  - package-ecosystem: "npm"
+  - package-ecosystem: "bun"
     directory: "/"
     schedule:
       interval: "weekly"
@@ -25,6 +25,7 @@ updates:
       timezone: "Etc/UTC"
     labels:
       - "dependencies"
+      - "bun"
     groups:
       docs-runtime:
         patterns:
