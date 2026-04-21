@@ -91,7 +91,6 @@ export function getDocNavigation(): DocNavSection[] {
  * Placeholder for MDX implementation
  */
 export async function getDocBySlug(slug: string): Promise<DocPage | null> {
-	// This will be implemented with gray-matter + MDX
 	// Currently unused - docs are served via app router MDX pages
 	void slug // Suppress unused parameter warning
 	return null

@@ -1,7 +1,8 @@
 # =============================================================================
 # Vestig Release Pipeline
 # =============================================================================
-# Automatically creates releases based on Conventional Commits
+# Validates release candidates on push and publishes from manual dispatch.
+# Manual publishing keeps changelog quality and npm Trusted Publisher state explicit.
 #
 # Commit Types:
 #   feat: → MINOR version bump (0.17.0 → 0.18.0)
@@ -163,10 +164,22 @@ jobs:
           echo "- \`feat!:\` or \`fix!:\` → Minor bump (breaking change)" >> $GITHUB_STEP_SUMMARY
 
       # =========================================================================
+      - name: Release requires manual dispatch
+        if: steps.analyze.outputs.should_release == 'true' && github.event_name == 'push'
+        run: |
+          echo "Release candidate detected: ${{ steps.analyze.outputs.bump_type }}"
+          echo "Publishing is intentionally manual so changelog quality, npm provenance, and package-level Trusted Publisher state are reviewed before creating tags."
+          echo "## Release Candidate Ready" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Detected bump:** ${{ steps.analyze.outputs.bump_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Run this workflow manually with \`dry_run=false\` when npm Trusted Publisher permissions are ready for both \`vestig\` and \`@vestig/next\`." >> $GITHUB_STEP_SUMMARY
+
+      # =========================================================================
       # Create Release (Dry Run)
       # =========================================================================
       - name: Release (Dry Run)
-        if: steps.analyze.outputs.should_release == 'true' && github.event.inputs.dry_run == 'true'
+        if: steps.analyze.outputs.should_release == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true'
         run: |
           echo "DRY RUN - No changes will be made"
           bun run release -- --ci --dry-run --increment=${{ steps.analyze.outputs.bump_type }}
@@ -178,7 +191,7 @@ jobs:
       # =========================================================================
       - name: Create Release
         id: release
-        if: steps.analyze.outputs.should_release == 'true' && github.event.inputs.dry_run != 'true'
+        if: steps.analyze.outputs.should_release == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true'
         run: |
           echo "Creating ${{ steps.analyze.outputs.bump_type }} release..."
           bun run release -- --ci --increment=${{ steps.analyze.outputs.bump_type }}

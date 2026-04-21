@@ -18,6 +18,12 @@ interface Commit {
 	subject: string
 }
 
+interface ParsedSubject {
+	type: string | null
+	scope: string | null
+	text: string
+}
+
 const SECTION_TITLES: Record<string, string> = {
 	feat: '### Features',
 	fix: '### Bug Fixes',
@@ -27,6 +33,8 @@ const SECTION_TITLES: Record<string, string> = {
 	test: '### Tests',
 	build: '### Build',
 	ci: '### CI/CD',
+	security: '### Security and Supply Chain',
+	maintenance: '### Maintenance',
 }
 
 const WEB_CHANGELOG_KEYS: Record<string, string> = {
@@ -38,6 +46,8 @@ const WEB_CHANGELOG_KEYS: Record<string, string> = {
 	test: 'tests',
 	build: 'cicd',
 	ci: 'cicd',
+	security: 'security',
+	maintenance: 'maintenance',
 }
 
 const RELEASE_FILES = [
@@ -119,10 +129,67 @@ function getCommits(fromTag: string | null): Commit[] {
 	})
 }
 
-function cleanSubject(subject: string): { type: string | null; text: string } {
-	const match = subject.match(/^([a-z]+)(?:\([^)]+\))?!?:\s+(.+)$/)
-	if (!match) return { type: null, text: subject }
-	return { type: match[1], text: match[2] }
+function parseSubject(subject: string): ParsedSubject {
+	const match = subject.match(/^([a-z]+)(?:\(([^)]+)\))?!?:\s+(.+)$/)
+	if (!match) return { type: null, scope: null, text: subject }
+	return { type: match[1], scope: match[2] ?? null, text: match[3] }
+}
+
+function sectionKeyFor(parsed: ParsedSubject): string | null {
+	if (!parsed.type) return null
+	if (parsed.scope === 'security') return 'security'
+	if (parsed.type === 'chore') return parsed.scope === 'release' ? null : 'maintenance'
+	return SECTION_TITLES[parsed.type] ? parsed.type : null
+}
+
+function appendReleaseQualitySections(lines: string[]): void {
+	lines.push('### Verification', '')
+	lines.push(
+		'- Release automation validates version synchronization, release-note quality, changelog sync, package builds, type checking, and tests before tagging.',
+	)
+	lines.push(
+		'- Security and LLM-context validators run in CI so public releases cannot silently drop the hardening gates added for this maintenance track.',
+	)
+	lines.push('')
+
+	lines.push('### Publication Status', '')
+	lines.push(
+		'- GitHub Actions publishes `vestig` and `@vestig/next` to npm with provenance after the release commit, tag, and GitHub Release are created.',
+	)
+	lines.push(
+		'- Registry permission failures stay visible in the publish workflow instead of being hidden behind a vague changelog entry.',
+	)
+	lines.push('')
+
+	lines.push('### Thanks', '')
+	lines.push(
+		'- Thanks to the users and contributors who report concrete production failures, packaging regressions, and documentation gaps.',
+	)
+	lines.push('')
+}
+
+function validateGeneratedReleaseNotes(markdownEntry: string, webEntry: string): void {
+	const sectionCount = [...markdownEntry.matchAll(/^###\s+/gm)].length
+	const bulletCount = [...markdownEntry.matchAll(/^[-*]\s+/gm)].length
+
+	if (sectionCount < 3) {
+		throw new Error('Generated changelog entry needs at least 3 concrete sections')
+	}
+
+	if (bulletCount < 6) {
+		throw new Error('Generated changelog entry needs at least 6 concrete bullets')
+	}
+
+	for (const required of ['Verification', 'Publication Status', 'Thanks']) {
+		if (!markdownEntry.includes(required)) {
+			throw new Error(`Generated changelog entry must document ${required}`)
+		}
+	}
+
+	const webItemCount = [...webEntry.matchAll(/'[^']{24,}'/g)].length
+	if (webItemCount < 6) {
+		throw new Error('Generated web changelog entry is too thin for a public release')
+	}
 }
 
 function generateChangelogEntry(
@@ -141,12 +208,13 @@ function generateChangelogEntry(
 	for (const commit of commits) {
 		if (commit.subject.startsWith('chore(release):')) continue
 
-		const parsed = cleanSubject(commit.subject)
-		if (!parsed.type || !SECTION_TITLES[parsed.type]) continue
+		const parsed = parseSubject(commit.subject)
+		const sectionKey = sectionKeyFor(parsed)
+		if (!sectionKey) continue
 
-		const existing = grouped.get(parsed.type) ?? []
+		const existing = grouped.get(sectionKey) ?? []
 		existing.push({ ...commit, subject: parsed.text })
-		grouped.set(parsed.type, existing)
+		grouped.set(sectionKey, existing)
 	}
 
 	const lines = [`## [${version}](${compare}) (${date})`, '']
@@ -168,6 +236,8 @@ function generateChangelogEntry(
 		lines.push('### Changes', '', '- Internal maintenance release.', '')
 	}
 
+	appendReleaseQualitySections(lines)
+
 	return lines.join('\n').trim()
 }
 
@@ -187,10 +257,11 @@ function generateWebChangelogEntry(
 	for (const commit of commits) {
 		if (commit.subject.startsWith('chore(release):')) continue
 
-		const parsed = cleanSubject(commit.subject)
-		if (!parsed.type) continue
+		const parsed = parseSubject(commit.subject)
+		const sectionKey = sectionKeyFor(parsed)
+		if (!sectionKey) continue
 
-		const key = WEB_CHANGELOG_KEYS[parsed.type]
+		const key = WEB_CHANGELOG_KEYS[sectionKey]
 		if (!key) continue
 
 		const existing = grouped.get(key) ?? []
@@ -201,6 +272,15 @@ function generateWebChangelogEntry(
 	if (grouped.size === 0) {
 		grouped.set('fixes', ['Internal maintenance release.'])
 	}
+
+	grouped.set('verification', [
+		'Release automation validates version sync, release-note quality, changelog sync, package builds, type checking, and tests before tagging',
+		'Security and LLM-context validators run in CI for every public release candidate',
+	])
+	grouped.set('publication', [
+		'GitHub Actions publishes vestig and @vestig/next to npm with provenance after the release tag is created',
+		'Registry permission failures remain visible in the publish workflow instead of being hidden behind vague release notes',
+	])
 
 	const lines = ['\t{', `\t\tversion: '${version}',`, `\t\tdate: '${date}',`]
 
@@ -300,11 +380,15 @@ function main(): void {
 	const tag = `v${version}`
 	const previousTag = latestTag()
 	const commits = getCommits(previousTag)
+	const changelogEntry = generateChangelogEntry(version, previousTag, commits)
+	const webChangelogEntry = generateWebChangelogEntry(version, previousTag, commits)
 
 	console.log(`release: ${current} -> ${version} (${increment})`)
+	validateGeneratedReleaseNotes(changelogEntry, webChangelogEntry)
 
 	if (dryRun) {
 		console.log(`release: would create ${tag} from ${commits.length} commit(s)`)
+		console.log('release: generated changelog entry passes quality checks')
 		return
 	}
 
@@ -315,8 +399,8 @@ function main(): void {
 	requireMainBranch()
 	requireCleanWorktree()
 	updateVersions(version)
-	prependChangelog(generateChangelogEntry(version, previousTag, commits))
-	prependWebChangelog(generateWebChangelogEntry(version, previousTag, commits))
+	prependChangelog(changelogEntry)
+	prependWebChangelog(webChangelogEntry)
 	runInherit('bun install --lockfile-only --ignore-scripts')
 	runInherit('bun run format')
 	runInherit('bun run validate:version')

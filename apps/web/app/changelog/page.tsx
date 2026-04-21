@@ -23,8 +23,11 @@ interface ChangelogEntry {
 	tests?: string[]
 	breaking?: string[]
 	refactoring?: string[]
+	security?: string[]
+	maintenance?: string[]
 	cicd?: string[]
 	publication?: string[]
+	verification?: string[]
 	thanks?: string[]
 }
 
@@ -493,7 +496,10 @@ const sectionConfig = {
 	tests: { emoji: '✅', title: 'Tests', color: 'text-cyan-400' },
 	breaking: { emoji: '⚠️', title: 'Breaking Changes', color: 'text-red-400' },
 	refactoring: { emoji: '♻️', title: 'Refactoring', color: 'text-purple-400' },
+	security: { emoji: '🔒', title: 'Security', color: 'text-emerald-400' },
+	maintenance: { emoji: '🧰', title: 'Maintenance', color: 'text-slate-300' },
 	cicd: { emoji: '🔧', title: 'CI/CD', color: 'text-gray-400' },
+	verification: { emoji: '🧪', title: 'Verification', color: 'text-cyan-300' },
 	publication: { emoji: '📦', title: 'Publication', color: 'text-violet-400' },
 	thanks: { emoji: '🙏', title: 'Thanks', color: 'text-orange-400' },
 }
@@ -602,7 +608,10 @@ export default function ChangelogPage() {
 									<ChangeSection items={entry.docs} type="docs" />
 									<ChangeSection items={entry.tests} type="tests" />
 									<ChangeSection items={entry.refactoring} type="refactoring" />
+									<ChangeSection items={entry.security} type="security" />
+									<ChangeSection items={entry.maintenance} type="maintenance" />
 									<ChangeSection items={entry.cicd} type="cicd" />
+									<ChangeSection items={entry.verification} type="verification" />
 									<ChangeSection items={entry.publication} type="publication" />
 									<ChangeSection items={entry.thanks} type="thanks" />
 								</div>
