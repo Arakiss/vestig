@@ -1,0 +1,289 @@
+# Server Components
+
+Logging in React Server Components with automatic context propagation.
+
+## Overview
+
+In Server Components, use `getLogger()` to get a logger that:
+
+- **Inherits correlation context** — From middleware
+- **Uses React cache** — Deduplicated across the request
+- **Creates child loggers** — With your namespace
+
+## Basic Usage
+
+```typescript
+// app/page.tsx
+import { getLogger } from '@vestig/next'
+
+export default async function Page() {
+  const log = await getLogger('home')
+
+  log.info('Rendering home page')
+
+  return <h1>Welcome</h1>
+}
+```
+
+## With Request Context
+
+Access correlation IDs for tracing:
+
+```typescript
+import { getLogger, getRequestContext } from '@vestig/next'
+
+export default async function Page() {
+  const log = await getLogger('page')
+  const ctx = await getRequestContext()
+
+  log.info('Page rendering', {
+    requestId: ctx.requestId,
+    traceId: ctx.traceId
+  })
+
+  return <div>Request: {ctx.requestId}</div>
+}
+```
+
+## Nested Components
+
+Context propagates through nested async components:
+
+```typescript
+// app/page.tsx
+import { getLogger } from '@vestig/next'
+
+async function UserProfile({ userId }: { userId: string }) {
+  const log = await getLogger('user-profile')
+
+  log.debug('Fetching user', { userId })
+
+  const user = await fetchUser(userId)
+
+  log.info('User loaded', { userId, name: user.name })
+
+  return <div>{user.name}</div>
+}
+
+async function UserPosts({ userId }: { userId: string }) {
+  const log = await getLogger('user-posts')
+
+  log.debug('Fetching posts', { userId })
+
+  const posts = await fetchPosts(userId)
+
+  log.info('Posts loaded', { userId, count: posts.length })
+
+  return <ul>{posts.map(p => <li key={p.id}>{p.title}</li>)}</ul>
+}
+
+export default async function Page() {
+  const log = await getLogger('page')
+
+  log.info('Rendering user page')
+
+  return (
+    <div>
+      <UserProfile userId="123" />
+      <UserPosts userId="123" />
+    </div>
+  )
+}
+```
+
+All logs share the same `requestId` and `traceId`:
+
+```json
+{"namespace":"page","message":"Rendering user page","context":{"requestId":"abc..."}}
+{"namespace":"user-profile","message":"Fetching user","context":{"requestId":"abc..."}}
+{"namespace":"user-profile","message":"User loaded","context":{"requestId":"abc..."}}
+{"namespace":"user-posts","message":"Fetching posts","context":{"requestId":"abc..."}}
+{"namespace":"user-posts","message":"Posts loaded","context":{"requestId":"abc..."}}
+```
+
+## Data Fetching
+
+Log data fetching operations:
+
+```typescript
+import { getLogger } from '@vestig/next'
+
+async function getData() {
+  const log = await getLogger('data')
+
+  log.debug('Starting data fetch')
+
+  const start = performance.now()
+  const data = await fetch('https://api.example.com/data')
+  const duration = performance.now() - start
+
+  log.info('Data fetched', {
+    status: data.status,
+    duration: `${duration.toFixed(2)}ms`
+  })
+
+  return data.json()
+}
+
+export default async function Page() {
+  const data = await getData()
+
+  return <div>{JSON.stringify(data)}</div>
+}
+```
+
+## Error Handling
+
+Log errors with full context:
+
+```typescript
+import { getLogger } from '@vestig/next'
+
+export default async function Page() {
+  const log = await getLogger('page')
+
+  try {
+    const data = await riskyFetch()
+    return <div>{data}</div>
+  } catch (error) {
+    log.error('Failed to load page data', error)
+
+    // You can throw to show error boundary
+    // or return fallback UI
+    return <div>Failed to load</div>
+  }
+}
+```
+
+## With Suspense
+
+Logging works correctly with Suspense boundaries:
+
+```typescript
+import { Suspense } from 'react'
+import { getLogger } from '@vestig/next'
+
+async function SlowComponent() {
+  const log = await getLogger('slow-component')
+
+  log.debug('Starting slow operation')
+
+  await new Promise(r => setTimeout(r, 2000))
+
+  log.info('Slow operation complete')
+
+  return <div>Loaded!</div>
+}
+
+export default async function Page() {
+  const log = await getLogger('page')
+
+  log.info('Rendering page with suspense')
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SlowComponent />
+    </Suspense>
+  )
+}
+```
+
+## Parallel Data Fetching
+
+Log parallel operations:
+
+```typescript
+import { getLogger } from '@vestig/next'
+
+export default async function Page() {
+  const log = await getLogger('page')
+
+  log.info('Starting parallel fetches')
+
+  const [users, posts, comments] = await Promise.all([
+    fetchUsers().then(data => {
+      log.debug('Users fetched', { count: data.length })
+      return data
+    }),
+    fetchPosts().then(data => {
+      log.debug('Posts fetched', { count: data.length })
+      return data
+    }),
+    fetchComments().then(data => {
+      log.debug('Comments fetched', { count: data.length })
+      return data
+    })
+  ])
+
+  log.info('All data fetched', {
+    users: users.length,
+    posts: posts.length,
+    comments: comments.length
+  })
+
+  return <div>...</div>
+}
+```
+
+## Layout Logging
+
+Log in layouts for request-level info:
+
+```typescript
+// app/layout.tsx
+import { getLogger, getRequestContext } from '@vestig/next'
+
+export default async function RootLayout({
+  children
+}: {
+  children: React.ReactNode
+}) {
+  const log = await getLogger('layout')
+  const ctx = await getRequestContext()
+
+  log.info('Request started', {
+    requestId: ctx.requestId
+  })
+
+  return (
+    <html>
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+## Best Practices
+
+### 1. Use Descriptive Namespaces
+
+```typescript
+// Good
+const log = await getLogger('checkout:payment')
+const log = await getLogger('user:profile')
+
+// Not as good
+const log = await getLogger('component1')
+```
+
+### 2. Log Business Events
+
+```typescript
+// Good - business value
+log.info('Order placed', { orderId, total })
+log.info('User upgraded plan', { userId, plan })
+
+// Less useful
+log.debug('Rendering div')
+```
+
+### 3. Include Relevant Context
+
+```typescript
+log.info('Product viewed', {
+  productId,
+  userId: ctx.requestId,
+  category: product.category,
+  price: product.price
+})
+```

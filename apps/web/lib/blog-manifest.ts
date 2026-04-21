@@ -7,7 +7,8 @@
  * - Blog index page (app/blog/page.tsx)
  *
  * When adding a new blog post:
- * 1. Create the MDX file in app/blog/[slug]/page.mdx
+ * 1. Create the MDX file in app/blog/[slug]/content.mdx
+ * 2. Create app/blog/[slug]/page.tsx to export route metadata and render the MDX content
  * 2. Add an entry to this manifest with matching slug
  */
 

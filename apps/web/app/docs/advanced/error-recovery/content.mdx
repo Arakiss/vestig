@@ -1,0 +1,570 @@
+# Error Recovery Patterns
+
+Production logging systems must handle failures gracefully. Network issues, service outages, and resource exhaustion are inevitable. This guide covers patterns for building resilient logging with Vestig.
+
+## Transport Failure Handling
+
+### HTTPTransportError
+
+The `HTTPTransport` wraps all errors in `HTTPTransportError` for consistent handling:
+
+```typescript
+import { HTTPTransport, HTTPTransportError } from 'vestig'
+
+const transport = new HTTPTransport({
+  url: 'https://logs.example.com/ingest',
+  maxRetries: 3,
+  retryDelay: 1000,
+})
+
+// Error properties help you decide how to handle failures
+try {
+  await transport.flush()
+} catch (error) {
+  if (error instanceof HTTPTransportError) {
+    if (error.isNetworkError) {
+      // No response received - network issue, DNS failure, etc.
+      console.log('Network unavailable, logs queued locally')
+    } else if (error.isTimeout) {
+      // Request timed out (408)
+      console.log('Request timed out, will retry')
+    } else if (error.isServerError) {
+      // 5xx - server issue, retry makes sense
+      console.log('Server error, will retry')
+    } else if (error.isClientError) {
+      // 4xx - our fault, don't retry (bad config, auth, etc.)
+      console.log('Client error, check configuration')
+    }
+
+    // Access original error for debugging
+    if (error.cause) {
+      console.log('Original error:', error.cause.message)
+    }
+  }
+}
+```
+
+### Error Categories
+
+| Property | Status Codes | Description | Should Retry? |
+|----------|--------------|-------------|---------------|
+| `isNetworkError` | 0 | No response received | Yes |
+| `isTimeout` | 408 | Request timeout | Yes |
+| `isServerError` | 500-599 | Server-side issue | Yes |
+| `isClientError` | 400-499 | Client-side issue | No |
+| `isRetryable` | 0, 408, 5xx | Combined check | - |
+
+## Retry Strategies
+
+### Built-in Retries
+
+`HTTPTransport` and `BatchTransport` have built-in retry logic:
+
+```typescript
+import { HTTPTransport } from 'vestig'
+
+const transport = new HTTPTransport({
+  url: 'https://logs.example.com',
+  maxRetries: 5,       // Number of retry attempts
+  retryDelay: 1000,    // Base delay in ms (doubles each retry)
+  timeout: 30000,      // Request timeout
+})
+```
+
+### Exponential Backoff
+
+The transports use exponential backoff with jitter:
+
+```typescript
+// Retry delays: 1s, 2s, 4s, 8s, 16s (with jitter)
+// This prevents thundering herd when multiple clients retry
+```
+
+### Custom Retry Logic
+
+For advanced scenarios, wrap the transport:
+
+```typescript
+import { BatchTransport, type LogEntry, type Transport } from 'vestig'
+
+class RetryingTransport implements Transport {
+  readonly name = 'retrying'
+  readonly config = { name: 'retrying', enabled: true }
+
+  private queue: LogEntry[] = []
+  private retryTimer: Timer | null = null
+  private backoffMs = 1000
+  private maxBackoff = 60000
+
+  constructor(private inner: Transport) {}
+
+  log(entry: LogEntry): void {
+    this.queue.push(entry)
+    this.scheduleFlush()
+  }
+
+  private scheduleFlush() {
+    if (this.retryTimer) return
+
+    this.retryTimer = setTimeout(async () => {
+      this.retryTimer = null
+      await this.attemptFlush()
+    }, 100)
+  }
+
+  private async attemptFlush() {
+    try {
+      for (const entry of this.queue) {
+        await this.inner.log(entry)
+      }
+      this.queue = []
+      this.backoffMs = 1000 // Reset on success
+    } catch (error) {
+      // Exponential backoff
+      this.backoffMs = Math.min(this.backoffMs * 2, this.maxBackoff)
+      this.retryTimer = setTimeout(() => {
+        this.retryTimer = null
+        this.attemptFlush()
+      }, this.backoffMs)
+    }
+  }
+
+  async flush(): Promise<void> {
+    await this.attemptFlush()
+  }
+}
+```
+
+## Fallback Patterns
+
+### Primary/Fallback Transport
+
+Route logs to a fallback when primary fails:
+
+```typescript
+import { createLogger, HTTPTransport, ConsoleTransport, type LogEntry } from 'vestig'
+
+class FallbackTransport {
+  readonly name = 'fallback'
+  readonly config = { name: 'fallback', enabled: true }
+
+  private primaryHealthy = true
+  private healthCheckTimer: Timer | null = null
+
+  constructor(
+    private primary: HTTPTransport,
+    private fallback: ConsoleTransport
+  ) {
+    this.startHealthCheck()
+  }
+
+  log(entry: LogEntry): void {
+    if (this.primaryHealthy) {
+      try {
+        this.primary.log(entry)
+      } catch {
+        this.primaryHealthy = false
+        this.fallback.log(entry)
+      }
+    } else {
+      this.fallback.log(entry)
+    }
+  }
+
+  private startHealthCheck() {
+    this.healthCheckTimer = setInterval(async () => {
+      if (!this.primaryHealthy) {
+        try {
+          await this.primary.flush()
+          this.primaryHealthy = true
+        } catch {
+          // Still unhealthy
+        }
+      }
+    }, 30000)
+  }
+
+  async flush(): Promise<void> {
+    await Promise.allSettled([
+      this.primary.flush(),
+      this.fallback.flush(),
+    ])
+  }
+
+  async destroy(): Promise<void> {
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer)
+    }
+    await Promise.all([
+      this.primary.destroy?.(),
+      this.fallback.destroy?.(),
+    ])
+  }
+}
+```
+
+### Multi-Destination Logging
+
+Send to multiple destinations for redundancy:
+
+```typescript
+import { createLogger, HTTPTransport, FileTransport } from 'vestig'
+
+const logger = createLogger()
+
+// Primary: HTTP to log aggregator
+logger.addTransport(new HTTPTransport({
+  url: 'https://logs.example.com',
+  maxRetries: 3,
+}))
+
+// Secondary: Local file as backup
+logger.addTransport(new FileTransport({
+  path: './logs/backup.log',
+  maxSize: 50 * 1024 * 1024, // 50MB
+}))
+
+// Logs go to both destinations
+logger.info('This is sent to both HTTP and file')
+```
+
+## Graceful Degradation
+
+### Circuit Breaker Pattern
+
+Prevent cascading failures by stopping requests temporarily:
+
+```typescript
+class CircuitBreaker {
+  private failures = 0
+  private lastFailure = 0
+  private state: 'closed' | 'open' | 'half-open' = 'closed'
+
+  constructor(
+    private threshold = 5,
+    private resetTimeout = 30000
+  ) {}
+
+  async execute<T>(fn: () => Promise<T>): Promise<T | null> {
+    if (this.state === 'open') {
+      if (Date.now() - this.lastFailure > this.resetTimeout) {
+        this.state = 'half-open'
+      } else {
+        return null // Circuit open, skip execution
+      }
+    }
+
+    try {
+      const result = await fn()
+      this.onSuccess()
+      return result
+    } catch (error) {
+      this.onFailure()
+      throw error
+    }
+  }
+
+  private onSuccess() {
+    this.failures = 0
+    this.state = 'closed'
+  }
+
+  private onFailure() {
+    this.failures++
+    this.lastFailure = Date.now()
+    if (this.failures >= this.threshold) {
+      this.state = 'open'
+    }
+  }
+
+  get isOpen(): boolean {
+    return this.state === 'open'
+  }
+}
+
+// Usage with HTTPTransport
+const circuitBreaker = new CircuitBreaker(5, 30000)
+
+const transport = new HTTPTransport({
+  url: 'https://logs.example.com',
+})
+
+// Wrap flush with circuit breaker
+async function safeFlush() {
+  const result = await circuitBreaker.execute(() => transport.flush())
+  if (result === null) {
+    console.warn('Circuit breaker open, logs queued')
+  }
+}
+```
+
+### Sampling Under Load
+
+Reduce log volume when system is stressed:
+
+```typescript
+import { createLogger } from 'vestig'
+
+const logger = createLogger({
+  sampling: {
+    enabled: true,
+    sampler: {
+      // Normal: log everything
+      default: 1.0,
+      namespaces: {
+        // Under load: sample debug logs
+        'db.*': process.env.HIGH_LOAD ? 0.1 : 1.0,
+        'http.*': process.env.HIGH_LOAD ? 0.5 : 1.0,
+      }
+    }
+  }
+})
+```
+
+## Buffer Management
+
+### Handling Buffer Overflow
+
+The `CircularBuffer` drops old entries when full:
+
+```typescript
+import { CircularBuffer } from 'vestig'
+
+const buffer = new CircularBuffer<LogEntry>({
+  maxSize: 1000,
+  onDrop: (dropped) => {
+    // Called when entries are dropped
+    console.warn(`Dropped ${dropped.length} log entries due to buffer overflow`)
+
+    // Optionally: Write to emergency file
+    fs.appendFileSync('./emergency.log',
+      dropped.map(e => JSON.stringify(e)).join('\n')
+    )
+  }
+})
+```
+
+### Persistent Queue
+
+For critical logs, persist to disk:
+
+```typescript
+import { createLogger, BatchTransport, type LogEntry } from 'vestig'
+import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
+
+class PersistentQueueTransport extends BatchTransport {
+  private queueFile: string
+
+  constructor(options: { queueFile: string; url: string }) {
+    super({
+      name: 'persistent-queue',
+      batchSize: 100,
+      flushInterval: 5000,
+    })
+    this.queueFile = options.queueFile
+    this.loadQueue()
+  }
+
+  private loadQueue() {
+    if (existsSync(this.queueFile)) {
+      const data = readFileSync(this.queueFile, 'utf-8')
+      const entries = JSON.parse(data) as LogEntry[]
+      for (const entry of entries) {
+        super.log(entry)
+      }
+      unlinkSync(this.queueFile)
+    }
+  }
+
+  protected async send(entries: LogEntry[]): Promise<void> {
+    try {
+      await this.sendToServer(entries)
+    } catch (error) {
+      // Persist failed entries
+      const existing = existsSync(this.queueFile)
+        ? JSON.parse(readFileSync(this.queueFile, 'utf-8'))
+        : []
+      writeFileSync(this.queueFile, JSON.stringify([...existing, ...entries]))
+      throw error
+    }
+  }
+
+  private async sendToServer(entries: LogEntry[]): Promise<void> {
+    // Implementation
+  }
+}
+```
+
+## Initialization Recovery
+
+### Async Initialization with Retry
+
+Use `createLoggerAsync` for transports that need setup:
+
+```typescript
+import { createLoggerAsync, FileTransport, HTTPTransport } from 'vestig'
+
+async function initLogging(retries = 3): Promise<Logger> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const logger = await createLoggerAsync({
+        level: 'info',
+        namespace: 'app',
+      })
+
+      // Add transports that need async init
+      logger.addTransport(new FileTransport({
+        path: './logs/app.log',
+      }))
+
+      logger.addTransport(new HTTPTransport({
+        url: process.env.LOG_ENDPOINT!,
+      }))
+
+      return logger
+    } catch (error) {
+      if (i === retries - 1) throw error
+      await new Promise(r => setTimeout(r, 1000 * (i + 1)))
+    }
+  }
+  throw new Error('Failed to initialize logging')
+}
+
+// Usage
+const logger = await initLogging()
+```
+
+### Fallback During Init
+
+Start with console, upgrade when ready:
+
+```typescript
+import { createLogger, createLoggerAsync, HTTPTransport } from 'vestig'
+
+// Immediate: console-only logger
+let logger = createLogger({ level: 'info' })
+logger.info('App starting with console logging')
+
+// Background: upgrade to HTTP transport
+;(async () => {
+  try {
+    const httpTransport = new HTTPTransport({
+      url: process.env.LOG_ENDPOINT!,
+    })
+    await httpTransport.init?.()
+    logger.addTransport(httpTransport)
+    logger.info('Upgraded to HTTP logging')
+  } catch (error) {
+    logger.warn('Failed to initialize HTTP transport, using console only', { error })
+  }
+})()
+```
+
+## Shutdown Handling
+
+### Graceful Shutdown
+
+Flush all logs before exit:
+
+```typescript
+import { createLogger, HTTPTransport, initLogger } from 'vestig'
+
+const logger = createLogger()
+logger.addTransport(new HTTPTransport({ url: '...' }))
+
+// Flush on shutdown signals
+const shutdown = async (signal: string) => {
+  logger.info('Shutdown initiated', { signal })
+
+  try {
+    await logger.flush()
+    logger.info('All logs flushed')
+  } catch (error) {
+    console.error('Failed to flush logs:', error)
+  } finally {
+    process.exit(0)
+  }
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))
+
+// Also handle uncaught exceptions
+process.on('uncaughtException', async (error) => {
+  logger.error('Uncaught exception', { error })
+  await logger.flush()
+  process.exit(1)
+})
+```
+
+## Best Practices
+
+### 1. Always Set Timeouts
+
+```typescript
+new HTTPTransport({
+  url: '...',
+  timeout: 10000, // Don't wait forever
+})
+```
+
+### 2. Configure Appropriate Retries
+
+```typescript
+// Production: more retries for reliability
+new HTTPTransport({
+  maxRetries: 5,
+  retryDelay: 1000,
+})
+
+// Development: fail fast
+new HTTPTransport({
+  maxRetries: 1,
+  retryDelay: 100,
+})
+```
+
+### 3. Monitor Transport Health
+
+```typescript
+const transport = new HTTPTransport({ url: '...' })
+
+// Periodically check health
+setInterval(async () => {
+  try {
+    await transport.flush()
+  } catch (error) {
+    if (error instanceof HTTPTransportError) {
+      alertOps({
+        type: 'logging_unhealthy',
+        error: error.message,
+        statusCode: error.statusCode,
+      })
+    }
+  }
+}, 60000)
+```
+
+### 4. Use Multiple Transports
+
+```typescript
+// Don't rely on a single destination
+logger.addTransport(new HTTPTransport({ url: primary }))
+logger.addTransport(new HTTPTransport({ url: secondary }))
+logger.addTransport(new FileTransport({ path: './backup.log' }))
+```
+
+### 5. Handle Edge Cases
+
+```typescript
+// Network offline
+if (!navigator.onLine) {
+  // Queue locally, sync when online
+  window.addEventListener('online', () => logger.flush())
+}
+
+// Page unload (browser)
+window.addEventListener('beforeunload', () => {
+  navigator.sendBeacon('/api/logs', JSON.stringify(pendingLogs))
+})
+```

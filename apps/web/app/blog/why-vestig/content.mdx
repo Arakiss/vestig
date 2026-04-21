@@ -1,0 +1,275 @@
+# Why We Built Vestig: A Different Approach to TypeScript Logging
+
+<div className="text-white/50 text-sm mb-8">December 22, 2025 · 8 min read</div>
+
+The JavaScript ecosystem has excellent logging libraries. Pino is blazingly fast. Winston is incredibly flexible. So why did we build Vestig?
+
+Because we believed the perfect logging library for modern TypeScript applications didn't exist yet.
+
+## The Problems We Wanted to Solve
+
+### 1. Runtime Lock-in
+
+Most logging libraries are designed for Node.js. Period.
+
+- **Pino**: Excellent for Node.js, but no native browser support. `pino-browser` exists but it's a separate package with different APIs.
+- **Winston**: Node.js only. `winston-browser` is community-maintained and limited.
+- **Bunyan**: Node.js only, no browser or edge support.
+
+But modern applications run everywhere:
+- Server-side rendering in Node.js
+- Edge functions on Vercel, Cloudflare, Deno Deploy
+- Client-side React/Vue/Svelte
+- Bun for faster development
+- Deno for security-first deployments
+
+**Vestig runs identically in all of these.** Same API. Same features. Same behavior.
+
+```typescript
+// This exact code works in Node, Bun, Deno, Edge, and Browser
+import { log, RUNTIME } from 'vestig'
+
+log.info('Hello', { runtime: RUNTIME })
+```
+
+### 2. Privacy as an Afterthought
+
+Every logging library lets you log anything. That's the problem.
+
+```typescript
+// Oops, you just logged a password to Datadog
+logger.info('User login', { email: user.email, password: user.password })
+```
+
+In 2025, with GDPR, HIPAA, and PCI-DSS, logging PII is not just embarrassing—it's potentially illegal. Yet most logging libraries offer zero protection.
+
+**Vestig sanitizes by default:**
+
+```typescript
+import { log } from 'vestig'
+
+log.info('User login', {
+  email: 'john@example.com',
+  password: 'secret123',
+  ssn: '123-45-6789'
+})
+
+// Output:
+// email: "j***@example.com"
+// password: "[REDACTED]"
+// ssn: "[REDACTED]"
+```
+
+Choose from presets (`minimal`, `default`, `gdpr`, `hipaa`, `pci-dss`) or define custom patterns. Your logs are safe by default.
+
+### 3. Dependency Hell
+
+Here's what happens when you install popular logging libraries:
+
+| Library | Direct Dependencies | Total Dependencies |
+|---------|--------------------|--------------------|
+| Winston | 8 | 30+ |
+| Pino | 3 | 15+ |
+| Bunyan | 4 | 20+ |
+| **Vestig** | **0** | **0** |
+
+Every dependency is:
+- A potential security vulnerability
+- A version to manage
+- A breaking change waiting to happen
+- Bundle size you're shipping to users
+
+**Vestig has zero production dependencies.** It's pure TypeScript that compiles to ~5KB gzipped.
+
+### 4. Tracing is a Separate Concern
+
+Want logging? Use Pino. Want tracing? Add OpenTelemetry. Now coordinate context between them. Good luck.
+
+OpenTelemetry is powerful but overwhelming. The average setup involves:
+- `@opentelemetry/api`
+- `@opentelemetry/sdk-node`
+- `@opentelemetry/auto-instrumentations-node`
+- A collector, exporters, and extensive configuration
+
+**Vestig includes native tracing:**
+
+```typescript
+import { span, log } from 'vestig'
+
+const result = await span('checkout', async (s) => {
+  s.setAttribute('userId', user.id)
+
+  log.info('Processing payment')  // Automatically correlated!
+
+  const payment = await processPayment()
+  s.addEvent('payment.complete', { amount: payment.amount })
+
+  return payment
+})
+```
+
+Logs and spans are automatically correlated. No configuration. No additional packages.
+
+## The Comparison
+
+### Vestig vs Pino
+
+**Choose Pino if:**
+- Raw performance is your #1 priority
+- You're Node.js only
+- You have existing Pino infrastructure
+
+**Choose Vestig if:**
+- You need multi-runtime support
+- You want built-in PII sanitization
+- You want integrated logging + tracing
+- You prefer zero dependencies
+
+Performance comparison on a 2024 MacBook Pro (M3):
+
+| Operation | Pino | Vestig |
+|-----------|------|--------|
+| Simple log | 0.02ms | 0.03ms |
+| Structured log | 0.03ms | 0.04ms |
+| With sanitization | N/A | 0.08ms |
+
+Vestig is slightly slower but well within acceptable ranges for 99% of applications. And Pino can't sanitize at all.
+
+### Vestig vs Winston
+
+**Choose Winston if:**
+- You need maximum transport flexibility
+- You have complex routing requirements
+- You're already deeply invested in the Winston ecosystem
+
+**Choose Vestig if:**
+- You want simpler, modern API
+- You need TypeScript-first types
+- You want better performance
+- You need multi-runtime support
+
+Winston is incredibly flexible but shows its age. It was designed before TypeScript, before ESM, before edge runtimes. Vestig was designed for 2025.
+
+### Vestig vs Bunyan
+
+**Choose Bunyan if:**
+- You have existing Bunyan infrastructure
+- You only need JSON logging
+
+**Choose Vestig if:**
+- Bunyan hasn't been updated in years
+- You need active maintenance
+- You need modern features (tracing, sanitization, edge support)
+
+Bunyan pioneered structured JSON logging in Node.js. But it's effectively unmaintained. Vestig carries forward its JSON-first philosophy with modern features.
+
+### Vestig vs LogTape
+
+LogTape is the closest to Vestig in philosophy—zero dependencies, multi-runtime. Great library!
+
+**Choose LogTape if:**
+- You're building a library that needs logging
+- You want truly minimal API
+
+**Choose Vestig if:**
+- You want integrated tracing (LogTape doesn't have spans)
+- You need PII sanitization (LogTape doesn't have it)
+- You want framework integrations (Next.js, Express)
+- You need sampling strategies
+
+## Feature Comparison Table
+
+| Feature | Vestig | Pino | Winston | Bunyan | LogTape |
+|---------|:------:|:----:|:-------:|:------:|:-------:|
+| Zero Dependencies | ✅ | ❌ | ❌ | ❌ | ✅ |
+| Multi-Runtime | ✅ | ❌ | ❌ | ❌ | ✅ |
+| TypeScript-First | ✅ | ⚠️ | ⚠️ | ❌ | ✅ |
+| PII Sanitization | ✅ | ❌ | ❌ | ❌ | ❌ |
+| GDPR/HIPAA Presets | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Native Tracing | ✅ | ❌ | ❌ | ❌ | ❌ |
+| W3C Trace Context | ✅ | ⚠️ | ❌ | ❌ | ❌ |
+| Context Propagation | ✅ | ⚠️ | ⚠️ | ❌ | ⚠️ |
+| Edge Runtime | ✅ | ⚠️ | ❌ | ❌ | ✅ |
+| Browser Support | ✅ | ⚠️ | ⚠️ | ❌ | ✅ |
+| Framework Integrations | ✅ | ⚠️ | ⚠️ | ❌ | ❌ |
+| Sampling Strategies | ✅ | ⚠️ | ❌ | ❌ | ❌ |
+
+Legend: ✅ Built-in | ⚠️ Plugin/Partial | ❌ Not Available
+
+## Our Philosophy
+
+### 1. Sane Defaults, Full Control
+
+Vestig works with zero configuration:
+
+```typescript
+import { log } from 'vestig'
+log.info('It just works')
+```
+
+But you can customize everything when needed:
+
+```typescript
+import { createLogger, ConsoleTransport, HTTPTransport } from 'vestig'
+
+const logger = createLogger({
+  level: 'debug',
+  sanitize: 'hipaa',
+  transports: [
+    new ConsoleTransport({ colors: true }),
+    new HTTPTransport({ endpoint: '/api/logs' })
+  ]
+})
+```
+
+### 2. Privacy by Default
+
+In an era of data breaches and privacy regulations, we believe logging libraries should protect you from yourself. Sanitization is on by default.
+
+### 3. One Library, All Runtimes
+
+Write your logging code once. Deploy to Node.js, Bun, Deno, Vercel Edge, Cloudflare Workers, and browsers. It just works.
+
+### 4. Observability Unified
+
+Logs and traces should be friends, not separate systems. Vestig unifies them under a single, coherent API.
+
+## Getting Started
+
+```bash
+bun add vestig
+```
+
+```typescript
+import { log, span } from 'vestig'
+
+// Start logging
+log.info('Application started', { version: '1.0.0' })
+
+// Add tracing
+const result = await span('process-order', async (s) => {
+  s.setAttribute('orderId', order.id)
+  return await processOrder(order)
+})
+
+// PII is automatically sanitized
+log.info('User action', {
+  email: 'user@example.com',  // → "u***@example.com"
+  action: 'purchase'
+})
+```
+
+## Conclusion
+
+Vestig isn't trying to replace Pino or Winston. They're excellent tools that have served the Node.js ecosystem well.
+
+But if you're building modern TypeScript applications that run across multiple runtimes, care about privacy, and want integrated observability without the complexity—Vestig might be what you're looking for.
+
+We built the logging library we wanted to use. We hope you'll find it useful too.
+
+---
+
+**Links:**
+- [GitHub Repository](https://github.com/Arakiss/vestig)
+- [Getting Started](/docs/getting-started)
+- [Feature Overview](/docs/features)

@@ -1,0 +1,77 @@
+# Core Concepts
+
+Master the fundamental building blocks of Vestig logging.
+
+## Overview
+
+Vestig is built around a few core concepts that make logging both powerful and intuitive:
+
+- **Structured Logging** — JSON-based log entries with rich metadata
+- **Log Levels** — Fine-grained control over what gets logged
+- **Child Loggers** — Namespaced loggers for organized output
+
+## Quick Start
+
+```typescript
+import { log } from 'vestig'
+
+// Simple logging
+log.info('Application started')
+log.error('Something went wrong', { error: new Error('Oops') })
+
+// Create a namespaced child logger
+const dbLog = log.child('database')
+dbLog.debug('Query executed', { sql: 'SELECT * FROM users' })
+```
+
+## Core Topics
+
+### Logging Basics
+
+Learn how to create loggers and structure your log output effectively.
+
+- Creating loggers with `createLogger()`
+- Using the default `log` instance
+- Adding metadata to log entries
+- Understanding log entry structure
+
+→ [Logging Basics](/docs/core/logging)
+
+### Log Levels
+
+Understand the log level hierarchy and when to use each level.
+
+- Level hierarchy: `trace` → `debug` → `info` → `warn` → `error`
+- Setting minimum log levels
+- Level-based filtering
+- Environment-specific configurations
+
+→ [Log Levels](/docs/core/levels)
+
+### Structured Output
+
+Configure how your logs are formatted and displayed.
+
+- JSON vs human-readable output
+- Custom formatters
+- Console styling and colors
+- Production vs development formats
+
+→ [Structured Output](/docs/core/structured)
+
+### Child Loggers
+
+Create scoped loggers with namespaces and inherited context.
+
+- Creating child loggers with `log.child()`
+- Namespace hierarchies
+- Context inheritance
+- When to use child loggers
+
+→ [Child Loggers](/docs/core/child-loggers)
+
+## Next Steps
+
+- [Tracing](/docs/tracing) — Add distributed tracing with spans
+- [Transports](/docs/transports) — Send logs to different destinations
+- [Sampling](/docs/sampling) — Control log volume in production

@@ -9,7 +9,7 @@
  * Run: bun scripts/generate-llms.ts
  */
 
-import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -128,15 +128,19 @@ const navigation: NavSection[] = [
 
 /**
  * Convert a docs href to a file path
- * /docs -> app/docs/page.mdx
- * /docs/tracing -> app/docs/tracing/page.mdx
+ * /docs -> app/docs/content.mdx
+ * /docs/tracing -> app/docs/tracing/content.mdx
  */
 function hrefToFilePath(href: string): string {
 	const path = href.replace(/^\/docs\/?/, '') || ''
-	if (path === '') {
-		return join(docsDir, 'page.mdx')
+	const routeDir = path === '' ? docsDir : join(docsDir, path)
+	const contentPath = join(routeDir, 'content.mdx')
+
+	if (existsSync(contentPath)) {
+		return contentPath
 	}
-	return join(docsDir, path, 'page.mdx')
+
+	return join(routeDir, 'page.mdx')
 }
 
 /**

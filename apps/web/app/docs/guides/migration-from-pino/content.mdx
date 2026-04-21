@@ -1,0 +1,500 @@
+# Migration from Pino
+
+This guide helps you migrate from [Pino](https://github.com/pinojs/pino) to Vestig. Both are structured JSON loggers, so the concepts are similar.
+
+## Quick Comparison
+
+| Feature | Pino | Vestig |
+|---------|------|--------|
+| Creation | `pino()` | `createLogger()` |
+| Child loggers | `logger.child({ key })` | `logger.child('namespace', { context })` |
+| Log levels | Same 5 levels | Same 5 levels |
+| Transports | Separate process (pino-transport) | In-process, built-in |
+| Structured | JSON by default | JSON in production |
+| Sanitization | Custom serializers | Built-in sanitizer with presets |
+| Context | Bindings | Async context + static context |
+| Tracing | External (OpenTelemetry) | Built-in spans |
+
+## Basic Migration
+
+### Logger Creation
+
+```typescript
+// Pino
+import pino from 'pino'
+
+const logger = pino({
+  level: 'info',
+  transport: {
+    target: 'pino-pretty'
+  }
+})
+
+// Vestig
+import { createLogger } from 'vestig'
+
+const logger = createLogger({
+  level: 'info',
+  structured: false  // Pretty print in development
+})
+```
+
+### Logging
+
+```typescript
+// Pino - same API!
+logger.info('User logged in')
+logger.info({ userId: '123' }, 'User logged in')
+logger.error({ err: new Error('failed') }, 'Operation failed')
+
+// Vestig - same API!
+logger.info('User logged in')
+logger.info('User logged in', { userId: '123' })
+logger.error('Operation failed', { error: new Error('failed') })
+```
+
+### Child Loggers
+
+```typescript
+// Pino - child with bindings
+const childLogger = logger.child({ module: 'auth' })
+childLogger.info('Login attempt')
+// Output: { "module": "auth", "msg": "Login attempt" }
+
+// Vestig - child with namespace
+const childLogger = logger.child('auth')
+childLogger.info('Login attempt')
+// Output: { "namespace": "auth", "message": "Login attempt" }
+
+// Vestig - child with context (like Pino bindings)
+const childLogger = logger.child('auth', {
+  context: { module: 'auth' }
+})
+childLogger.info('Login attempt')
+// Output: { "namespace": "auth", "context": { "module": "auth" }, "message": "Login attempt" }
+```
+
+## Transport Migration
+
+### Console Transport
+
+```typescript
+// Pino
+import pino from 'pino'
+
+const logger = pino({
+  transport: {
+    target: 'pino-pretty',
+    options: {
+      colorize: true
+    }
+  }
+})
+
+// Vestig
+import { createLogger, ConsoleTransport } from 'vestig'
+
+const logger = createLogger()
+// ConsoleTransport is added by default with pretty print in development
+```
+
+### File Transport
+
+```typescript
+// Pino (using pino-transport and pino/file)
+import pino from 'pino'
+import { join } from 'path'
+
+const logger = pino({
+  transport: {
+    target: 'pino/file',
+    options: { destination: join(__dirname, 'app.log') }
+  }
+})
+
+// Vestig
+import { createLogger, FileTransport } from 'vestig'
+
+const logger = createLogger()
+logger.addTransport(new FileTransport({
+  path: './logs/app.log',
+  maxSize: 10 * 1024 * 1024,  // 10MB rotation
+  maxFiles: 5
+}))
+```
+
+### HTTP Transport
+
+```typescript
+// Pino (using pino-http)
+import pino from 'pino'
+import pinoms from 'pino-multi-stream'
+
+const streams = [
+  { stream: process.stdout },
+  { stream: someHttpStream }
+]
+const logger = pino({}, pinoms.multistream(streams))
+
+// Vestig
+import { createLogger, ConsoleTransport, HTTPTransport } from 'vestig'
+
+const logger = createLogger()
+// Console is added by default
+
+logger.addTransport(new HTTPTransport({
+  url: 'https://logs.example.com',
+  batchSize: 100,
+  headers: { 'Authorization': `Bearer ${process.env.API_KEY}` }
+}))
+```
+
+### Multiple Transports
+
+```typescript
+// Pino (using pino-multi-stream)
+import pino from 'pino'
+import pinoms from 'pino-multi-stream'
+
+const streams = [
+  { level: 'info', stream: process.stdout },
+  { level: 'error', stream: errorFileStream },
+  { level: 'fatal', stream: alertStream }
+]
+const logger = pino({ level: 'info' }, pinoms.multistream(streams))
+
+// Vestig - simpler built-in multi-transport
+import { createLogger, ConsoleTransport, FileTransport, HTTPTransport } from 'vestig'
+
+const logger = createLogger({ level: 'info' })
+
+logger.addTransport(new ConsoleTransport({ level: 'info' }))
+logger.addTransport(new FileTransport({ path: './error.log', level: 'error' }))
+logger.addTransport(new HTTPTransport({ url: '/alerts', level: 'fatal' }))
+```
+
+## Serializers → Sanitization
+
+### Custom Serializers (Pino)
+
+```typescript
+// Pino
+import pino from 'pino'
+
+const logger = pino({
+  serializers: {
+    req: (req) => ({
+      method: req.method,
+      url: req.url,
+      // Don't log headers
+    }),
+    err: pino.stdSerializers.err,
+    user: (user) => ({
+      id: user.id,
+      // Don't log email, password
+    })
+  }
+})
+```
+
+### Sanitization (Vestig)
+
+```typescript
+// Vestig - automatic field sanitization
+import { createLogger } from 'vestig'
+
+const logger = createLogger({
+  sanitize: {
+    fields: [
+      'password',
+      'token',
+      'secret',
+      'authorization',
+      { type: 'suffix', value: '_key' },
+      { type: 'regex', value: 'credit.*number' }
+    ]
+  }
+})
+
+// Or use presets
+const logger = createLogger({
+  sanitize: 'gdpr'  // Auto-redacts PII fields
+})
+```
+
+## Request Context
+
+### Async Hooks (Pino)
+
+```typescript
+// Pino with async_hooks
+import pino from 'pino'
+import { AsyncLocalStorage } from 'async_hooks'
+
+const als = new AsyncLocalStorage()
+
+function getLogger() {
+  const store = als.getStore()
+  return store?.logger ?? logger
+}
+
+app.use((req, res, next) => {
+  const requestLogger = logger.child({ requestId: req.id })
+  als.run({ logger: requestLogger }, next)
+})
+
+// In handlers
+getLogger().info('Processing request')
+```
+
+### Async Context (Vestig)
+
+```typescript
+// Vestig - built-in async context
+import { withContext, getContext, createLogger } from 'vestig'
+
+const logger = createLogger()
+
+app.use((req, res, next) => {
+  withContext({ requestId: req.id }, () => {
+    next()
+  })
+})
+
+// In handlers - context is automatic
+logger.info('Processing request')
+// Output includes: { "context": { "requestId": "..." } }
+```
+
+### Next.js Context
+
+```typescript
+// Vestig with @vestig/next
+import { getLogger } from '@vestig/next'
+
+// Server Component - context is automatic
+export default async function Page() {
+  const log = await getLogger('my-page')
+  log.info('Rendering page')  // Includes request context
+  return <div>Hello</div>
+}
+
+// Route Handler
+import { withVestig } from '@vestig/next'
+
+export const GET = withVestig(async (req, { log }) => {
+  log.info('Handling request')  // Automatic context
+  return Response.json({ ok: true })
+})
+```
+
+## Log Levels
+
+Both use the same levels with the same priority:
+
+| Level | Pino Value | Vestig | Description |
+|-------|------------|--------|-------------|
+| trace | 10 | `trace` | Very detailed |
+| debug | 20 | `debug` | Debug info |
+| info | 30 | `info` | General info |
+| warn | 40 | `warn` | Warnings |
+| error | 50 | `error` | Errors |
+| fatal | 60 | - | Use `error` with metadata |
+
+### Fatal Logs
+
+```typescript
+// Pino
+logger.fatal({ err }, 'Application crashed')
+
+// Vestig - use error with fatal flag
+logger.error('Application crashed', {
+  error: err,
+  fatal: true
+})
+```
+
+## Error Handling
+
+### Error Serialization
+
+```typescript
+// Pino
+import pino from 'pino'
+
+const logger = pino({
+  serializers: {
+    err: pino.stdSerializers.err
+  }
+})
+
+try {
+  throw new Error('Something failed')
+} catch (err) {
+  logger.error({ err }, 'Operation failed')
+}
+
+// Vestig - automatic serialization
+import { createLogger, serializeError } from 'vestig'
+
+const logger = createLogger()
+
+try {
+  throw new Error('Something failed')
+} catch (error) {
+  logger.error('Operation failed', { error })
+  // Error is automatically serialized with stack trace
+}
+```
+
+### Error Cause Chains
+
+```typescript
+// Vestig supports ES2022 error causes
+const dbError = new Error('Connection failed')
+const serviceError = new Error('User lookup failed', { cause: dbError })
+
+logger.error('Request failed', { error: serviceError })
+// Output includes entire cause chain
+```
+
+## Redaction
+
+### Redaction Paths (Pino)
+
+```typescript
+// Pino
+import pino from 'pino'
+
+const logger = pino({
+  redact: ['password', 'user.password', '*.secret']
+})
+
+logger.info({ user: { name: 'John', password: 'secret' } })
+// Output: { user: { name: 'John', password: '[Redacted]' } }
+```
+
+### Field Sanitization (Vestig)
+
+```typescript
+// Vestig
+import { createLogger } from 'vestig'
+
+const logger = createLogger({
+  sanitize: {
+    fields: [
+      'password',
+      { type: 'contains', value: 'secret' }
+    ]
+  }
+})
+
+logger.info('User data', { user: { name: 'John', password: 'secret' } })
+// Output: { user: { name: 'John', password: '[REDACTED]' } }
+```
+
+## Performance Comparison
+
+Both libraries are designed for high performance:
+
+| Aspect | Pino | Vestig |
+|--------|------|--------|
+| Log call overhead | ~5μs | ~10-20μs |
+| Transport model | Separate process | In-process batching |
+| Memory | Minimal | Bounded buffers |
+| Async | Worker threads | AsyncLocalStorage |
+
+Pino is slightly faster per-log, but Vestig provides more built-in features without external dependencies.
+
+## Common Patterns
+
+### Express Middleware
+
+```typescript
+// Pino
+import pino from 'pino'
+import pinoHttp from 'pino-http'
+
+const logger = pino()
+app.use(pinoHttp({ logger }))
+
+// Vestig
+import { createLogger, withContext } from 'vestig'
+
+const logger = createLogger()
+
+app.use((req, res, next) => {
+  const start = Date.now()
+
+  withContext({ requestId: req.id }, () => {
+    res.on('finish', () => {
+      logger.info('Request completed', {
+        method: req.method,
+        url: req.url,
+        status: res.statusCode,
+        duration: Date.now() - start
+      })
+    })
+    next()
+  })
+})
+```
+
+### Database Logging
+
+```typescript
+// Vestig with Prisma
+import { withVestigPrisma } from '@vestig/next/db'
+
+const prisma = withVestigPrisma(new PrismaClient(), {
+  logger,
+  slowQueryThreshold: 100
+})
+
+// Vestig with Drizzle
+import { createVestigDrizzleLogger } from '@vestig/next/db'
+
+const db = drizzle(client, {
+  logger: createVestigDrizzleLogger({ logger })
+})
+```
+
+## Migration Checklist
+
+1. **Install Vestig**
+   ```bash
+   npm install vestig @vestig/next
+   ```
+
+2. **Replace imports**
+   ```typescript
+   // Before
+   import pino from 'pino'
+   // After
+   import { createLogger } from 'vestig'
+   ```
+
+3. **Update logger creation**
+   - Replace `pino()` with `createLogger()`
+   - Convert `level` option (same values)
+   - Remove `transport` option, use `addTransport()` instead
+
+4. **Update child loggers**
+   - Replace `logger.child({ key: value })` with `logger.child('namespace', { context: { key: value } })`
+
+5. **Update serializers to sanitization**
+   - Replace custom serializers with `sanitize` option
+   - Use presets for common cases
+
+6. **Update async context**
+   - Replace custom AsyncLocalStorage with `withContext()`
+   - Use `@vestig/next` for Next.js
+
+7. **Update transports**
+   - Remove pino-transport dependencies
+   - Use built-in Vestig transports
+
+8. **Test and verify**
+   - Check log output format
+   - Verify error serialization
+   - Test async context propagation

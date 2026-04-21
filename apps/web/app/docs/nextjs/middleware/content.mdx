@@ -1,0 +1,221 @@
+# Next.js Middleware
+
+Automatic request logging and correlation ID propagation.
+
+## Overview
+
+The vestig middleware:
+
+- **Generates correlation IDs** — requestId, traceId, spanId
+- **Logs requests/responses** — Method, path, status, duration
+- **Propagates context** — IDs flow to Server Components and Route Handlers
+- **Supports W3C Trace Context** — Compatible with distributed tracing
+
+## Setup
+
+```typescript
+// middleware.ts
+import { createVestigMiddleware } from '@vestig/next/middleware'
+
+export const middleware = createVestigMiddleware()
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
+}
+```
+
+## Configuration
+
+```typescript
+export const middleware = createVestigMiddleware({
+  // Paths to skip (static assets, health checks)
+  skipPaths: ['/_next', '/favicon.ico', '/api/health'],
+
+  // Custom request ID header (for upstream correlation)
+  requestIdHeader: 'x-request-id',
+
+  // Log levels for requests/responses
+  requestLogLevel: 'debug',
+  responseLogLevel: 'info',
+
+  // Include additional details
+  logHeaders: false,     // Include request headers
+  logQuery: true,        // Include query parameters
+
+  // Logger configuration
+  loggerConfig: {
+    namespace: 'middleware',
+    sanitize: 'gdpr'
+  }
+})
+```
+
+## Skip Paths
+
+Exclude paths from logging:
+
+```typescript
+createVestigMiddleware({
+  skipPaths: [
+    '/_next',           // Next.js internals
+    '/favicon.ico',     // Static assets
+    '/api/health',      // Health checks
+    '/api/metrics',     // Prometheus metrics
+    '/_vercel'          // Vercel internals
+  ]
+})
+```
+
+## Request Logging
+
+Each request is logged with:
+
+```json
+{
+  "level": "debug",
+  "message": "Request received",
+  "namespace": "middleware:request",
+  "metadata": {
+    "method": "GET",
+    "path": "/api/users",
+    "query": { "limit": "10" },
+    "userAgent": "Mozilla/5.0...",
+    "ip": "192.168.1.1",
+    "requestId": "550e8400-e29b-41d4..."
+  },
+  "context": {
+    "traceId": "0af7651916cd43dd...",
+    "spanId": "b7ad6b7169203331"
+  }
+}
+```
+
+## Response Logging
+
+Each response is logged with:
+
+```json
+{
+  "level": "info",
+  "message": "Response sent",
+  "namespace": "middleware:request",
+  "metadata": {
+    "method": "GET",
+    "path": "/api/users",
+    "status": 200,
+    "duration": "45.23ms",
+    "durationMs": 45.23,
+    "requestId": "550e8400-e29b-41d4..."
+  }
+}
+```
+
+## Correlation Headers
+
+The middleware sets response headers:
+
+```
+X-Request-Id: 550e8400-e29b-41d4-a716-446655440000
+X-Trace-Id: 0af7651916cd43dd8448eb211c80319c
+```
+
+### Using Upstream Request IDs
+
+If a request comes with a request ID header, vestig uses it:
+
+```typescript
+createVestigMiddleware({
+  requestIdHeader: 'x-request-id'  // Default
+})
+```
+
+```bash
+# Incoming request with existing ID
+curl -H "x-request-id: my-existing-id" /api/users
+# → Uses "my-existing-id" instead of generating new one
+```
+
+## W3C Trace Context
+
+For distributed tracing, vestig supports the `traceparent` header:
+
+```
+traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
+```
+
+```typescript
+createVestigMiddleware({
+  // Parse incoming traceparent header
+  parseTraceparent: true,
+
+  // Add traceparent to response
+  propagateTraceparent: true
+})
+```
+
+## Custom Middleware Logic
+
+Extend the middleware with custom logic:
+
+```typescript
+import { createVestigMiddleware } from '@vestig/next/middleware'
+import { NextResponse } from 'next/server'
+
+const vestigMiddleware = createVestigMiddleware()
+
+export async function middleware(request: Request) {
+  // Run vestig middleware first
+  const response = await vestigMiddleware(request)
+
+  // Add custom logic
+  if (request.url.includes('/admin')) {
+    // Check admin access
+    const isAdmin = await checkAdminAccess(request)
+    if (!isAdmin) {
+      return NextResponse.redirect('/login')
+    }
+  }
+
+  return response
+}
+```
+
+## Accessing Context in Components
+
+The middleware stores correlation context that's available in Server Components:
+
+```typescript
+// app/page.tsx
+import { getRequestContext } from '@vestig/next'
+
+export default async function Page() {
+  const ctx = await getRequestContext()
+
+  // ctx.requestId matches the middleware's requestId
+  // ctx.traceId matches the middleware's traceId
+
+  return <div>Request: {ctx.requestId}</div>
+}
+```
+
+## Edge Runtime
+
+The middleware works in both Node.js and Edge runtimes:
+
+```typescript
+// middleware.ts
+export const runtime = 'edge'  // Optional, works in both
+
+export const middleware = createVestigMiddleware({
+  // Same configuration for both runtimes
+})
+```
+
+## Performance
+
+The middleware is designed to be fast:
+
+- **Minimal overhead** — Sub-millisecond logging
+- **Async logging** — Doesn't block responses
+- **Efficient ID generation** — Uses crypto.randomUUID()
+- **Path matching** — Fast skip path checks

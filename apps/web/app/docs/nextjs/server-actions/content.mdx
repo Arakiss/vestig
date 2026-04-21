@@ -1,0 +1,336 @@
+# Server Actions
+
+Logging in Next.js Server Actions for form handling and mutations.
+
+## Overview
+
+`vestigAction()` wraps your Server Actions to provide:
+
+- **Automatic logging** — Start/end of action execution
+- **Correlation context** — Links to the originating request
+- **Error handling** — Automatic error capture and logging
+- **Timing** — Action duration tracking
+
+## Basic Usage
+
+```typescript
+// app/actions/user.ts
+'use server'
+
+import { vestigAction } from '@vestig/next'
+
+export const createUser = vestigAction(
+  async (formData: FormData, { log, ctx }) => {
+    log.info('Creating user', { requestId: ctx.requestId })
+
+    const name = formData.get('name') as string
+    const email = formData.get('email') as string
+
+    const user = await db.users.create({
+      data: { name, email }
+    })
+
+    log.info('User created', { userId: user.id })
+
+    return { success: true, userId: user.id }
+  },
+  { namespace: 'actions:createUser' }
+)
+```
+
+## Using in Components
+
+### Form Component
+
+```typescript
+// app/components/create-user-form.tsx
+'use client'
+
+import { createUser } from '@/app/actions/user'
+
+export function CreateUserForm() {
+  return (
+    <form action={createUser}>
+      <input name="name" placeholder="Name" required />
+      <input name="email" type="email" placeholder="Email" required />
+      <button type="submit">Create User</button>
+    </form>
+  )
+}
+```
+
+### With useFormState
+
+```typescript
+'use client'
+
+import { useFormState } from 'react-dom'
+import { createUser } from '@/app/actions/user'
+
+export function CreateUserForm() {
+  const [state, formAction] = useFormState(createUser, null)
+
+  return (
+    <form action={formAction}>
+      <input name="name" required />
+      <input name="email" type="email" required />
+      <button type="submit">Create</button>
+      {state?.error && <p>{state.error}</p>}
+      {state?.success && <p>User created!</p>}
+    </form>
+  )
+}
+```
+
+## Action Context
+
+The second argument provides:
+
+```typescript
+interface ActionContext {
+  log: Logger              // Namespaced logger
+  ctx: CorrelationContext  // requestId, traceId, spanId
+}
+```
+
+### Using Context
+
+```typescript
+export const updateUser = vestigAction(
+  async (formData: FormData, { log, ctx }) => {
+    const userId = formData.get('userId') as string
+
+    log.info('Updating user', {
+      userId,
+      requestId: ctx.requestId,
+      traceId: ctx.traceId
+    })
+
+    // Update logic...
+  },
+  { namespace: 'actions:updateUser' }
+)
+```
+
+## Configuration Options
+
+```typescript
+interface VestigActionOptions {
+  // Logger namespace
+  namespace?: string
+
+  // Log the action input
+  logInput?: boolean
+
+  // Log the action output
+  logOutput?: boolean
+}
+```
+
+### With Options
+
+```typescript
+export const sensitiveAction = vestigAction(
+  async (data, { log }) => {
+    // ...
+  },
+  {
+    namespace: 'actions:sensitive',
+    logInput: false,   // Don't log input (sensitive data)
+    logOutput: true    // Log the result
+  }
+)
+```
+
+## Input Types
+
+### FormData
+
+```typescript
+export const submitForm = vestigAction(
+  async (formData: FormData, { log }) => {
+    const name = formData.get('name')
+    const email = formData.get('email')
+
+    log.debug('Form data received', { name, email })
+
+    // Process form...
+  }
+)
+```
+
+### Object Input
+
+```typescript
+export const createPost = vestigAction(
+  async (data: { title: string; content: string }, { log }) => {
+    log.info('Creating post', { title: data.title })
+
+    const post = await db.posts.create({ data })
+
+    return { success: true, postId: post.id }
+  }
+)
+```
+
+### Bound Arguments
+
+```typescript
+// Server Component
+export default async function Page({ params }) {
+  const createPostForUser = createPost.bind(null, params.userId)
+
+  return <form action={createPostForUser}>...</form>
+}
+
+// Action
+export const createPost = vestigAction(
+  async (userId: string, formData: FormData, { log }) => {
+    log.info('Creating post for user', { userId })
+    // ...
+  }
+)
+```
+
+## Error Handling
+
+Errors are automatically logged:
+
+```typescript
+export const riskyAction = vestigAction(
+  async (data, { log }) => {
+    // If this throws, error is logged automatically
+    await riskyOperation()
+
+    return { success: true }
+  }
+)
+```
+
+### Manual Error Handling
+
+```typescript
+export const createUser = vestigAction(
+  async (formData: FormData, { log }) => {
+    try {
+      const user = await db.users.create({
+        data: {
+          name: formData.get('name'),
+          email: formData.get('email')
+        }
+      })
+
+      log.info('User created', { userId: user.id })
+
+      return { success: true, userId: user.id }
+    } catch (error) {
+      if (error.code === 'P2002') {
+        log.warn('Duplicate email', { email: formData.get('email') })
+        return { success: false, error: 'Email already exists' }
+      }
+
+      log.error('Failed to create user', error)
+      return { success: false, error: 'Something went wrong' }
+    }
+  }
+)
+```
+
+## Validation
+
+Log validation failures:
+
+```typescript
+import { z } from 'zod'
+
+const userSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email()
+})
+
+export const createUser = vestigAction(
+  async (formData: FormData, { log }) => {
+    const data = {
+      name: formData.get('name'),
+      email: formData.get('email')
+    }
+
+    const result = userSchema.safeParse(data)
+
+    if (!result.success) {
+      log.warn('Validation failed', {
+        errors: result.error.flatten()
+      })
+
+      return {
+        success: false,
+        errors: result.error.flatten().fieldErrors
+      }
+    }
+
+    // Create user...
+  }
+)
+```
+
+## Revalidation
+
+Log revalidation:
+
+```typescript
+import { revalidatePath, revalidateTag } from 'next/cache'
+
+export const updatePost = vestigAction(
+  async (formData: FormData, { log }) => {
+    const postId = formData.get('postId') as string
+
+    await db.posts.update({
+      where: { id: postId },
+      data: { title: formData.get('title') }
+    })
+
+    log.info('Post updated, revalidating', { postId })
+
+    revalidatePath('/posts')
+    revalidateTag('posts')
+
+    return { success: true }
+  }
+)
+```
+
+## Redirect
+
+Log before redirects:
+
+```typescript
+import { redirect } from 'next/navigation'
+
+export const createUser = vestigAction(
+  async (formData: FormData, { log }) => {
+    const user = await db.users.create({
+      data: { name: formData.get('name') }
+    })
+
+    log.info('User created, redirecting', { userId: user.id })
+
+    redirect(`/users/${user.id}`)
+  }
+)
+```
+
+## Timing
+
+Action duration is automatically logged:
+
+```json
+{
+  "level": "info",
+  "message": "Action completed",
+  "namespace": "actions:createUser",
+  "metadata": {
+    "duration": "125.45ms",
+    "success": true
+  }
+}
+```

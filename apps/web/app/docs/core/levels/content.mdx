@@ -1,0 +1,152 @@
+# Log Levels
+
+Understanding the log level hierarchy.
+
+## Level Hierarchy
+
+Vestig uses 5 log levels, ordered from most to least verbose:
+
+<Table><TableHead><TableRow><TableHeader>Level</TableHeader><TableHeader>Value</TableHeader><TableHeader>Use Case</TableHeader></TableRow></TableHead><TableBody><TableRow><TableCell>`trace`</TableCell><TableCell>10</TableCell><TableCell>Very detailed debugging, performance tracing</TableCell></TableRow><TableRow><TableCell>`debug`</TableCell><TableCell>20</TableCell><TableCell>Development debugging, variable inspection</TableCell></TableRow><TableRow><TableCell>`info`</TableCell><TableCell>30</TableCell><TableCell>General information, user actions, events</TableCell></TableRow><TableRow><TableCell>`warn`</TableCell><TableCell>40</TableCell><TableCell>Warnings, deprecations, potential issues</TableCell></TableRow><TableRow><TableCell>`error`</TableCell><TableCell>50</TableCell><TableCell>Errors, exceptions, failures</TableCell></TableRow></TableBody></Table>
+
+## Setting the Level
+
+### Via Configuration
+
+```typescript
+import { createLogger } from 'vestig'
+
+const logger = createLogger({
+  level: 'debug'  // Show debug and above
+})
+```
+
+### Via Environment Variable
+
+```bash
+VESTIG_LEVEL=debug bun run dev
+```
+
+### At Runtime
+
+```typescript
+logger.setLevel('trace')  // Show all logs
+logger.setLevel('error')  // Only show errors
+```
+
+## Level Filtering
+
+Logs below the configured level are ignored:
+
+```typescript
+const logger = createLogger({ level: 'info' })
+
+logger.trace('Not shown')   // ❌ Filtered
+logger.debug('Not shown')   // ❌ Filtered
+logger.info('Shown')        // ✓ Logged
+logger.warn('Shown')        // ✓ Logged
+logger.error('Shown')       // ✓ Logged
+```
+
+## Level Methods
+
+Each level has a corresponding method:
+
+```typescript
+log.trace('Very detailed info', { data })
+log.debug('Debug information', { variables })
+log.info('User signed up', { userId })
+log.warn('Deprecated API used', { endpoint })
+log.error('Request failed', error)
+```
+
+## Recommended Usage
+
+### `trace` — Granular Debugging
+
+Use for very detailed information that's usually too verbose:
+
+```typescript
+log.trace('Entering function', { args })
+log.trace('Loop iteration', { index, value })
+log.trace('Cache lookup', { key, hit: true })
+```
+
+### `debug` — Development Info
+
+Use for information helpful during development:
+
+```typescript
+log.debug('Config loaded', { config })
+log.debug('Query executed', { sql, params })
+log.debug('Response prepared', { status, body })
+```
+
+### `info` — Business Events
+
+Use for important application events:
+
+```typescript
+log.info('User signed up', { userId, plan })
+log.info('Order placed', { orderId, total })
+log.info('Email sent', { to, template })
+```
+
+### `warn` — Potential Issues
+
+Use for things that might cause problems:
+
+```typescript
+log.warn('Rate limit approaching', { current, limit })
+log.warn('Deprecated API called', { endpoint, replacement })
+log.warn('Retry attempt', { attempt, maxRetries })
+```
+
+### `error` — Failures
+
+Use for actual errors and exceptions:
+
+```typescript
+log.error('Database connection failed', error)
+log.error('Payment declined', { reason, orderId })
+log.error('Unhandled exception', error)
+```
+
+## Environment-Based Levels
+
+Common pattern for different environments:
+
+```typescript
+const logger = createLogger({
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug'
+})
+```
+
+Or use environment variables:
+
+```bash
+# Development
+VESTIG_LEVEL=debug
+
+# Production
+VESTIG_LEVEL=info
+
+# Debugging production issues
+VESTIG_LEVEL=trace
+```
+
+## Level Constants
+
+Access level values programmatically:
+
+```typescript
+import { LOG_LEVELS, shouldLog, parseLogLevel } from 'vestig'
+
+LOG_LEVELS
+// { trace: 10, debug: 20, info: 30, warn: 40, error: 50 }
+
+shouldLog('debug', 'info')  // false (debug < info)
+shouldLog('warn', 'info')   // true (warn >= info)
+
+parseLogLevel('DEBUG')  // 'debug'
+parseLogLevel('INFO')   // 'info'
+```

@@ -12,6 +12,15 @@ const DEFAULTS = {
 	rotateInterval: 'none' as RotationInterval,
 } as const
 
+async function importNodeBuiltin<T>(specifier: string): Promise<T> {
+	// Keep optional Node built-ins out of browser and edge bundles when importing the root package.
+	const dynamicImport = Function('specifier', 'return import(specifier)') as (
+		specifier: string,
+	) => Promise<T>
+
+	return dynamicImport(specifier)
+}
+
 /**
  * Get the current period identifier for time-based rotation
  */
@@ -90,10 +99,9 @@ export class FileTransport extends BatchTransport {
 	 * Initialize the file transport
 	 */
 	override async init(): Promise<void> {
-		// Dynamic import for server-only modules
-		this.fs = await import('node:fs/promises')
+		this.fs = await importNodeBuiltin<typeof import('node:fs/promises')>('node:fs/promises')
 		if (this.compress) {
-			this.zlib = await import('node:zlib')
+			this.zlib = await importNodeBuiltin<typeof import('node:zlib')>('node:zlib')
 		}
 
 		// Ensure directory exists
@@ -214,7 +222,7 @@ export class FileTransport extends BatchTransport {
 	private async compressFile(src: string, dest: string): Promise<void> {
 		if (!this.fs || !this.zlib) return
 
-		const { promisify } = await import('node:util')
+		const { promisify } = await importNodeBuiltin<typeof import('node:util')>('node:util')
 		const gzip = promisify(this.zlib.gzip)
 
 		const content = await this.fs.readFile(src)
