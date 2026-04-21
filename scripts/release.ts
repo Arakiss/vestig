@@ -7,6 +7,7 @@ import { resolve } from 'node:path'
 const ROOT = resolve(import.meta.dir, '..')
 
 type Increment = 'patch' | 'minor' | 'major'
+type ReleaseStage = 'all' | 'prepare' | 'finalize'
 
 interface PackageJson {
 	version: string
@@ -77,16 +78,21 @@ function runFile(command: string, args: string[]): void {
 	execFileSync(command, args, { cwd: ROOT, stdio: 'inherit' })
 }
 
-function parseArgs(): { dryRun: boolean; increment: Increment } {
+function parseArgs(): { dryRun: boolean; increment: Increment; stage: ReleaseStage } {
 	const args = process.argv.slice(2)
 	const dryRun = args.includes('--dry-run')
 	const incrementArg = args.find((arg) => arg.startsWith('--increment='))?.split('=')[1]
+	const stageArg = args.find((arg) => arg.startsWith('--stage='))?.split('=')[1] ?? 'all'
 
 	if (incrementArg !== 'patch' && incrementArg !== 'minor' && incrementArg !== 'major') {
 		throw new Error('Release requires --increment=patch, --increment=minor, or --increment=major')
 	}
 
-	return { dryRun, increment: incrementArg }
+	if (stageArg !== 'all' && stageArg !== 'prepare' && stageArg !== 'finalize') {
+		throw new Error('Release stage must be all, prepare, or finalize')
+	}
+
+	return { dryRun, increment: incrementArg, stage: stageArg }
 }
 
 function readJson(path: string): PackageJson {
@@ -154,10 +160,10 @@ function appendReleaseQualitySections(lines: string[]): void {
 
 	lines.push('### Publication Status', '')
 	lines.push(
-		'- GitHub Actions publishes `vestig` and `@vestig/next` to npm with provenance after the release commit, tag, and GitHub Release are created.',
+		'- GitHub Actions prepares the release commit locally, publishes `vestig` and `@vestig/next` to npm with provenance, then pushes the tag and GitHub Release only after package publication succeeds.',
 	)
 	lines.push(
-		'- Registry permission failures stay visible in the publish workflow instead of being hidden behind a vague changelog entry.',
+		'- Registry permission failures stay visible in the publish workflow and do not create another public GitHub release before npm accepts both packages.',
 	)
 	lines.push('')
 
@@ -278,8 +284,8 @@ function generateWebChangelogEntry(
 		'Security and LLM-context validators run in CI for every public release candidate',
 	])
 	grouped.set('publication', [
-		'GitHub Actions publishes vestig and @vestig/next to npm with provenance after the release tag is created',
-		'Registry permission failures remain visible in the publish workflow instead of being hidden behind vague release notes',
+		'GitHub Actions prepares the release commit locally, publishes vestig and @vestig/next to npm with provenance, then pushes the tag and GitHub Release only after package publication succeeds',
+		'Registry permission failures remain visible in the publish workflow and do not create another public GitHub release before npm accepts both packages',
 	])
 
 	const lines = ['\t{', `\t\tversion: '${version}',`, `\t\tdate: '${date}',`]
@@ -373,25 +379,7 @@ function releaseBody(version: string): string {
 	return entry.trim()
 }
 
-function main(): void {
-	const { dryRun, increment } = parseArgs()
-	const current = readJson('package.json').version
-	const version = nextVersion(current, increment)
-	const tag = `v${version}`
-	const previousTag = latestTag()
-	const commits = getCommits(previousTag)
-	const changelogEntry = generateChangelogEntry(version, previousTag, commits)
-	const webChangelogEntry = generateWebChangelogEntry(version, previousTag, commits)
-
-	console.log(`release: ${current} -> ${version} (${increment})`)
-	validateGeneratedReleaseNotes(changelogEntry, webChangelogEntry)
-
-	if (dryRun) {
-		console.log(`release: would create ${tag} from ${commits.length} commit(s)`)
-		console.log('release: generated changelog entry passes quality checks')
-		return
-	}
-
+function prepareRelease(version: string, changelogEntry: string, webChangelogEntry: string): void {
 	if (existsSync(resolve(ROOT, '.git', 'MERGE_HEAD'))) {
 		throw new Error('Refusing to release during a merge')
 	}
@@ -408,11 +396,57 @@ function main(): void {
 	runInherit('bun run validate:changelog')
 	runFile('git', ['add', ...RELEASE_FILES])
 	runInherit(`git commit -m "chore(release): v${version}"`)
+}
+
+function finalizeRelease(version: string): void {
+	const tag = `v${version}`
+
+	requireMainBranch()
+	requireCleanWorktree()
 	runInherit(`git tag -a ${tag} -m "Release ${tag}"`)
 	runInherit('git push --no-verify origin HEAD:main --follow-tags')
-
 	runFile('gh', ['release', 'create', tag, '--title', tag, '--notes', releaseBody(version)])
+}
 
+function main(): void {
+	const { dryRun, increment, stage } = parseArgs()
+	const current = readJson('package.json').version
+
+	if (stage === 'finalize') {
+		if (dryRun) {
+			console.log(`release: would finalize v${current}`)
+			return
+		}
+
+		finalizeRelease(current)
+		console.log(`release: v${current} finalized`)
+		return
+	}
+
+	const version = nextVersion(current, increment)
+	const tag = `v${version}`
+	const previousTag = latestTag()
+	const commits = getCommits(previousTag)
+	const changelogEntry = generateChangelogEntry(version, previousTag, commits)
+	const webChangelogEntry = generateWebChangelogEntry(version, previousTag, commits)
+
+	console.log(`release: ${current} -> ${version} (${increment})`)
+	validateGeneratedReleaseNotes(changelogEntry, webChangelogEntry)
+
+	if (dryRun) {
+		console.log(`release: would create ${tag} from ${commits.length} commit(s)`)
+		console.log('release: generated changelog entry passes quality checks')
+		return
+	}
+
+	prepareRelease(version, changelogEntry, webChangelogEntry)
+
+	if (stage === 'prepare') {
+		console.log(`release: ${tag} prepared locally`)
+		return
+	}
+
+	finalizeRelease(version)
 	console.log(`release: ${tag} created`)
 }
 

@@ -187,14 +187,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # =========================================================================
-      # Create Release
+      # Prepare Release
       # =========================================================================
-      - name: Create Release
+      - name: Prepare Release
         id: release
         if: steps.analyze.outputs.should_release == 'true' && github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true'
         run: |
-          echo "Creating ${{ steps.analyze.outputs.bump_type }} release..."
-          bun run release -- --ci --increment=${{ steps.analyze.outputs.bump_type }}
+          echo "Preparing ${{ steps.analyze.outputs.bump_type }} release locally..."
+          bun run release -- --ci --increment=${{ steps.analyze.outputs.bump_type }} --stage=prepare
 
           # Get the new version
           VERSION=$(node -p "require('./packages/vestig/package.json').version")
@@ -234,6 +234,14 @@ jobs:
             }
           "
 
+      - name: Publish @vestig/next to npm
+        id: npm_vestig_next
+        if: steps.release.outputs.released == 'true'
+        run: |
+          cd packages/vestig-next
+          npm publish --provenance --access public
+          echo "Published @vestig/next@${{ steps.release.outputs.version }} to npm"
+
       - name: Publish vestig to npm
         id: npm_vestig
         if: steps.release.outputs.released == 'true'
@@ -242,13 +250,15 @@ jobs:
           npm publish --provenance --access public
           echo "Published vestig@${{ steps.release.outputs.version }} to npm"
 
-      - name: Publish @vestig/next to npm
-        id: npm_vestig_next
+      - name: Restore workspace references
+        if: steps.release.outputs.released == 'true'
+        run: git checkout -- packages/vestig-next/package.json
+
+      - name: Finalize Release
         if: steps.release.outputs.released == 'true'
         run: |
-          cd packages/vestig-next
-          npm publish --provenance --access public
-          echo "Published @vestig/next@${{ steps.release.outputs.version }} to npm"
+          echo "Finalizing ${{ steps.release.outputs.tag }} after npm publication..."
+          bun run release -- --ci --increment=${{ steps.analyze.outputs.bump_type }} --stage=finalize
 
     outputs:
       released: ${{ steps.release.outputs.released }}
@@ -277,11 +287,11 @@ jobs:
           echo "### ✅ What happened:" >> $GITHUB_STEP_SUMMARY
           echo "- Version bumped in package.json" >> $GITHUB_STEP_SUMMARY
           echo "- CHANGELOG.md updated with conventional commits" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 Published \`@vestig/next@${{ needs.release.outputs.version }}\` to npm" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 Published \`vestig@${{ needs.release.outputs.version }}\` to npm" >> $GITHUB_STEP_SUMMARY
           echo "- Git tag ${{ needs.release.outputs.tag }} created" >> $GITHUB_STEP_SUMMARY
           echo "- Changes pushed to main" >> $GITHUB_STEP_SUMMARY
           echo "- GitHub Release created" >> $GITHUB_STEP_SUMMARY
-          echo "- 📦 Published \`vestig@${{ needs.release.outputs.version }}\` to npm" >> $GITHUB_STEP_SUMMARY
-          echo "- 📦 Published \`@vestig/next@${{ needs.release.outputs.version }}\` to npm" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📚 Links" >> $GITHUB_STEP_SUMMARY
           echo "- [GitHub Release](https://github.com/${{ github.repository }}/releases/tag/${{ needs.release.outputs.tag }})" >> $GITHUB_STEP_SUMMARY

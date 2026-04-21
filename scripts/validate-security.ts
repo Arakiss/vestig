@@ -66,6 +66,22 @@ function main(): void {
 		fail('CI pull-request commit validation must run the Bun commit validator')
 	}
 
+	const releaseWorkflow = requireFile('.github/workflows/release.yml')
+	if (
+		!releaseWorkflow.includes('--stage=prepare') ||
+		!releaseWorkflow.includes('--stage=finalize')
+	) {
+		fail('Release workflow must prepare locally and finalize only after npm publication')
+	}
+	if (
+		releaseWorkflow.indexOf('Publish @vestig/next to npm') >
+		releaseWorkflow.indexOf('Publish vestig to npm')
+	) {
+		fail(
+			'Release workflow must publish @vestig/next before vestig to avoid core-only partial releases',
+		)
+	}
+
 	for (const path of ['.github/workflows/release.yml', '.github/workflows/npm-publish.yml']) {
 		const workflow = requireFile(path)
 		if (!workflow.includes('id-token: write')) {
