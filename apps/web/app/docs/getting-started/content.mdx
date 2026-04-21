@@ -103,8 +103,9 @@ const logger = createLogger({
   transports: [
     new ConsoleTransport({ colors: true }),
     new HTTPTransport({
-      endpoint: 'https://logs.example.com/ingest',
-      batchSize: 100
+      url: 'https://logs.example.com/ingest',
+      batchSize: 100,
+      maxBufferSize: 500
     })
   ]
 })

@@ -114,6 +114,7 @@ export function getDefaultConfig(): ResolvedLoggerConfig {
 		sampling: undefined,
 		dedupe: undefined,
 		tailSampling: undefined,
+		transports: undefined,
 	}
 }
 
@@ -134,5 +135,6 @@ export function mergeConfig(userConfig?: LoggerConfig): ResolvedLoggerConfig {
 		sampling: userConfig?.sampling ?? defaults.sampling,
 		dedupe: userConfig?.dedupe ?? defaults.dedupe,
 		tailSampling: userConfig?.tailSampling ?? defaults.tailSampling,
+		transports: userConfig?.transports ?? defaults.transports,
 	}
 }

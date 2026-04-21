@@ -151,7 +151,7 @@ export const db = drizzle(client)
 Send logs to multiple destinations simultaneously:
 
 ```typescript
-import { createLogger, HTTPTransport, DatadogTransport, SentryTransport } from 'vestig'
+import { createLogger, initLogger, HTTPTransport, DatadogTransport, SentryTransport } from 'vestig'
 
 const log = createLogger()
 
@@ -179,7 +179,7 @@ log.addTransport(new SentryTransport({
 }))
 
 // Initialize transports (starts flush timers)
-await log.init()
+await initLogger(log)
 
 // All logs go to console, HTTP endpoint, Datadog, and Sentry
 log.info('Server started', { port: 3000 })
@@ -517,14 +517,34 @@ const transport = new HTTPTransport({
     'X-Custom-Header': 'value',
   },
   batchSize: 100,        // Send when 100 logs accumulated
+  maxBufferSize: 1000,   // Queue capacity while a flush is in flight
   flushInterval: 5000,   // Or every 5 seconds
   maxRetries: 3,         // Retry failed requests
   timeout: 30000,        // Request timeout
+  onRetry: (event) => {
+    console.warn('Retrying log delivery', {
+      attempt: event.attempt,
+      nextRetryDelay: event.nextRetryDelay,
+    })
+  },
+  onError: (error, entries) => {
+    console.error('Log delivery failed', { error, entries: entries.length })
+  },
+  onDrop: (entries) => {
+    console.error('Log buffer overflow', { entries: entries.length })
+  },
   transform: (entries) => ({
     logs: entries,
     timestamp: Date.now(),
   }),
 })
+```
+
+Batch transports retain failed batches for the next flush and `flush()` rejects with `BatchTransportError` after retries are exhausted. For edge, serverless, and cron workloads, call `await log.flush()` or attach it to the runtime shutdown hook before the execution context ends.
+
+```typescript
+const stats = transport.getStats()
+// { buffered, dropped, isFlushing, pendingRetry, maxBufferSize, utilization }
 ```
 
 ### FileTransport

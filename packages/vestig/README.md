@@ -79,7 +79,7 @@ log.info('User login', {
 Send logs to multiple destinations simultaneously:
 
 ```typescript
-import { createLogger, HTTPTransport, DatadogTransport, SentryTransport } from 'vestig'
+import { createLogger, initLogger, HTTPTransport, DatadogTransport, SentryTransport } from 'vestig'
 
 const log = createLogger()
 
@@ -87,7 +87,21 @@ const log = createLogger()
 log.addTransport(new HTTPTransport({
   name: 'api-logs',
   url: 'https://logs.example.com/ingest',
+  batchSize: 100,
+  maxBufferSize: 1000,
   headers: { 'Authorization': 'Bearer token' },
+  onRetry: (event) => {
+    console.warn('Retrying log delivery', {
+      attempt: event.attempt,
+      nextRetryDelay: event.nextRetryDelay,
+    })
+  },
+  onError: (error, entries) => {
+    console.error('Log delivery failed', { error, entries: entries.length })
+  },
+  onDrop: (entries) => {
+    console.error('Log buffer overflow', { entries: entries.length })
+  },
 }))
 
 // Add Datadog for observability
@@ -108,11 +122,13 @@ log.addTransport(new SentryTransport({
 }))
 
 // Initialize transports (starts flush timers)
-await log.init()
+await initLogger(log)
 
 // All logs go to console, HTTP endpoint, Datadog, and Sentry
 log.info('Server started', { port: 3000 })
 ```
+
+Batch transports retain failed batches for the next flush and `flush()` rejects with `BatchTransportError` after retries are exhausted. Use `maxBufferSize` to absorb short bursts while a slow destination is in flight, and monitor `transport.getStats().dropped` for backpressure.
 
 ### Available Transports
 

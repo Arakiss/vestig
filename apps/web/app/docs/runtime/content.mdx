@@ -175,8 +175,9 @@ function createUniversalLogger() {
   // Add HTTP transport for browsers
   if (IS_BROWSER) {
     transports.push(new HTTPTransport({
-      endpoint: '/api/logs',
-      batchSize: 10
+      url: '/api/logs',
+      batchSize: 10,
+      maxBufferSize: 100
     }))
   }
 
@@ -262,8 +263,9 @@ const logger = createLogger({
   transports: [
     new ConsoleTransport(),
     new HTTPTransport({
-      endpoint: 'https://logs.example.com/ingest',
-      batchSize: IS_EDGE ? 5 : 50 // Smaller batches on edge
+      url: 'https://logs.example.com/ingest',
+      batchSize: IS_EDGE ? 5 : 50, // Smaller batches on edge
+      maxBufferSize: IS_EDGE ? 50 : 500
     })
   ]
 })

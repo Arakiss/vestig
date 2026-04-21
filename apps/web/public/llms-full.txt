@@ -192,8 +192,9 @@ const logger = createLogger({
   transports: [
     new ConsoleTransport({ colors: true }),
     new HTTPTransport({
-      endpoint: 'https://logs.example.com/ingest',
-      batchSize: 100
+      url: 'https://logs.example.com/ingest',
+      batchSize: 100,
+      maxBufferSize: 500
     })
   ]
 })
@@ -1261,7 +1262,7 @@ Or configure transports to filter:
 
 ```typescript
 new HTTPTransport({
-  endpoint: '...',
+  url: 'https://logs.example.com/ingest',
   filter: (entry) => entry.namespace?.startsWith('api:')
 })
 ```
@@ -1459,8 +1460,9 @@ function createUniversalLogger() {
   // Add HTTP transport for browsers
   if (IS_BROWSER) {
     transports.push(new HTTPTransport({
-      endpoint: '/api/logs',
-      batchSize: 10
+      url: '/api/logs',
+      batchSize: 10,
+      maxBufferSize: 100
     }))
   }
 
@@ -1542,8 +1544,9 @@ const logger = createLogger({
   transports: [
     new ConsoleTransport(),
     new HTTPTransport({
-      endpoint: 'https://logs.example.com/ingest',
-      batchSize: IS_EDGE ? 5 : 50 // Smaller batches on edge
+      url: 'https://logs.example.com/ingest',
+      batchSize: IS_EDGE ? 5 : 50, // Smaller batches on edge
+      maxBufferSize: IS_EDGE ? 50 : 500
     })
   ]
 })
@@ -3317,37 +3320,34 @@ Send logs to multiple destinations:
 ```typescript
 
   createLogger,
-  ConsoleTransport,
+  initLogger,
   HTTPTransport,
   FileTransport
 } from 'vestig'
 
 const logger = createLogger({
   level: 'debug',
-  transports: [
-    // Console for development
-    new ConsoleTransport({
-      enabled: process.env.NODE_ENV !== 'production',
-      colors: true
-    }),
-
-    // HTTP for log aggregation
-    new HTTPTransport({
-      endpoint: process.env.LOG_ENDPOINT,
-      batchSize: 50,
-      headers: {
-        'Authorization': `Bearer ${process.env.LOG_API_KEY}`
-      }
-    }),
-
-    // File for local persistence
-    new FileTransport({
-      filename: './logs/app.log',
-      maxSize: '50mb',
-      maxFiles: 10
-    })
-  ]
+  structured: process.env.NODE_ENV === 'production'
 })
+
+// HTTP for log aggregation
+logger.addTransport(new HTTPTransport({
+  url: process.env.LOG_ENDPOINT!,
+  batchSize: 50,
+  maxBufferSize: 500,
+  headers: {
+    'Authorization': `Bearer ${process.env.LOG_API_KEY}`
+  }
+}))
+
+// File for local persistence
+logger.addTransport(new FileTransport({
+  path: './logs/app.log',
+  maxSize: 50 * 1024 * 1024,
+  maxFiles: 10
+}))
+
+await initLogger(logger)
 ```
 
 ## Common Transport Options
@@ -3381,7 +3381,7 @@ new FileTransport({ level: 'error' })     // Only errors
 
 ```typescript
 new HTTPTransport({
-  endpoint: '...',
+  url: 'https://logs.example.com/ingest',
   filter: (entry) => {
     // Only send logs from specific namespaces
     return entry.namespace?.startsWith('api:')
@@ -3428,10 +3428,11 @@ Send logs to any HTTP endpoint:
 
 new HTTPTransport({
   // Required: Target endpoint
-  endpoint: 'https://logs.example.com/ingest',
+  url: 'https://logs.example.com/ingest',
 
   // Batching (for performance)
   batchSize: 100,          // Logs per batch
+  maxBufferSize: 1000,     // Entries held while a flush is in flight
   flushInterval: 5000,     // Auto-flush every 5s
 
   // Authentication
@@ -3445,10 +3446,7 @@ new HTTPTransport({
   retryDelay: 1000,        // Initial delay (doubles each retry)
 
   // Timeout
-  timeout: 10000,          // 10 seconds
-
-  // Compression
-  compress: true           // gzip request body
+  timeout: 10000           // 10 seconds
 })
 ```
 
@@ -3457,12 +3455,45 @@ new HTTPTransport({
 ```typescript
 
 const transport = new HTTPTransport({
-  endpoint: '...',
-  onError: (error: HTTPTransportError) => {
-    console.error('Failed to send logs:', error.message)
-    console.error('Failed batch size:', error.batchSize)
+  url: 'https://logs.example.com/ingest',
+  onRetry: (event) => {
+    console.warn('Retrying log delivery', {
+      attempt: event.attempt,
+      maxAttempts: event.maxAttempts,
+      nextRetryDelay: event.nextRetryDelay,
+    })
+  },
+  onError: (error, entries) => {
+    if (error instanceof BatchTransportError) {
+      console.error('Failed to send logs:', {
+        transport: error.transport,
+        entries: entries.length,
+        cause: error.cause,
+      })
+    }
+  },
+  onDrop: (entries) => {
+    console.error('Dropped log entries due to full buffer', {
+      entries: entries.length,
+    })
   }
 })
+```
+
+`flush()` rejects after delivery retries are exhausted unless `throwOnError: false` is set. Failed batches are retained for the next flush, but they still live only in memory; edge and serverless runtimes should call `logger.flush()` before the request, cron, or background task completes.
+
+Use `transport.getStats()` to monitor delivery pressure:
+
+```typescript
+const stats = transport.getStats()
+// {
+//   buffered: 12,
+//   dropped: 0,
+//   pendingRetry: 5,
+//   maxBufferSize: 1000,
+//   utilization: 0.012,
+//   isFlushing: false
+// }
 ```
 
 ## FileTransport
@@ -3472,11 +3503,11 @@ Write logs to files with automatic rotation:
 ```typescript
 
 new FileTransport({
-  // File path (supports date patterns)
-  filename: './logs/app-%DATE%.log',
+  // File path
+  path: './logs/app.log',
 
   // Rotation settings
-  maxSize: '10mb',         // Rotate when file reaches this size
+  maxSize: 10 * 1024 * 1024, // Rotate when file reaches 10MB
   maxFiles: 5,             // Keep last 5 files
   compress: true,          // Gzip rotated files
 
@@ -3486,13 +3517,17 @@ new FileTransport({
 })
 ```
 
-### Date Patterns
+### Rotation
 
-Use `%DATE%` in filename for daily rotation:
+`FileTransport` rotates by file size by default. Set `rotateInterval` to rotate by time as well:
 
 ```typescript
-filename: './logs/app-%DATE%.log'
-// Creates: app-2024-01-15.log, app-2024-01-16.log, etc.
+new FileTransport({
+  path: './logs/app.log',
+  rotateInterval: 'daily',
+  maxSize: 10 * 1024 * 1024,
+  maxFiles: 7,
+})
 ```
 
 ## DatadogTransport
@@ -9733,7 +9768,7 @@ const logger = createLogger({
   transports: [
     new ConsoleTransport(), // Pretty-prints errors with colors
     new HTTPTransport({
-      endpoint: '/api/logs'  // Sends serialized error JSON
+      url: '/api/logs'  // Sends serialized error JSON
     })
   ]
 })
@@ -10949,9 +10984,12 @@ const batchSize = 100 * 5 * 2  // 1000 entries
 
 new HTTPTransport({
   batchSize: 1000,
+  maxBufferSize: 2000,
   flushInterval: 5000,
 })
 ```
+
+`batchSize` controls when Vestig starts a send. `maxBufferSize` controls how many additional entries can wait in memory while that send is still in flight. The default is `batchSize * 2`; increase it for bursty cron, queue, or edge workloads where a destination may briefly be slower than the producer.
 
 ## Transport Memory Patterns
 
@@ -11553,7 +11591,10 @@ console.log(stats)
 // {
 //   buffered: 45,      // Entries waiting to be sent
 //   dropped: 0,        // Entries dropped due to overflow
-//   isFlushing: false  // Currently sending a batch
+//   isFlushing: false, // Currently sending a batch
+//   pendingRetry: 0,   // Entries retained after a failed send
+//   maxBufferSize: 200,
+//   utilization: 0.225
 // }
 ```
 
@@ -13011,7 +13052,7 @@ try {
 	if (error instanceof BatchTransportError) {
 		console.error('Vestig delivery failed', {
 			transport: error.transport,
-			entries: error.entries.length,
+			entries: error.batchSize,
 			cause: error.cause,
 		})
 	}
@@ -13023,12 +13064,23 @@ Use `throwOnError: false` only when legacy non-throwing flush behavior is intent
 ```ts
 new HTTPTransport({
 	url: 'https://logs.example.com/internal/logs',
+	maxBufferSize: 1000,
 	throwOnError: false,
+	onRetry(event) {
+		console.warn('log delivery retrying', {
+			transport: event.transport,
+			attempt: event.attempt,
+			maxAttempts: event.maxAttempts,
+			nextRetryDelay: event.nextRetryDelay,
+		})
+	},
 	onError(error, entries) {
 		console.error('log delivery failed', { error, entries: entries.length })
 	},
 })
 ```
+
+`maxBufferSize` controls how many entries may queue in memory while a flush is slow or in flight. The default is `batchSize * 2`; use a larger value for bursty cron, Worker, or serverless workloads, and monitor `transport.getStats().dropped`.
 
 ## Service Binding or Custom Fetch
 
@@ -13620,16 +13672,29 @@ new HTTPTransport({
   name: 'api',
   url: 'https://logs.example.com/ingest',
   batchSize: 100,
+  maxBufferSize: 1000,
   flushInterval: 5000,
   headers: { 'Authorization': 'Bearer ...' },
-  retries: 3
+  maxRetries: 3,
+  onRetry(event) {
+    console.warn('log delivery retrying', {
+      attempt: event.attempt,
+      nextRetryDelay: event.nextRetryDelay,
+    })
+  },
+  onError(error, entries) {
+    console.error('log delivery failed', { error, entries: entries.length })
+  },
+  onDrop(entries) {
+    console.error('log buffer overflow', { entries: entries.length })
+  }
 })
 
 // File transport (Node/Bun only)
 new FileTransport({
   name: 'file',
   path: '/var/log/app.log',
-  maxSize: '10MB',
+  maxSize: 10 * 1024 * 1024,
   maxFiles: 5,
   compress: true
 })
@@ -13651,11 +13716,59 @@ new SentryTransport({
   minLevel: 'warn'
 })
 
-// Wrap any transport for batching
-new BatchTransport(innerTransport, {
-  batchSize: 50,
-  flushInterval: 3000
+// Extend BatchTransport for custom batched delivery
+class CustomTransport extends BatchTransport {
+  readonly name = 'custom'
+
+  constructor() {
+    super({
+      name: 'custom',
+      batchSize: 50,
+      maxBufferSize: 500,
+      flushInterval: 3000
+    })
+  }
+
+  protected async send(entries: LogEntry[]): Promise<void> {
+    await fetch('https://logs.example.com/ingest', {
+      method: 'POST',
+      body: JSON.stringify(entries)
+    })
+  }
+}
+```
+
+### BatchTransport Delivery Semantics
+
+`flush()` rejects with `BatchTransportError` after exhausted attempts unless `throwOnError: false` is set. The failed batch is retained in memory for the next flush.
+
+```typescript
+const transport = new HTTPTransport({
+  url: 'https://logs.example.com/ingest',
+  batchSize: 100,
+  maxBufferSize: 1000,
+  maxRetries: 3,
+  retryDelay: 1000,
+  onRetry(event) {
+    // Called before sleeping between retry attempts.
+  },
+  onError(error, entries) {
+    // Called after all attempts fail.
+  },
+  onDrop(entries) {
+    // Called when maxBufferSize is exceeded while entries queue in memory.
+  }
 })
+
+const stats = transport.getStats()
+// {
+//   buffered: 0,
+//   dropped: 0,
+//   isFlushing: false,
+//   pendingRetry: 0,
+//   maxBufferSize: 1000,
+//   utilization: 0
+// }
 ```
 
 ### Adding/Removing Transports
@@ -13869,6 +13982,8 @@ import type {
   Transport,
   TransportConfig,
   BatchTransportConfig,
+  BatchTransportRetryEvent,
+  BatchTransportStats,
   HTTPTransportConfig,
   FileTransportConfig,
   DatadogTransportConfig,

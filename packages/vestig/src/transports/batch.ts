@@ -1,4 +1,11 @@
-import type { BatchTransportConfig, LogEntry, Transport, TransportConfig } from '../types'
+import type {
+	BatchTransportConfig,
+	BatchTransportRetryEvent,
+	BatchTransportStats,
+	LogEntry,
+	Transport,
+	TransportConfig,
+} from '../types'
 import { CircularBuffer } from '../utils/buffer'
 
 /**
@@ -12,6 +19,22 @@ const DEFAULTS = {
 	throwOnError: true,
 } as const
 
+function normalizeMaxBufferSize(batchSize: number, maxBufferSize: number | undefined): number {
+	if (maxBufferSize === undefined) return batchSize * 2
+	if (!Number.isFinite(maxBufferSize) || maxBufferSize < 1) {
+		throw new Error('BatchTransport maxBufferSize must be a positive finite number')
+	}
+	return Math.max(batchSize, Math.floor(maxBufferSize))
+}
+
+function normalizeBatchSize(batchSize: number | undefined): number {
+	const value = batchSize ?? DEFAULTS.batchSize
+	if (!Number.isFinite(value) || value < 1) {
+		throw new Error('BatchTransport batchSize must be a positive finite number')
+	}
+	return Math.floor(value)
+}
+
 /**
  * Abstract base class for batch transports
  *
@@ -24,6 +47,7 @@ export abstract class BatchTransport implements Transport {
 
 	protected readonly buffer: CircularBuffer<LogEntry>
 	protected readonly batchSize: number
+	protected readonly maxBufferSize: number
 	protected readonly flushInterval: number
 	protected readonly maxRetries: number
 	protected readonly retryDelay: number
@@ -34,7 +58,8 @@ export abstract class BatchTransport implements Transport {
 	private isDestroyed = false
 	private failedBatch: LogEntry[] | null = null
 	private flushPromise: Promise<void> | null = null
-	private readonly onErrorCallback?: (error: Error) => void
+	private readonly onRetryCallback?: (event: BatchTransportRetryEvent) => void
+	private readonly onErrorCallback?: (error: Error, entries: readonly LogEntry[]) => void
 	private readonly onDropCallback?: (entries: readonly LogEntry[]) => void
 
 	constructor(config: BatchTransportConfig) {
@@ -45,16 +70,18 @@ export abstract class BatchTransport implements Transport {
 			filter: config.filter,
 		}
 
-		this.batchSize = config.batchSize ?? DEFAULTS.batchSize
+		this.batchSize = normalizeBatchSize(config.batchSize)
+		this.maxBufferSize = normalizeMaxBufferSize(this.batchSize, config.maxBufferSize)
 		this.flushInterval = config.flushInterval ?? DEFAULTS.flushInterval
 		this.maxRetries = config.maxRetries ?? DEFAULTS.maxRetries
 		this.retryDelay = config.retryDelay ?? DEFAULTS.retryDelay
 		this.throwOnError = config.throwOnError ?? DEFAULTS.throwOnError
+		this.onRetryCallback = config.onRetry
 		this.onErrorCallback = config.onError
 		this.onDropCallback = config.onDrop
 
 		this.buffer = new CircularBuffer<LogEntry>({
-			maxSize: this.batchSize * 2, // Allow some overflow before dropping
+			maxSize: this.maxBufferSize,
 			onDrop: (items) => this.handleDrop(items as LogEntry[]),
 		})
 	}
@@ -180,6 +207,14 @@ export abstract class BatchTransport implements Transport {
 				if (attempt < attempts - 1) {
 					// Exponential backoff: 1s, 2s, 4s, etc.
 					const delay = this.retryDelay * 2 ** attempt
+					this.handleRetry({
+						transport: this.name,
+						entries,
+						attempt: attempt + 1,
+						maxAttempts: attempts,
+						nextRetryDelay: delay,
+						error: lastError,
+					})
 					await this.sleep(delay)
 				}
 			}
@@ -223,6 +258,14 @@ export abstract class BatchTransport implements Transport {
 	}
 
 	/**
+	 * Called before a retry delay after a retryable send failure.
+	 * Subclasses can override to collect metrics without parsing console output.
+	 */
+	protected onRetry(_event: BatchTransportRetryEvent): void {
+		// No-op by default to avoid noisy retry logs.
+	}
+
+	/**
 	 * Called when send fails after all retries
 	 * Subclasses can override to handle send failures
 	 */
@@ -234,18 +277,34 @@ export abstract class BatchTransport implements Transport {
 	}
 
 	private handleDrop(entries: LogEntry[]): void {
-		this.onDropCallback?.(entries)
-		this.onDrop(entries)
+		this.invokeCallback('onDrop callback', () => this.onDropCallback?.(entries))
+		this.invokeCallback('onDrop hook', () => this.onDrop(entries))
+	}
+
+	private handleRetry(event: BatchTransportRetryEvent): void {
+		this.invokeCallback('onRetry callback', () => this.onRetryCallback?.(event))
+		this.invokeCallback('onRetry hook', () => this.onRetry(event))
 	}
 
 	private handleSendError(error: BatchTransportError, entries: LogEntry[]): void {
-		this.onErrorCallback?.(error)
-		this.onSendError(error, entries)
+		this.invokeCallback('onError callback', () => this.onErrorCallback?.(error, entries))
+		this.invokeCallback('onSendError hook', () => this.onSendError(error, entries))
 	}
 
 	private isRetryableError(error: Error): boolean {
 		const candidate = error as Error & { isRetryable?: unknown }
 		return typeof candidate.isRetryable === 'boolean' ? candidate.isRetryable : true
+	}
+
+	private invokeCallback(name: string, callback: () => void): void {
+		try {
+			callback()
+		} catch (err) {
+			console.error(
+				`[${this.name}] Ignored error thrown by ${name}:`,
+				err instanceof Error ? err : new Error(String(err)),
+			)
+		}
 	}
 
 	/**
@@ -258,18 +317,15 @@ export abstract class BatchTransport implements Transport {
 	/**
 	 * Get buffer statistics
 	 */
-	getStats(): {
-		buffered: number
-		dropped: number
-		isFlushing: boolean
-		pendingRetry: number
-	} {
+	getStats(): BatchTransportStats {
 		const stats = this.buffer.getStats()
 		return {
 			buffered: stats.size,
 			dropped: stats.dropped,
 			isFlushing: this.isFlushing || this.flushPromise !== null,
 			pendingRetry: this.failedBatch?.length ?? 0,
+			maxBufferSize: stats.maxSize,
+			utilization: stats.utilization,
 		}
 	}
 }

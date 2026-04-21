@@ -212,4 +212,17 @@ describe('mergeConfig', () => {
 
 		expect(config.context.app).toBe('custom-app')
 	})
+
+	test('should preserve configured transports', () => {
+		const transport = {
+			name: 'configured',
+			config: { name: 'configured', enabled: true },
+			log: () => {},
+		}
+		const config = mergeConfig({
+			transports: [transport],
+		})
+
+		expect(config.transports).toEqual([transport])
+	})
 })

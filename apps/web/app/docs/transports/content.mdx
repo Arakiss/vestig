@@ -15,37 +15,34 @@ Send logs to multiple destinations:
 ```typescript
 import {
   createLogger,
-  ConsoleTransport,
+  initLogger,
   HTTPTransport,
   FileTransport
 } from 'vestig'
 
 const logger = createLogger({
   level: 'debug',
-  transports: [
-    // Console for development
-    new ConsoleTransport({
-      enabled: process.env.NODE_ENV !== 'production',
-      colors: true
-    }),
-
-    // HTTP for log aggregation
-    new HTTPTransport({
-      endpoint: process.env.LOG_ENDPOINT,
-      batchSize: 50,
-      headers: {
-        'Authorization': `Bearer ${process.env.LOG_API_KEY}`
-      }
-    }),
-
-    // File for local persistence
-    new FileTransport({
-      filename: './logs/app.log',
-      maxSize: '50mb',
-      maxFiles: 10
-    })
-  ]
+  structured: process.env.NODE_ENV === 'production'
 })
+
+// HTTP for log aggregation
+logger.addTransport(new HTTPTransport({
+  url: process.env.LOG_ENDPOINT!,
+  batchSize: 50,
+  maxBufferSize: 500,
+  headers: {
+    'Authorization': `Bearer ${process.env.LOG_API_KEY}`
+  }
+}))
+
+// File for local persistence
+logger.addTransport(new FileTransport({
+  path: './logs/app.log',
+  maxSize: 50 * 1024 * 1024,
+  maxFiles: 10
+}))
+
+await initLogger(logger)
 ```
 
 ## Common Transport Options
@@ -79,7 +76,7 @@ new FileTransport({ level: 'error' })     // Only errors
 
 ```typescript
 new HTTPTransport({
-  endpoint: '...',
+  url: 'https://logs.example.com/ingest',
   filter: (entry) => {
     // Only send logs from specific namespaces
     return entry.namespace?.startsWith('api:')
@@ -128,10 +125,11 @@ import { HTTPTransport } from 'vestig'
 
 new HTTPTransport({
   // Required: Target endpoint
-  endpoint: 'https://logs.example.com/ingest',
+  url: 'https://logs.example.com/ingest',
 
   // Batching (for performance)
   batchSize: 100,          // Logs per batch
+  maxBufferSize: 1000,     // Entries held while a flush is in flight
   flushInterval: 5000,     // Auto-flush every 5s
 
   // Authentication
@@ -145,25 +143,55 @@ new HTTPTransport({
   retryDelay: 1000,        // Initial delay (doubles each retry)
 
   // Timeout
-  timeout: 10000,          // 10 seconds
-
-  // Compression
-  compress: true           // gzip request body
+  timeout: 10000           // 10 seconds
 })
 ```
 
 ### Error Handling
 
 ```typescript
-import { HTTPTransport, HTTPTransportError } from 'vestig'
+import { BatchTransportError, HTTPTransport } from 'vestig'
 
 const transport = new HTTPTransport({
-  endpoint: '...',
-  onError: (error: HTTPTransportError) => {
-    console.error('Failed to send logs:', error.message)
-    console.error('Failed batch size:', error.batchSize)
+  url: 'https://logs.example.com/ingest',
+  onRetry: (event) => {
+    console.warn('Retrying log delivery', {
+      attempt: event.attempt,
+      maxAttempts: event.maxAttempts,
+      nextRetryDelay: event.nextRetryDelay,
+    })
+  },
+  onError: (error, entries) => {
+    if (error instanceof BatchTransportError) {
+      console.error('Failed to send logs:', {
+        transport: error.transport,
+        entries: entries.length,
+        cause: error.cause,
+      })
+    }
+  },
+  onDrop: (entries) => {
+    console.error('Dropped log entries due to full buffer', {
+      entries: entries.length,
+    })
   }
 })
+```
+
+`flush()` rejects after delivery retries are exhausted unless `throwOnError: false` is set. Failed batches are retained for the next flush, but they still live only in memory; edge and serverless runtimes should call `logger.flush()` before the request, cron, or background task completes.
+
+Use `transport.getStats()` to monitor delivery pressure:
+
+```typescript
+const stats = transport.getStats()
+// {
+//   buffered: 12,
+//   dropped: 0,
+//   pendingRetry: 5,
+//   maxBufferSize: 1000,
+//   utilization: 0.012,
+//   isFlushing: false
+// }
 ```
 
 ## FileTransport
@@ -174,11 +202,11 @@ Write logs to files with automatic rotation:
 import { FileTransport } from 'vestig'
 
 new FileTransport({
-  // File path (supports date patterns)
-  filename: './logs/app-%DATE%.log',
+  // File path
+  path: './logs/app.log',
 
   // Rotation settings
-  maxSize: '10mb',         // Rotate when file reaches this size
+  maxSize: 10 * 1024 * 1024, // Rotate when file reaches 10MB
   maxFiles: 5,             // Keep last 5 files
   compress: true,          // Gzip rotated files
 
@@ -188,13 +216,17 @@ new FileTransport({
 })
 ```
 
-### Date Patterns
+### Rotation
 
-Use `%DATE%` in filename for daily rotation:
+`FileTransport` rotates by file size by default. Set `rotateInterval` to rotate by time as well:
 
 ```typescript
-filename: './logs/app-%DATE%.log'
-// Creates: app-2024-01-15.log, app-2024-01-16.log, etc.
+new FileTransport({
+  path: './logs/app.log',
+  rotateInterval: 'daily',
+  maxSize: 10 * 1024 * 1024,
+  maxFiles: 7,
+})
 ```
 
 ## DatadogTransport

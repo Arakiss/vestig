@@ -168,6 +168,13 @@ export interface LoggerConfig {
 	/** Logger namespace for child loggers */
 	namespace?: string
 	/**
+	 * Transports to use for this logger.
+	 *
+	 * When omitted, Vestig installs a default ConsoleTransport. When provided,
+	 * the list is used as-is so applications can fully control destinations.
+	 */
+	transports?: Transport[]
+	/**
 	 * Sampling configuration to reduce log volume in production.
 	 *
 	 * @example
@@ -254,11 +261,12 @@ export interface LoggerConfig {
  * Note: `sampling`, `dedupe`, and `tailSampling` remain optional as they're disabled by default.
  */
 export type ResolvedLoggerConfig = Required<
-	Omit<LoggerConfig, 'sampling' | 'dedupe' | 'tailSampling'>
+	Omit<LoggerConfig, 'sampling' | 'dedupe' | 'tailSampling' | 'transports'>
 > & {
 	sampling?: import('./sampling/types').SamplingConfig
 	dedupe?: DedupeConfig
 	tailSampling?: import('./wide-events/types').TailSamplingConfig
+	transports?: Transport[]
 }
 
 /**
@@ -294,11 +302,53 @@ export interface Transport {
 }
 
 /**
+ * Retry lifecycle event emitted by batch transports before the next retry delay.
+ */
+export interface BatchTransportRetryEvent {
+	/** Transport name */
+	transport: string
+	/** Entries included in the retrying batch */
+	entries: readonly LogEntry[]
+	/** One-based number of the failed attempt */
+	attempt: number
+	/** Maximum delivery attempts for this flush */
+	maxAttempts: number
+	/** Delay in milliseconds before the next attempt */
+	nextRetryDelay: number
+	/** Error that caused this retry */
+	error: Error
+}
+
+/**
+ * Runtime statistics exposed by batch transports.
+ */
+export interface BatchTransportStats {
+	/** Entries currently buffered for the next send */
+	buffered: number
+	/** Total entries dropped because the in-memory buffer overflowed */
+	dropped: number
+	/** Whether a flush is currently in progress */
+	isFlushing: boolean
+	/** Entries retained from a failed batch for the next flush */
+	pendingRetry: number
+	/** Maximum entries the in-memory buffer can hold */
+	maxBufferSize: number
+	/** Buffer utilization ratio from 0 to 1 */
+	utilization: number
+}
+
+/**
  * Configuration for batch transports
  */
 export interface BatchTransportConfig extends TransportConfig {
 	/** Maximum entries before auto-flush (default: 100) */
 	batchSize?: number
+	/**
+	 * Maximum entries held in memory while a flush is in flight (default: batchSize * 2).
+	 * Increase this for bursty edge/worker workloads where a slow destination can briefly
+	 * outpace delivery. Values smaller than batchSize are raised to batchSize.
+	 */
+	maxBufferSize?: number
 	/** Interval in ms between auto-flushes (default: 5000) */
 	flushInterval?: number
 	/** Maximum retry attempts on failure (default: 3) */
@@ -311,8 +361,10 @@ export interface BatchTransportConfig extends TransportConfig {
 	 * through onError/console and retained for the next flush.
 	 */
 	throwOnError?: boolean
+	/** Called before a retry attempt is delayed. */
+	onRetry?: (event: BatchTransportRetryEvent) => void
 	/** Called when a batch fails after all retry attempts. */
-	onError?: (error: Error) => void
+	onError?: (error: Error, entries: readonly LogEntry[]) => void
 	/** Called when entries are dropped because the in-memory buffer is full. */
 	onDrop?: (entries: readonly LogEntry[]) => void
 }

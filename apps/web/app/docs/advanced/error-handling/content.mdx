@@ -412,7 +412,7 @@ const logger = createLogger({
   transports: [
     new ConsoleTransport(), // Pretty-prints errors with colors
     new HTTPTransport({
-      endpoint: '/api/logs'  // Sends serialized error JSON
+      url: '/api/logs'  // Sends serialized error JSON
     })
   ]
 })

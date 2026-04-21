@@ -14,6 +14,8 @@ export type {
 	Transport,
 	TransportConfig,
 	BatchTransportConfig,
+	BatchTransportRetryEvent,
+	BatchTransportStats,
 	HTTPTransportConfig,
 	FileTransportConfig,
 	RotationInterval,

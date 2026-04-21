@@ -181,6 +181,7 @@ const childLoggerRegistry = hasFinalizationRegistry
 export class LoggerImpl implements Logger {
 	private config: ResolvedLoggerConfig
 	private transports: Transport[] = []
+	private ownsTransports = true
 	/** WeakRef cache to prevent memory leaks - children can be GC'd when no longer referenced */
 	private children: Map<string, WeakRef<LoggerImpl>> = new Map()
 	private initialized = false
@@ -189,8 +190,15 @@ export class LoggerImpl implements Logger {
 	private tailSampler: TailSampler | null = null
 	private sanitizer: Sanitizer | null = null
 
-	constructor(config?: LoggerConfig) {
+	constructor(
+		config?: LoggerConfig,
+		options?: {
+			transports?: Transport[]
+			ownsTransports?: boolean
+		},
+	) {
 		this.config = mergeConfig(config)
+		this.ownsTransports = options?.ownsTransports ?? true
 		this.sanitizer = createLoggerSanitizer(this.config)
 
 		// Initialize sampler if configured
@@ -208,13 +216,18 @@ export class LoggerImpl implements Logger {
 			this.tailSampler = new TailSampler(this.config.tailSampling)
 		}
 
-		// Add default console transport
-		this.transports.push(
-			new ConsoleTransport({
-				structured: this.config.structured,
-				colors: !this.config.structured,
-			}),
-		)
+		if (options?.transports) {
+			this.transports = options.transports
+		} else if (this.config.transports) {
+			this.transports = [...this.config.transports]
+		} else {
+			this.transports.push(
+				new ConsoleTransport({
+					structured: this.config.structured,
+					colors: !this.config.structured,
+				}),
+			)
+		}
 	}
 
 	/**
@@ -362,13 +375,18 @@ export class LoggerImpl implements Logger {
 			this.children.delete(fullNamespace)
 		}
 
-		// Create new child logger
-		const child = new LoggerImpl({
-			...this.config,
-			...config,
-			namespace: fullNamespace,
-			context: { ...this.config.context, ...config?.context },
-		})
+		const childOwnsTransports = Boolean(config?.transports)
+
+		// Children share parent transports unless a custom transport list is provided.
+		const child = new LoggerImpl(
+			{
+				...this.config,
+				...config,
+				namespace: fullNamespace,
+				context: { ...this.config.context, ...config?.context },
+			},
+			childOwnsTransports ? undefined : { transports: this.transports, ownsTransports: false },
+		)
 
 		// Cache if no custom config (using WeakRef to allow GC)
 		if (!config) {
@@ -501,8 +519,10 @@ export class LoggerImpl implements Logger {
 			this.deduplicator = null
 		}
 
-		await Promise.all(this.transports.map((t) => t.destroy?.()))
-		this.transports = []
+		if (this.ownsTransports) {
+			await Promise.all(this.transports.map((t) => t.destroy?.()))
+			this.transports = []
+		}
 		this.initialized = false
 	}
 

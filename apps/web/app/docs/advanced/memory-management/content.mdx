@@ -144,9 +144,12 @@ const batchSize = 100 * 5 * 2  // 1000 entries
 
 new HTTPTransport({
   batchSize: 1000,
+  maxBufferSize: 2000,
   flushInterval: 5000,
 })
 ```
+
+`batchSize` controls when Vestig starts a send. `maxBufferSize` controls how many additional entries can wait in memory while that send is still in flight. The default is `batchSize * 2`; increase it for bursty cron, queue, or edge workloads where a destination may briefly be slower than the producer.
 
 ## Transport Memory Patterns
 

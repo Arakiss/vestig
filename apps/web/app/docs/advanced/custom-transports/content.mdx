@@ -345,7 +345,10 @@ console.log(stats)
 // {
 //   buffered: 45,      // Entries waiting to be sent
 //   dropped: 0,        // Entries dropped due to overflow
-//   isFlushing: false  // Currently sending a batch
+//   isFlushing: false, // Currently sending a batch
+//   pendingRetry: 0,   // Entries retained after a failed send
+//   maxBufferSize: 200,
+//   utilization: 0.225
 // }
 ```
 

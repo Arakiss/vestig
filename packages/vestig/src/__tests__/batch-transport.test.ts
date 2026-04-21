@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { BatchTransport, BatchTransportError } from '../transports/batch'
-import type { LogEntry } from '../types'
+import type { BatchTransportRetryEvent, LogEntry } from '../types'
 
 /**
  * Concrete implementation of BatchTransport for testing
@@ -10,6 +10,7 @@ class TestBatchTransport extends BatchTransport {
 	public sendCalls: LogEntry[][] = []
 	public dropCalls: LogEntry[][] = []
 	public errorCalls: Array<{ error: Error; entries: LogEntry[] }> = []
+	public retryCalls: BatchTransportRetryEvent[] = []
 	public shouldFail = false
 	public failCount = 0
 
@@ -23,6 +24,10 @@ class TestBatchTransport extends BatchTransport {
 
 	protected onDrop(entries: LogEntry[]): void {
 		this.dropCalls.push(entries)
+	}
+
+	protected onRetry(event: BatchTransportRetryEvent): void {
+		this.retryCalls.push(event)
 	}
 
 	protected onSendError(error: Error, entries: LogEntry[]): void {
@@ -79,12 +84,53 @@ describe('BatchTransport', () => {
 				enabled: false,
 				level: 'warn',
 				batchSize: 50,
+				maxBufferSize: 500,
 				flushInterval: 10000,
 				maxRetries: 5,
 				retryDelay: 2000,
 			})
 			expect(t.config.enabled).toBe(false)
 			expect(t.config.level).toBe('warn')
+			expect(t.getStats().maxBufferSize).toBe(500)
+		})
+
+		test('should default maxBufferSize to twice the batch size', () => {
+			const t = new TestBatchTransport({
+				name: 'default-buffer',
+				batchSize: 25,
+			})
+
+			expect(t.getStats().maxBufferSize).toBe(50)
+		})
+
+		test('should not allow maxBufferSize below batchSize', () => {
+			const t = new TestBatchTransport({
+				name: 'raised-buffer',
+				batchSize: 25,
+				maxBufferSize: 10,
+			})
+
+			expect(t.getStats().maxBufferSize).toBe(25)
+		})
+
+		test('should reject invalid maxBufferSize', () => {
+			expect(
+				() =>
+					new TestBatchTransport({
+						name: 'invalid-buffer',
+						maxBufferSize: 0,
+					}),
+			).toThrow('maxBufferSize')
+		})
+
+		test('should reject invalid batchSize', () => {
+			expect(
+				() =>
+					new TestBatchTransport({
+						name: 'invalid-batch',
+						batchSize: 0,
+					}),
+			).toThrow('batchSize')
 		})
 	})
 
@@ -276,6 +322,13 @@ describe('BatchTransport', () => {
 			expect(transport.failCount).toBe(3)
 			expect(transport.errorCalls.length).toBe(1)
 			expect(transport.errorCalls[0].error).toBeInstanceOf(BatchTransportError)
+			expect(transport.retryCalls.length).toBe(2)
+			expect(transport.retryCalls[0]).toMatchObject({
+				transport: 'test-batch',
+				attempt: 1,
+				maxAttempts: 3,
+				nextRetryDelay: 10,
+			})
 		})
 
 		test('should succeed on retry', async () => {
@@ -298,6 +351,8 @@ describe('BatchTransport', () => {
 
 			expect(attempts).toBe(2)
 			expect(customTransport.sendCalls.length).toBe(1)
+			expect(customTransport.retryCalls.length).toBe(1)
+			expect(customTransport.retryCalls[0].entries.length).toBe(1)
 		})
 
 		test('should call onSendError after all retries fail', async () => {
@@ -314,12 +369,16 @@ describe('BatchTransport', () => {
 
 		test('should support onError callback and non-throwing failure mode', async () => {
 			const errors: Error[] = []
+			const failedBatches: readonly LogEntry[][] = []
 			const nonThrowingTransport = new TestBatchTransport({
 				name: 'non-throwing',
 				maxRetries: 1,
 				retryDelay: 1,
 				throwOnError: false,
-				onError: (error) => errors.push(error),
+				onError: (error, entries) => {
+					errors.push(error)
+					failedBatches.push(entries)
+				},
 			})
 			nonThrowingTransport.shouldFail = true
 
@@ -328,9 +387,104 @@ describe('BatchTransport', () => {
 
 			expect(errors.length).toBe(1)
 			expect(errors[0]).toBeInstanceOf(BatchTransportError)
+			expect(failedBatches[0].length).toBe(1)
 			expect(nonThrowingTransport.getStats().pendingRetry).toBe(1)
 
 			await nonThrowingTransport.destroy().catch(() => {})
+		})
+
+		test('should support onRetry callback', async () => {
+			const retries: BatchTransportRetryEvent[] = []
+			const retryingTransport = new (class extends TestBatchTransport {
+				private attempts = 0
+
+				protected async send(entries: LogEntry[]): Promise<void> {
+					this.attempts++
+					if (this.attempts === 1) {
+						throw new Error('Transient failure')
+					}
+					this.sendCalls.push(entries)
+				}
+			})({
+				name: 'retry-callback',
+				maxRetries: 2,
+				retryDelay: 1,
+				onRetry: (event) => retries.push(event),
+			})
+
+			retryingTransport.log(createEntry())
+			await retryingTransport.flush()
+
+			expect(retries.length).toBe(1)
+			expect(retries[0].attempt).toBe(1)
+			expect(retries[0].maxAttempts).toBe(2)
+			expect(retries[0].nextRetryDelay).toBe(1)
+			expect(retries[0].error.message).toBe('Transient failure')
+			expect(retries[0].entries.length).toBe(1)
+		})
+
+		test('should ignore errors thrown by user callbacks', async () => {
+			const consoleError = mock(() => {})
+			const originalConsoleError = console.error
+			console.error = consoleError
+
+			try {
+				const callbackTransport = new TestBatchTransport({
+					name: 'callback-failure',
+					batchSize: 2,
+					maxBufferSize: 2,
+					maxRetries: 2,
+					retryDelay: 1,
+					onRetry: () => {
+						throw new Error('retry observer failed')
+					},
+					onError: () => {
+						throw new Error('error observer failed')
+					},
+					onDrop: () => {
+						throw new Error('drop observer failed')
+					},
+				})
+
+				let releaseSend: (() => void) | undefined
+				let sendCount = 0
+				callbackTransport.send = async () => {
+					sendCount++
+					if (sendCount > 1) return
+					await new Promise<void>((resolve) => {
+						releaseSend = resolve
+					})
+				}
+
+				callbackTransport.log(createEntry({ message: 'one' }))
+				callbackTransport.log(createEntry({ message: 'two' }))
+				await new Promise((resolve) => setTimeout(resolve, 10))
+
+				expect(() => {
+					callbackTransport.log(createEntry({ message: 'three' }))
+					callbackTransport.log(createEntry({ message: 'four' }))
+					callbackTransport.log(createEntry({ message: 'five' }))
+				}).not.toThrow()
+
+				releaseSend?.()
+				await callbackTransport.destroy()
+
+				const failingTransport = new TestBatchTransport({
+					name: 'callback-error',
+					maxRetries: 1,
+					retryDelay: 1,
+					onError: () => {
+						throw new Error('error observer failed')
+					},
+				})
+				failingTransport.shouldFail = true
+				failingTransport.log(createEntry())
+
+				await expect(failingTransport.flush()).rejects.toThrow(BatchTransportError)
+				expect(consoleError).toHaveBeenCalled()
+			} finally {
+				console.error = originalConsoleError
+			}
 		})
 	})
 
@@ -344,6 +498,8 @@ describe('BatchTransport', () => {
 			expect(stats.dropped).toBe(0)
 			expect(stats.isFlushing).toBe(false)
 			expect(stats.pendingRetry).toBe(0)
+			expect(stats.maxBufferSize).toBe(10)
+			expect(stats.utilization).toBe(0.2)
 		})
 
 		test('should report pendingRetry after all retries fail', async () => {
@@ -496,6 +652,30 @@ describe('BatchTransport', () => {
 
 			// Some entries should have been dropped
 			expect(smallTransport.dropCalls.length).toBeGreaterThan(0)
+		})
+
+		test('should allow larger buffers for bursty workloads', async () => {
+			const burstTransport = new TestBatchTransport({
+				name: 'burst',
+				batchSize: 2,
+				maxBufferSize: 6,
+			})
+
+			burstTransport.send = async () => {
+				await new Promise(() => {})
+			}
+
+			for (let i = 0; i < 8; i++) {
+				burstTransport.log(createEntry({ message: `Burst ${i}` }))
+			}
+
+			expect(burstTransport.getStats().buffered).toBe(6)
+			expect(burstTransport.getStats().dropped).toBe(0)
+
+			burstTransport.log(createEntry({ message: 'Burst 8' }))
+
+			expect(burstTransport.getStats().buffered).toBe(6)
+			expect(burstTransport.getStats().dropped).toBe(1)
 		})
 	})
 })

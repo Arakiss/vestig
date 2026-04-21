@@ -266,7 +266,7 @@ Or configure transports to filter:
 
 ```typescript
 new HTTPTransport({
-  endpoint: '...',
+  url: 'https://logs.example.com/ingest',
   filter: (entry) => entry.namespace?.startsWith('api:')
 })
 ```

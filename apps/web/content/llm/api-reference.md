@@ -444,16 +444,29 @@ new HTTPTransport({
   name: 'api',
   url: 'https://logs.example.com/ingest',
   batchSize: 100,
+  maxBufferSize: 1000,
   flushInterval: 5000,
   headers: { 'Authorization': 'Bearer ...' },
-  retries: 3
+  maxRetries: 3,
+  onRetry(event) {
+    console.warn('log delivery retrying', {
+      attempt: event.attempt,
+      nextRetryDelay: event.nextRetryDelay,
+    })
+  },
+  onError(error, entries) {
+    console.error('log delivery failed', { error, entries: entries.length })
+  },
+  onDrop(entries) {
+    console.error('log buffer overflow', { entries: entries.length })
+  }
 })
 
 // File transport (Node/Bun only)
 new FileTransport({
   name: 'file',
   path: '/var/log/app.log',
-  maxSize: '10MB',
+  maxSize: 10 * 1024 * 1024,
   maxFiles: 5,
   compress: true
 })
@@ -475,11 +488,59 @@ new SentryTransport({
   minLevel: 'warn'
 })
 
-// Wrap any transport for batching
-new BatchTransport(innerTransport, {
-  batchSize: 50,
-  flushInterval: 3000
+// Extend BatchTransport for custom batched delivery
+class CustomTransport extends BatchTransport {
+  readonly name = 'custom'
+
+  constructor() {
+    super({
+      name: 'custom',
+      batchSize: 50,
+      maxBufferSize: 500,
+      flushInterval: 3000
+    })
+  }
+
+  protected async send(entries: LogEntry[]): Promise<void> {
+    await fetch('https://logs.example.com/ingest', {
+      method: 'POST',
+      body: JSON.stringify(entries)
+    })
+  }
+}
+```
+
+### BatchTransport Delivery Semantics
+
+`flush()` rejects with `BatchTransportError` after exhausted attempts unless `throwOnError: false` is set. The failed batch is retained in memory for the next flush.
+
+```typescript
+const transport = new HTTPTransport({
+  url: 'https://logs.example.com/ingest',
+  batchSize: 100,
+  maxBufferSize: 1000,
+  maxRetries: 3,
+  retryDelay: 1000,
+  onRetry(event) {
+    // Called before sleeping between retry attempts.
+  },
+  onError(error, entries) {
+    // Called after all attempts fail.
+  },
+  onDrop(entries) {
+    // Called when maxBufferSize is exceeded while entries queue in memory.
+  }
 })
+
+const stats = transport.getStats()
+// {
+//   buffered: 0,
+//   dropped: 0,
+//   isFlushing: false,
+//   pendingRetry: 0,
+//   maxBufferSize: 1000,
+//   utilization: 0
+// }
 ```
 
 ### Adding/Removing Transports
@@ -693,6 +754,8 @@ import type {
   Transport,
   TransportConfig,
   BatchTransportConfig,
+  BatchTransportRetryEvent,
+  BatchTransportStats,
   HTTPTransportConfig,
   FileTransportConfig,
   DatadogTransportConfig,

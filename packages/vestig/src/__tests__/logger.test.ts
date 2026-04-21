@@ -12,6 +12,24 @@ describe('createLogger', () => {
 		const logger = createLogger({ level: 'debug' })
 		expect(logger.getLevel()).toBe('debug')
 	})
+
+	test('should accept transports in config', () => {
+		const entries: unknown[] = []
+		const logger = createLogger({
+			transports: [
+				{
+					name: 'configured',
+					config: { name: 'configured', enabled: true },
+					log: (entry) => entries.push(entry),
+				},
+			],
+		})
+
+		logger.info('Configured transport')
+
+		expect(logger.getTransports().map((transport) => transport.name)).toEqual(['configured'])
+		expect(entries).toHaveLength(1)
+	})
 })
 
 describe('LoggerImpl', () => {
@@ -352,6 +370,110 @@ describe('LoggerImpl', () => {
 			const output = JSON.parse(consoleOutput[0].output)
 			expect(output.context.app).toBe('test')
 			expect(output.context.service).toBe('api')
+		})
+
+		test('should share parent transports by default', () => {
+			const entries: unknown[] = []
+			const logger = new LoggerImpl({
+				transports: [
+					{
+						name: 'shared',
+						config: { name: 'shared', enabled: true },
+						log: (entry) => entries.push(entry),
+					},
+				],
+			})
+
+			const child = logger.child('child')
+			child.info('Child message')
+
+			expect(entries).toHaveLength(1)
+			expect((entries[0] as { namespace?: string }).namespace).toBe('child')
+			expect(child.getTransports()[0]).toBe(logger.getTransports()[0])
+		})
+
+		test('should reflect parent transport additions in existing children', () => {
+			const firstEntries: unknown[] = []
+			const secondEntries: unknown[] = []
+			const logger = new LoggerImpl({
+				transports: [
+					{
+						name: 'first',
+						config: { name: 'first', enabled: true },
+						log: (entry) => firstEntries.push(entry),
+					},
+				],
+			})
+			const child = logger.child('child')
+
+			logger.addTransport({
+				name: 'second',
+				config: { name: 'second', enabled: true },
+				log: (entry) => secondEntries.push(entry),
+			})
+
+			child.info('Child message')
+
+			expect(firstEntries).toHaveLength(1)
+			expect(secondEntries).toHaveLength(1)
+			expect(child.getTransports()).toHaveLength(2)
+		})
+
+		test('should not destroy shared parent transports when a child is destroyed', async () => {
+			let destroyCalls = 0
+			const entries: unknown[] = []
+			const logger = new LoggerImpl({
+				transports: [
+					{
+						name: 'shared-destroy',
+						config: { name: 'shared-destroy', enabled: true },
+						log: (entry) => entries.push(entry),
+						destroy: async () => {
+							destroyCalls++
+						},
+					},
+				],
+			})
+			const child = logger.child('child')
+
+			await child.destroy()
+			logger.info('Parent message')
+
+			expect(destroyCalls).toBe(0)
+			expect(entries).toHaveLength(1)
+
+			await logger.destroy()
+			expect(destroyCalls).toBe(1)
+		})
+
+		test('should allow a child to use custom transports', () => {
+			const parentEntries: unknown[] = []
+			const childEntries: unknown[] = []
+			const logger = new LoggerImpl({
+				transports: [
+					{
+						name: 'parent',
+						config: { name: 'parent', enabled: true },
+						log: (entry) => parentEntries.push(entry),
+					},
+				],
+			})
+
+			const child = logger.child('child', {
+				transports: [
+					{
+						name: 'child',
+						config: { name: 'child', enabled: true },
+						log: (entry) => childEntries.push(entry),
+					},
+				],
+			})
+
+			child.info('Child message')
+
+			expect(parentEntries).toHaveLength(0)
+			expect(childEntries).toHaveLength(1)
+			expect(child.getTransports()[0]?.name).toBe('child')
 		})
 	})
 

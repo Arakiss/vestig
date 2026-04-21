@@ -53,7 +53,7 @@ try {
 	if (error instanceof BatchTransportError) {
 		console.error('Vestig delivery failed', {
 			transport: error.transport,
-			entries: error.entries.length,
+			entries: error.batchSize,
 			cause: error.cause,
 		})
 	}
@@ -65,12 +65,23 @@ Use `throwOnError: false` only when legacy non-throwing flush behavior is intent
 ```ts
 new HTTPTransport({
 	url: 'https://logs.example.com/internal/logs',
+	maxBufferSize: 1000,
 	throwOnError: false,
+	onRetry(event) {
+		console.warn('log delivery retrying', {
+			transport: event.transport,
+			attempt: event.attempt,
+			maxAttempts: event.maxAttempts,
+			nextRetryDelay: event.nextRetryDelay,
+		})
+	},
 	onError(error, entries) {
 		console.error('log delivery failed', { error, entries: entries.length })
 	},
 })
 ```
+
+`maxBufferSize` controls how many entries may queue in memory while a flush is slow or in flight. The default is `batchSize * 2`; use a larger value for bursty cron, Worker, or serverless workloads, and monitor `transport.getStats().dropped`.
 
 ## Service Binding or Custom Fetch
 
