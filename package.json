@@ -39,7 +39,7 @@
 		"prepare": "bun scripts/setup-hooks.ts"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
+		"@biomejs/biome": "^2.4.13",
 		"mitata": "^1.0.34",
 		"pino": "^10.3.1",
 		"typescript": "^5.9.3",
