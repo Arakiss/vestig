@@ -42,7 +42,7 @@
 		"@biomejs/biome": "^1.9.4",
 		"mitata": "^1.0.34",
 		"pino": "^10.3.1",
-		"typescript": "^5.9.3",
+		"typescript": "^6.0.3",
 		"winston": "^3.19.0"
 	}
 }
