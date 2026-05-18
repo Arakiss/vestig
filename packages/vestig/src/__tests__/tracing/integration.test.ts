@@ -112,11 +112,17 @@ describe('Tracing and Logging context correlation', () => {
 
 		await span('outer', async (outer) => {
 			const outerContext = getContext()
-			spanIds.push(outerContext?.spanId!)
+			if (!outerContext?.spanId) {
+				throw new Error('Expected outer span context')
+			}
+			spanIds.push(outerContext.spanId)
 
 			await span('inner', async (inner) => {
 				const innerContext = getContext()
-				spanIds.push(innerContext?.spanId!)
+				if (!innerContext?.spanId) {
+					throw new Error('Expected inner span context')
+				}
+				spanIds.push(innerContext.spanId)
 			})
 		})
 
@@ -128,10 +134,18 @@ describe('Tracing and Logging context correlation', () => {
 		const traceIds: string[] = []
 
 		await span('outer', async () => {
-			traceIds.push(getContext()?.traceId!)
+			const outerTraceId = getContext()?.traceId
+			if (!outerTraceId) {
+				throw new Error('Expected outer trace context')
+			}
+			traceIds.push(outerTraceId)
 
 			await span('inner', async () => {
-				traceIds.push(getContext()?.traceId!)
+				const innerTraceId = getContext()?.traceId
+				if (!innerTraceId) {
+					throw new Error('Expected inner trace context')
+				}
+				traceIds.push(innerTraceId)
 			})
 		})
 

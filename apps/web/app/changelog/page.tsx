@@ -507,7 +507,10 @@ const sectionConfig = {
 function ChangeSection({
 	items,
 	type,
-}: { items: string[] | undefined; type: keyof typeof sectionConfig }) {
+}: {
+	items: string[] | undefined
+	type: keyof typeof sectionConfig
+}) {
 	if (!items || items.length === 0) return null
 	const config = sectionConfig[type]
 

@@ -121,11 +121,7 @@ export const metadata: Metadata = {
 	category: 'technology',
 }
 
-export default async function RootLayout({
-	children,
-}: {
-	children: React.ReactNode
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
 	// Get correlation context from middleware for client-side correlation
 	const ctx = await getRequestContext()
 

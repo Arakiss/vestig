@@ -29,7 +29,9 @@ class LogStore {
 			this.logs = this.logs.slice(-this.maxLogs)
 		}
 		// Notify all SSE subscribers
-		this.subscribers.forEach((callback) => callback(entry))
+		for (const callback of this.subscribers) {
+			callback(entry)
+		}
 	}
 
 	/**

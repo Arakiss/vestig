@@ -229,7 +229,10 @@ export function LogPanelToggle() {
 export function InlineLogPanel({
 	height = 300,
 	title = 'output',
-}: { height?: number; title?: string }) {
+}: {
+	height?: number
+	title?: string
+}) {
 	const { logCount, isConnected } = useLogPanel()
 
 	return (

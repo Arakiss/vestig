@@ -254,7 +254,9 @@
 
 	body {
 		@apply bg-background text-foreground antialiased;
-		font-feature-settings: "rlig" 1, "calt" 1;
+		font-feature-settings:
+			"rlig" 1,
+			"calt" 1;
 	}
 
 	::selection {
@@ -408,7 +410,9 @@
 
 /* Glow Effects */
 @utility glow-brand {
-	box-shadow: 0 0 20px oklch(0.95 0 0 / 0.1), 0 0 40px oklch(0.95 0 0 / 0.05);
+	box-shadow:
+		0 0 20px oklch(0.95 0 0 / 0.1),
+		0 0 40px oklch(0.95 0 0 / 0.05);
 }
 
 @utility glow-brand-subtle {
@@ -441,7 +445,9 @@
 	background: oklch(0.15 0.02 275 / 0.6);
 	backdrop-filter: blur(16px);
 	border: 1px solid oklch(0.6 0.2 270 / 0.3);
-	box-shadow: 0 8px 32px oklch(0 0 0 / 0.3), 0 0 30px oklch(0.6 0.2 270 / 0.15);
+	box-shadow:
+		0 8px 32px oklch(0 0 0 / 0.3),
+		0 0 30px oklch(0.6 0.2 270 / 0.15);
 }
 
 /* Gradient Backgrounds */
@@ -465,14 +471,18 @@
 
 /* Glow Effects - Colored */
 @utility glow-indigo {
-	box-shadow: 0 4px 20px oklch(0.55 0.2 265 / 0.3), 0 8px 40px oklch(0.55 0.2 265 / 0.15);
+	box-shadow:
+		0 4px 20px oklch(0.55 0.2 265 / 0.3),
+		0 8px 40px oklch(0.55 0.2 265 / 0.15);
 }
 
 @utility glow-indigo-hover {
 	transition: box-shadow 0.3s ease;
 
 	&:hover {
-		box-shadow: 0 4px 25px oklch(0.55 0.2 265 / 0.4), 0 8px 50px oklch(0.55 0.2 265 / 0.2);
+		box-shadow:
+			0 4px 25px oklch(0.55 0.2 265 / 0.4),
+			0 8px 50px oklch(0.55 0.2 265 / 0.2);
 	}
 }
 

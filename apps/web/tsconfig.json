@@ -10,6 +10,7 @@
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"resolveJsonModule": true,
+		"types": ["mdx", "node"],
 		"isolatedModules": true,
 		"jsx": "react-jsx",
 		"incremental": true,

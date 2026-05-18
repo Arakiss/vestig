@@ -1,14 +1,15 @@
 {
-	"$schema": "https://biomejs.dev/schemas/1.9.0/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
 	"files": {
 		"ignoreUnknown": true,
-		"ignore": [
-			"**/node_modules",
-			"**/dist",
-			"**/bun.lock",
-			"**/.next",
-			"**/.vercel",
-			"**/next-env.d.ts"
+		"includes": [
+			"**",
+			"!**/node_modules",
+			"!**/dist",
+			"!**/bun.lock",
+			"!**/.next",
+			"!**/.vercel",
+			"!**/next-env.d.ts"
 		]
 	},
 	"vcs": {
@@ -17,14 +18,14 @@
 		"defaultBranch": "main",
 		"useIgnoreFile": true
 	},
-	"organizeImports": {
-		"enabled": true
-	},
+	"assist": { "actions": { "source": { "organizeImports": "off" } } },
 	"linter": {
 		"enabled": true,
 		"rules": {
 			"recommended": true,
 			"a11y": {
+				"noStaticElementInteractions": "warn",
+				"useAriaPropsSupportedByRole": "warn",
 				"useButtonType": "warn",
 				"useKeyWithClickEvents": "warn",
 				"useSemanticElements": "warn",
@@ -53,6 +54,11 @@
 			}
 		}
 	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab",
@@ -69,5 +75,15 @@
 			"enabled": true,
 			"trailingCommas": "none"
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["**/package.json"],
+			"json": {
+				"formatter": {
+					"expand": "auto"
+				}
+			}
+		}
+	]
 }

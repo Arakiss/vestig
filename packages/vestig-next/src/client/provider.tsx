@@ -208,3 +208,7 @@ export function useVestigContext(): VestigContextValue {
 	}
 	return context
 }
+
+export function useOptionalVestigContext(): VestigContextValue | null {
+	return useContext(VestigContext)
+}

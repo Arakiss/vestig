@@ -246,12 +246,7 @@ export const vestigProxy = createVestigProxy()
 /**
  * Helper to create proxy/middleware config matcher
  */
-export function createProxyMatcher(
-	options: {
-		include?: string[]
-		exclude?: string[]
-	} = {},
-) {
+export function createProxyMatcher(options: { include?: string[]; exclude?: string[] } = {}) {
 	const include = options.include ?? ['/((?!_next/static|_next/image|favicon.ico).*)']
 	return {
 		matcher: include,

@@ -105,11 +105,7 @@ const navigation: SidebarSection[] = [
 	},
 ]
 
-export default function PlaygroundLayout({
-	children,
-}: {
-	children: React.ReactNode
-}) {
+export default function PlaygroundLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="min-h-screen bg-background">
 			<InnerNav section="Playground" />

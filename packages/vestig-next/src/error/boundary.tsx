@@ -250,13 +250,7 @@ function DevErrorUI({
 /**
  * Production Error UI Component
  */
-function ProdErrorUI({
-	error,
-	onReset,
-}: {
-	error: Error
-	onReset: () => void
-}): ReactNode {
+function ProdErrorUI({ error, onReset }: { error: Error; onReset: () => void }): ReactNode {
 	return (
 		<div
 			role="alert"

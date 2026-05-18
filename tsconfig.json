@@ -11,6 +11,7 @@
 		"declaration": true,
 		"declarationMap": true,
 		"sourceMap": true,
+		"types": ["node"],
 		"noUncheckedIndexedAccess": true,
 		"noImplicitOverride": true,
 		"verbatimModuleSyntax": true

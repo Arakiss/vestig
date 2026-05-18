@@ -5,17 +5,17 @@
 	"workspaces": ["packages/*", "apps/*"],
 	"catalog": {
 		"// TypeScript": "",
-		"typescript": "^5.7.0",
-		"@types/node": "^22.0.0",
+		"typescript": "^6.0.3",
+		"@types/node": "^22.19.19",
 		"// React 19.2": "",
-		"react": "^19.2.3",
-		"react-dom": "^19.2.3",
-		"@types/react": "^19.0.0",
+		"react": "^19.2.6",
+		"react-dom": "^19.2.6",
+		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.0.0",
 		"// Next.js 16": "",
-		"next": "16.2.3",
+		"next": "16.2.6",
 		"// MDX": "",
-		"@next/mdx": "16.2.3",
+		"@next/mdx": "16.2.6",
 		"@mdx-js/loader": "^3.1.0",
 		"@mdx-js/react": "^3.1.1",
 		"@types/mdx": "^2.0.13"
@@ -39,10 +39,10 @@
 		"prepare": "bun scripts/setup-hooks.ts"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
+		"@biomejs/biome": "^2.4.15",
 		"mitata": "^1.0.34",
 		"pino": "^10.3.1",
-		"typescript": "^5.9.3",
+		"typescript": "^6.0.3",
 		"winston": "^3.19.0"
 	}
 }

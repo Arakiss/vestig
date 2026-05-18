@@ -2,7 +2,7 @@
 
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import type { LogEntry, Logger } from 'vestig'
-import { useVestigContext } from './provider'
+import { useOptionalVestigContext } from './provider'
 
 /**
  * Patterns to filter from stack traces in production
@@ -305,14 +305,8 @@ class VestigErrorBoundaryInner extends Component<
  * Wrapper to inject logger from context
  */
 function VestigErrorBoundaryWrapper(props: VestigErrorBoundaryProps): ReactNode {
-	let logger: Logger | null = null
-
-	try {
-		const context = useVestigContext()
-		logger = context.logger
-	} catch {
-		// VestigProvider not available, log will be skipped
-	}
+	const context = useOptionalVestigContext()
+	const logger = context?.logger ?? null
 
 	return <VestigErrorBoundaryInner {...props} logger={logger} />
 }

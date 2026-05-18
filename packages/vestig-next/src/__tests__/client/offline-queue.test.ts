@@ -16,7 +16,9 @@ const mockLocalStorage = {
 		delete mockStorage[key]
 	},
 	clear: () => {
-		Object.keys(mockStorage).forEach((key) => delete mockStorage[key])
+		for (const key of Object.keys(mockStorage)) {
+			delete mockStorage[key]
+		}
 	},
 }
 
@@ -414,7 +416,9 @@ describe('ClientHTTPTransport - Offline Queue', () => {
 					delete quotaStorage[key]
 				},
 				clear: () => {
-					Object.keys(quotaStorage).forEach((key) => delete quotaStorage[key])
+					for (const key of Object.keys(quotaStorage)) {
+						delete quotaStorage[key]
+					}
 				},
 			}
 

@@ -219,15 +219,7 @@ function DemoCard({
 	)
 }
 
-function StatCard({
-	value,
-	label,
-	sublabel,
-}: {
-	value: string
-	label: string
-	sublabel: string
-}) {
+function StatCard({ value, label, sublabel }: { value: string; label: string; sublabel: string }) {
 	return (
 		<GlassCard variant="subtle" padding="md" hover={false}>
 			<div className="text-center">

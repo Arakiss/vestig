@@ -140,6 +140,9 @@ export function FullRuntimeBadge({
 export function RuntimeIndicator({
 	runtime,
 	className = '',
-}: { runtime: Runtime | 'unknown'; className?: string }) {
+}: {
+	runtime: Runtime | 'unknown'
+	className?: string
+}) {
 	return <span className={cn('text-white/50 font-mono text-xs', className)}>[{runtime}]</span>
 }
