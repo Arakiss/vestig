@@ -51,3 +51,19 @@ The project should maintain:
 - npm provenance for CI-published packages where supported;
 - preference for npm Trusted Publishing over long-lived publish tokens;
 - clear changelog entries for security fixes and operationally relevant behavior changes.
+
+## Repository and Release Hardening
+
+Maintainer controls:
+
+- GitHub private vulnerability reporting must remain enabled.
+- Dependabot alerts and Dependabot security updates must remain enabled.
+- Secret scanning and push protection must remain enabled for the public repository.
+- The `main` branch and release tags matching `v*` must block deletion and force-push updates.
+- Publishing workflows must use GitHub OIDC with `id-token: write`, npm provenance, and no `NPM_TOKEN` dependency.
+
+npm package controls:
+
+- `vestig` and `@vestig/next` should each configure one npm Trusted Publisher for GitHub Actions.
+- Trusted Publisher configuration should use GitHub owner `Arakiss`, repository `vestig`, workflow filename `release.yml`, and no environment name unless a GitHub release environment is introduced.
+- After both packages publish successfully through OIDC, npm package settings should require two-factor authentication and disallow tokens.

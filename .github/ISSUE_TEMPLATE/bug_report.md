@@ -6,6 +6,10 @@ labels: bug
 assignees: ''
 ---
 
+## Security Disclosure
+
+Do not report suspected vulnerabilities in a public issue. Use https://github.com/Arakiss/vestig/security/advisories/new for private reports.
+
 ## Describe the Bug
 
 A clear and concise description of what the bug is.

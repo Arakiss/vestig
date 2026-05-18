@@ -41,8 +41,16 @@ function main(): void {
 	requireIncludes('SECURITY.md', 'https://github.com/Arakiss/vestig/security/advisories/new')
 	requireIncludes('SECURITY.md', 'Trusted Publishing')
 	requireIncludes('SECURITY.md', 'npm provenance')
+	requireIncludes('SECURITY.md', 'Dependabot alerts')
+	requireIncludes('SECURITY.md', 'release.yml')
+	requireIncludes('SECURITY.md', 'disallow tokens')
 	requireIncludes(
 		'.github/ISSUE_TEMPLATE/config.yml',
+		'https://github.com/Arakiss/vestig/security/advisories/new',
+	)
+	requireIncludes('.github/ISSUE_TEMPLATE/config.yml', 'blank_issues_enabled: false')
+	requireIncludes(
+		'.github/ISSUE_TEMPLATE/bug_report.md',
 		'https://github.com/Arakiss/vestig/security/advisories/new',
 	)
 

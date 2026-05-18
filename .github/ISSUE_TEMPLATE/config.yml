@@ -1,4 +1,4 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
   - name: Private security report
     url: https://github.com/Arakiss/vestig/security/advisories/new
