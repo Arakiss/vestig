@@ -31,7 +31,7 @@
 		"next": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",
-		"shiki": "^4.0.2",
+		"shiki": "^4.1.0",
 		"tailwind-merge": "^3.6.0",
 		"vestig": "workspace:*",
 		"zod": "^4.4.3"
