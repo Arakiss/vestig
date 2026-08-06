@@ -142,9 +142,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          # Only the PR's own commits plus the base, instead of the whole
-          # history, which is all this job ever reads.
-          fetch-depth: ${{ github.event.pull_request.commits && github.event.pull_request.commits + 1 || 0 }}
+          # Needs the full commit list to walk the PR range, but never reads a
+          # file, so skip the blobs. Actions expressions have no arithmetic,
+          # which rules out computing a shallow depth from the PR's commit count.
+          fetch-depth: 0
+          filter: blob:none
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -174,7 +176,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          fetch-depth: ${{ github.event.pull_request.commits && github.event.pull_request.commits + 1 || 0 }}
+          fetch-depth: 0
+          filter: blob:none
 
       - name: Check for forbidden authorship patterns
         env:
