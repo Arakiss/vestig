@@ -33,6 +33,25 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
 	{
+		version: '0.24.1',
+		date: '2026-08-06',
+		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.24.0...v0.24.1',
+		fixes: ['stop console instrumentation from feeding itself'],
+		cicd: [
+			'resolve workspace refs in every dependency field',
+			'publish the core package before the integration',
+			'fix invalid fetch-depth expression',
+		],
+		verification: [
+			'Release automation validates version sync, release-note quality, changelog sync, package builds, type checking, and tests before tagging',
+			'Security and LLM-context validators run in CI for every public release candidate',
+		],
+		publication: [
+			'GitHub Actions prepares the release commit locally, publishes vestig and @vestig/next to npm with provenance, then pushes the tag and GitHub Release only after package publication succeeds',
+			'Registry permission failures remain visible in the publish workflow and do not create another public GitHub release before npm accepts both packages',
+		],
+	},
+	{
 		version: '0.24.0',
 		date: '2026-08-06',
 		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.23.0...v0.24.0',

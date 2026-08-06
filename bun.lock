@@ -52,7 +52,7 @@
     },
     "packages/vestig": {
       "name": "vestig",
-      "version": "0.24.0",
+      "version": "0.24.1",
       "devDependencies": {
         "@types/node": "catalog:",
         "typescript": "catalog:",
@@ -60,7 +60,7 @@
     },
     "packages/vestig-next": {
       "name": "@vestig/next",
-      "version": "0.24.0",
+      "version": "0.24.1",
       "dependencies": {
         "web-vitals": "^6.1.0",
       },
@@ -78,7 +78,7 @@
         "next": ">=15.0.0",
         "react": ">=19.0.0",
         "react-dom": ">=19.0.0",
-        "vestig": "^0.24.0",
+        "vestig": "^0.24.1",
       },
     },
   },

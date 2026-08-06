@@ -5,6 +5,32 @@ All notable changes to Vestig will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.1](https://github.com/Arakiss/vestig/compare/v0.24.0...v0.24.1) (2026-08-06)
+
+### Bug Fixes
+
+- stop console instrumentation from feeding itself ([a4d585b](https://github.com/Arakiss/vestig/commit/a4d585b7e74cf50ed949f2aec74ed0601001e6a3))
+
+### CI/CD
+
+- resolve workspace refs in every dependency field ([2cb3e1f](https://github.com/Arakiss/vestig/commit/2cb3e1faf7fe5b90444e9a4faef7a7202970b800))
+- publish the core package before the integration ([4ba33de](https://github.com/Arakiss/vestig/commit/4ba33de6a8b05b9bf651d365090f4513e12b9d82))
+- fix invalid fetch-depth expression ([cf753bb](https://github.com/Arakiss/vestig/commit/cf753bb4cefacd7dbc559f32b969a6b49bebf43c))
+
+### Verification
+
+- Release automation validates version synchronization, release-note quality, changelog sync, package builds, type checking, and tests before tagging.
+- Security and LLM-context validators run in CI so public releases cannot silently drop the hardening gates added for this maintenance track.
+
+### Publication Status
+
+- GitHub Actions prepares the release commit locally, publishes `vestig` and `@vestig/next` to npm with provenance, then pushes the tag and GitHub Release only after package publication succeeds.
+- Registry permission failures stay visible in the publish workflow and do not create another public GitHub release before npm accepts both packages.
+
+### Thanks
+
+- Thanks to the users and contributors who report concrete production failures, packaging regressions, and documentation gaps.
+
 ## [0.24.0](https://github.com/Arakiss/vestig/compare/v0.23.0...v0.24.0) (2026-08-06)
 
 ### Summary
