@@ -77,15 +77,30 @@ jobs:
           VERSION=${{ steps.versions.outputs.vestig_version }}
           echo "Resolving workspace:* to version $VERSION"
 
-          # Update @vestig/next to use the actual vestig version
+          # vestig is a devDependency here, not a runtime one: it must stay out
+          # of dependencies so package managers never install a nested copy.
+          # npm still ships the devDependencies block in the published manifest,
+          # so the workspace: protocol has to be resolved there too.
           cd packages/vestig-next
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            if (pkg.dependencies && pkg.dependencies.vestig === 'workspace:*') {
-              pkg.dependencies.vestig = '$VERSION';
-              fs.writeFileSync('package.json', JSON.stringify(pkg, null, '\t') + '\n');
-              console.log('✅ Updated vestig dependency to $VERSION');
+            let changed = false;
+            for (const field of ['dependencies', 'devDependencies']) {
+              const deps = pkg[field];
+              if (!deps) continue;
+              for (const [name, range] of Object.entries(deps)) {
+                if (typeof range === 'string' && range.startsWith('workspace:')) {
+                  deps[name] = '$VERSION';
+                  changed = true;
+                  console.log('Resolved ' + field + '.' + name + ' to $VERSION');
+                }
+              }
+            }
+            if (changed) fs.writeFileSync('package.json', JSON.stringify(pkg, null, '\t') + '\n');
+            if (pkg.dependencies && pkg.dependencies.vestig) {
+              console.error('vestig must not be a runtime dependency of @vestig/next');
+              process.exit(1);
             }
           "
 
