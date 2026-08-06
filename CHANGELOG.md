@@ -5,6 +5,62 @@ All notable changes to Vestig will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.0](https://github.com/Arakiss/vestig/compare/v0.23.0...v0.24.0) (2026-08-06)
+
+### Features
+
+- add Prometheus metrics for applications ([c893723](https://github.com/Arakiss/vestig/commit/c893723ed034a671308075a5b2f0be6d49f6a77a))
+- improve batch transport observability ([77d5f57](https://github.com/Arakiss/vestig/commit/77d5f5796112fb2b82a41f480c9e78f6ccb5a871))
+
+### Bug Fixes
+
+- keep trace context in a single store ([c2e6947](https://github.com/Arakiss/vestig/commit/c2e694774ecd41c2a36d417049660b703e88cdfe))
+- keep docs and entrypoints edge safe ([0b5225c](https://github.com/Arakiss/vestig/commit/0b5225cfdd0d3d3e374637a148d266917c5fff99))
+
+### Documentation
+
+- make every documented import resolve ([56f2f50](https://github.com/Arakiss/vestig/commit/56f2f50c399ef98b158b3a3202c0db51456d3fbc))
+- add v0.23.0 to web changelog ([40b14f6](https://github.com/Arakiss/vestig/commit/40b14f6edb022c7d2c67b54bdd6d12c7b5ab96f7))
+
+### CI/CD
+
+- prevent partial github releases ([721ef02](https://github.com/Arakiss/vestig/commit/721ef02db00f19c7714245547f652689e262fadd))
+- use bun dependabot updates ([ba9c6b2](https://github.com/Arakiss/vestig/commit/ba9c6b2e85c8b780069fe8eb827478dad02025d3))
+- validate commits with bun ([160ea69](https://github.com/Arakiss/vestig/commit/160ea690501feee67bf9e2913ff7c11ded567154))
+- update managed GitHub actions ([7ce7ddb](https://github.com/Arakiss/vestig/commit/7ce7ddb49d8e2472a6bdd6431548ffeb8f1e6e66))
+
+### Security and Supply Chain
+
+- force patched postcss resolution ([6e2b0da](https://github.com/Arakiss/vestig/commit/6e2b0da04d6094e2643c82a1688f5eebedb25475))
+- harden disclosure workflow ([d6102e2](https://github.com/Arakiss/vestig/commit/d6102e2c52d6ee0533db663f57878a0fe063ee04))
+- reduce release and docs attack surface ([3cef1a7](https://github.com/Arakiss/vestig/commit/3cef1a780a2b0d5f3606b2288e4d5acf59b6ea0e))
+- harden release communication ([1ef266e](https://github.com/Arakiss/vestig/commit/1ef266eca0e22dd2feb08b347021458c23e090a8))
+
+### Maintenance
+
+- update dependencies and pin the toolchain ([813d967](https://github.com/Arakiss/vestig/commit/813d967b5c96de097b1e519fb28598daefb97fc8))
+- refresh project dependencies ([a3d154d](https://github.com/Arakiss/vestig/commit/a3d154d15e5f7fa6e36d66028bf261c1037e1fab))
+- harden package contents validation ([0ab1f89](https://github.com/Arakiss/vestig/commit/0ab1f897909173533cbf8e0b66508fa7448e11f5))
+- update postcss toolchain ([e762d61](https://github.com/Arakiss/vestig/commit/e762d61cf668d0d37c0cac12e6a56da525a8396c))
+- bump zod from 4.2.1 to 4.3.6 (#24) ([9035b48](https://github.com/Arakiss/vestig/commit/9035b489e73ab6b281725d1e967cb670214e113e))
+- bump tailwindcss from 4.1.18 to 4.2.4 (#23) ([5cbbf79](https://github.com/Arakiss/vestig/commit/5cbbf7904d0ba3feec9b450e9c4a33d88b63464d))
+- bump shiki from 3.20.0 to 4.0.2 in the docs-runtime group (#22) ([2412da7](https://github.com/Arakiss/vestig/commit/2412da7e305a2cd4ecd4dcba4cb4dd9d538d6cb1))
+- reduce release and docs attack surface ([1e12006](https://github.com/Arakiss/vestig/commit/1e1200624983e21140b2123011a2cfe451c23433))
+- keep managed hooks up to date ([f5c652c](https://github.com/Arakiss/vestig/commit/f5c652c78076f6f70fe60f616d6010f173853d3a))
+
+### Verification
+
+- Release automation validates version synchronization, release-note quality, changelog sync, package builds, type checking, and tests before tagging.
+- Security and LLM-context validators run in CI so public releases cannot silently drop the hardening gates added for this maintenance track.
+
+### Publication Status
+
+- GitHub Actions prepares the release commit locally, publishes `vestig` and `@vestig/next` to npm with provenance, then pushes the tag and GitHub Release only after package publication succeeds.
+- Registry permission failures stay visible in the publish workflow and do not create another public GitHub release before npm accepts both packages.
+
+### Thanks
+
+- Thanks to the users and contributors who report concrete production failures, packaging regressions, and documentation gaps.
 
 ## [0.23.0](https://github.com/Arakiss/vestig/compare/v0.22.1...v0.23.0) (2026-04-21)
 
