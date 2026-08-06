@@ -5,6 +5,7 @@
  * Call once in your instrumentation.ts file.
  */
 
+import { internalConsole } from '../internal-console'
 import { createTraceparent } from '../context/correlation'
 import { getActiveSpan } from '../tracing/context'
 import { span } from '../tracing/functions'
@@ -134,13 +135,13 @@ function truncate(str: string, maxLength: number): string {
 export function instrumentFetch(options: InstrumentFetchOptions = {}): void {
 	// Prevent double instrumentation
 	if (state.isInstrumented) {
-		console.warn('[vestig] fetch is already instrumented')
+		internalConsole.warn('[vestig] fetch is already instrumented')
 		return
 	}
 
 	// Check if fetch exists
 	if (typeof globalThis.fetch !== 'function') {
-		console.warn('[vestig] fetch is not available in this environment')
+		internalConsole.warn('[vestig] fetch is not available in this environment')
 		return
 	}
 

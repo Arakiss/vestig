@@ -5,6 +5,7 @@
  * using the OTLP/JSON protocol.
  */
 
+import { internalConsole } from '../internal-console'
 import type { Span } from '../tracing/types'
 import { VERSION } from '../version'
 import type { SpanProcessor } from './processor'
@@ -199,7 +200,7 @@ export class OTLPExporter implements SpanProcessor {
 
 		this.flushTimer = setInterval(() => {
 			this.forceFlush().catch((err) => {
-				console.error('[vestig/otlp] Flush error:', err)
+				internalConsole.error('[vestig/otlp] Flush error:', err)
 			})
 		}, this.config.flushInterval)
 
@@ -240,7 +241,7 @@ export class OTLPExporter implements SpanProcessor {
 		// Auto-flush when batch size reached
 		if (this.buffer.length >= this.config.batchSize && !this.isFlushing) {
 			this.forceFlush().catch((err) => {
-				console.error('[vestig/otlp] Auto-flush error:', err)
+				internalConsole.error('[vestig/otlp] Auto-flush error:', err)
 			})
 		}
 	}
@@ -293,7 +294,7 @@ export class OTLPExporter implements SpanProcessor {
 
 				// Don't retry on client errors (4xx) - log and exit
 				if (err instanceof OTLPExportError && err.isClientError) {
-					console.error(
+					internalConsole.error(
 						`[vestig/otlp] Client error exporting ${spans.length} spans (not retrying):`,
 						lastError.message,
 					)
@@ -309,7 +310,7 @@ export class OTLPExporter implements SpanProcessor {
 		}
 
 		// All retries failed
-		console.error(
+		internalConsole.error(
 			`[vestig/otlp] Failed to export ${spans.length} spans after ${this.config.maxRetries} retries:`,
 			lastError.message,
 		)

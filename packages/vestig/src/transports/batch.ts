@@ -1,3 +1,4 @@
+import { internalConsole } from '../internal-console'
 import type {
 	BatchTransportConfig,
 	BatchTransportRetryEvent,
@@ -94,7 +95,7 @@ export abstract class BatchTransport implements Transport {
 
 		this.flushTimer = setInterval(() => {
 			this.flush().catch((err) => {
-				console.error(`[${this.name}] Flush error:`, err)
+				internalConsole.error(`[${this.name}] Flush error:`, err)
 			})
 		}, this.flushInterval)
 
@@ -115,7 +116,7 @@ export abstract class BatchTransport implements Transport {
 		// Auto-flush when batch size reached
 		if (this.buffer.size >= this.batchSize && !this.isFlushing) {
 			this.flush().catch((err) => {
-				console.error(`[${this.name}] Auto-flush error:`, err)
+				internalConsole.error(`[${this.name}] Auto-flush error:`, err)
 			})
 		}
 	}
@@ -254,7 +255,9 @@ export abstract class BatchTransport implements Transport {
 	 * Subclasses can override to handle dropped entries
 	 */
 	protected onDrop(entries: LogEntry[]): void {
-		console.warn(`[${this.name}] Dropped ${entries.length} log entries due to buffer overflow`)
+		internalConsole.warn(
+			`[${this.name}] Dropped ${entries.length} log entries due to buffer overflow`,
+		)
 	}
 
 	/**
@@ -270,7 +273,7 @@ export abstract class BatchTransport implements Transport {
 	 * Subclasses can override to handle send failures
 	 */
 	protected onSendError(error: Error, entries: LogEntry[]): void {
-		console.error(
+		internalConsole.error(
 			`[${this.name}] Failed to send ${entries.length} entries after ${Math.max(1, this.maxRetries)} attempts:`,
 			error.cause instanceof Error ? error.cause.message : error.message,
 		)
@@ -300,7 +303,7 @@ export abstract class BatchTransport implements Transport {
 		try {
 			callback()
 		} catch (err) {
-			console.error(
+			internalConsole.error(
 				`[${this.name}] Ignored error thrown by ${name}:`,
 				err instanceof Error ? err : new Error(String(err)),
 			)

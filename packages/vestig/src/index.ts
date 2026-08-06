@@ -5,6 +5,11 @@ export { VERSION } from './version'
 export { getLoadedInstances, hasMultipleInstances } from './instance'
 export type { VestigInstanceRecord } from './instance'
 
+// Console wrapping - lets an integration replace a console method without
+// vestig's own output feeding back into it
+export { markConsolePatch, internalConsole, CONSOLE_PATCH_MARKER } from './internal-console'
+export type { InternalConsoleMethod, PatchedConsoleMethod } from './internal-console'
+
 // Core exports
 export { createLogger, createLoggerAsync, initLogger, LoggerImpl } from './logger'
 export type {

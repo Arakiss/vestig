@@ -7,8 +7,10 @@
 import {
 	type InstrumentFetchOptions,
 	instrumentFetch,
+	markConsolePatch,
 	registerSpanProcessor,
 	shutdownSpanProcessors,
+	spanSync,
 } from 'vestig'
 import { OTLPExporter } from 'vestig/otlp'
 import type { DatabaseInstrumentConfig } from '../db/types'
@@ -204,32 +206,58 @@ function setupConsole(
 	// Store original console.error
 	const originalError = console.error
 
+	// Re-entrancy guard. Creating a span runs the span processors, and anything
+	// in that path that reports a problem does so through console.error. Without
+	// this flag that report comes straight back in here, creates another span,
+	// fails again — a single application error becomes an unbounded loop that
+	// never yields, which on a serverless platform reads as a request hanging
+	// until the runtime kills it.
+	let capturing = false
+
 	// Wrap console.error to create spans
-	console.error = (...args: unknown[]) => {
+	const wrapper = (...args: unknown[]) => {
 		// Call original first
 		originalError.apply(console, args)
 
-		// Create span for the error (non-blocking)
-		// This is a fire-and-forget operation
+		if (capturing) return
+
+		// Create span for the error. Synchronous on purpose: the previous
+		// version deferred through a dynamic import, which left one floating
+		// promise per error and kept work pending after the response was sent.
 		try {
+			capturing = true
+
 			const message = args
-				.map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg)))
+				.map((arg) => {
+					if (typeof arg === 'string') return arg
+					try {
+						return JSON.stringify(arg)
+					} catch {
+						// Circular structures and thrown getters must not turn a
+						// log line into an exception.
+						return String(arg)
+					}
+				})
 				.join(' ')
 
-			// Import dynamically to avoid circular deps
-			import('vestig').then(({ spanSync }) => {
-				spanSync('console.error', (s) => {
-					s.setAttribute('message', message.slice(0, 1000))
-					s.setStatus('error', 'console.error')
-				})
+			spanSync('console.error', (s) => {
+				s.setAttribute('message', message.slice(0, 1000))
+				s.setStatus('error', 'console.error')
 			})
 		} catch {
 			// Ignore errors in instrumentation
+		} finally {
+			capturing = false
 		}
 	}
 
+	// Marked so that vestig's own diagnostics and log output step around this
+	// wrapper instead of feeding it. Without the marker, a log line or a
+	// processor failure re-enters here and the loop never ends.
+	console.error = markConsolePatch(wrapper, originalError)
+
 	if (debug) {
-		console.log('[vestig] Console capture enabled')
+		originalError('[vestig] Console capture enabled')
 	}
 
 	// Return restore function

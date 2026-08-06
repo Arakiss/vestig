@@ -16,6 +16,7 @@
  * still have in common) and warning once when more than one shows up.
  */
 
+import { internalConsole } from './internal-console'
 import { VERSION } from './version'
 
 /**
@@ -131,7 +132,7 @@ function warnOnce(registry: InstanceRegistry, packageName: string): void {
 	registry.warned.push(signature)
 
 	if (typeof console !== 'undefined' && typeof console.warn === 'function') {
-		console.warn(buildWarning(packageName, versions))
+		internalConsole.warn(buildWarning(packageName, versions))
 	}
 }
 
@@ -180,7 +181,7 @@ export function registerVestigInstance(
  * import { getLoadedInstances } from 'vestig'
  *
  * console.log(getLoadedInstances())
- * // [{ package: 'vestig', version: '0.23.0' }]
+ * // [{ package: 'vestig', version: '0.24.0' }]
  * ```
  */
 export function getLoadedInstances(): VestigInstanceRecord[] {

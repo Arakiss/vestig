@@ -1,3 +1,4 @@
+import { internalConsole } from './internal-console'
 import { mergeConfig } from './config'
 import { getContext } from './context'
 import { LOG_LEVELS, shouldLog } from './levels'
@@ -469,7 +470,7 @@ export class LoggerImpl implements Logger {
 		// Initialize if logger is already initialized
 		if (this.initialized) {
 			transport.init?.().catch((err) => {
-				console.error(`Failed to initialize transport "${transport.name}":`, err)
+				internalConsole.error(`Failed to initialize transport "${transport.name}":`, err)
 			})
 		}
 	}
@@ -485,7 +486,7 @@ export class LoggerImpl implements Logger {
 		const transport = removed[0]
 		if (transport) {
 			transport.destroy?.().catch((err) => {
-				console.error(`Failed to destroy transport "${name}":`, err)
+				internalConsole.error(`Failed to destroy transport "${name}":`, err)
 			})
 		}
 

@@ -5,6 +5,7 @@
  * export to external systems like OTLP-compatible backends.
  */
 
+import { internalConsole } from '../internal-console'
 import type { Span } from '../tracing/types'
 
 /**
@@ -82,7 +83,7 @@ class SpanProcessorRegistry {
 			try {
 				processor.onStart?.(span)
 			} catch (err) {
-				console.error('[vestig] SpanProcessor.onStart error:', err)
+				internalConsole.error('[vestig] SpanProcessor.onStart error:', err)
 			}
 		}
 	}
@@ -95,7 +96,7 @@ class SpanProcessorRegistry {
 			try {
 				processor.onEnd(span)
 			} catch (err) {
-				console.error('[vestig] SpanProcessor.onEnd error:', err)
+				internalConsole.error('[vestig] SpanProcessor.onEnd error:', err)
 			}
 		}
 	}
@@ -107,7 +108,7 @@ class SpanProcessorRegistry {
 		await Promise.all(
 			this.processors.map((p) =>
 				p.forceFlush?.().catch((err) => {
-					console.error('[vestig] SpanProcessor.forceFlush error:', err)
+					internalConsole.error('[vestig] SpanProcessor.forceFlush error:', err)
 				}),
 			),
 		)
@@ -120,7 +121,7 @@ class SpanProcessorRegistry {
 		await Promise.all(
 			this.processors.map((p) =>
 				p.shutdown?.().catch((err) => {
-					console.error('[vestig] SpanProcessor.shutdown error:', err)
+					internalConsole.error('[vestig] SpanProcessor.shutdown error:', err)
 				}),
 			),
 		)

@@ -1,3 +1,4 @@
+import { internalConsole, type InternalConsoleMethod } from '../internal-console'
 import { IS_BROWSER } from '../runtime'
 import type { LogEntry, LogLevel, Transport, TransportConfig } from '../types'
 
@@ -17,7 +18,7 @@ const RESET = '\x1b[0m'
 /**
  * Console method mapping
  */
-const CONSOLE_METHODS: Record<LogLevel, keyof Console> = {
+const CONSOLE_METHODS: Record<LogLevel, InternalConsoleMethod> = {
 	trace: 'debug',
 	debug: 'debug',
 	info: 'info',
@@ -89,9 +90,11 @@ export class ConsoleTransport implements Transport {
 		const method = CONSOLE_METHODS[entry.level]
 		const output = this.structured ? formatStructured(entry) : formatPretty(entry, this.colors)
 
-		// Use appropriate console method
-		const consoleFn = console[method] as (...args: unknown[]) => void
-		consoleFn(output)
+		// Through the console captured at load, not the current global one.
+		// Console auto-instrumentation replaces console.error with a wrapper
+		// that creates a span; writing a log through it would make vestig
+		// instrument its own output, and an error log would loop.
+		internalConsole[method](output)
 	}
 
 	/**
