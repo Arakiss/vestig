@@ -24,7 +24,6 @@ export const footerContent: FooterContent = {
 			title: 'Integrations',
 			links: [
 				{ label: 'Next.js', href: '/docs/nextjs' },
-				{ label: 'Express', href: '/docs/api' },
 				{ label: 'Core API', href: '/docs/api' },
 				{ label: 'Transports', href: '/docs/transports' },
 			],

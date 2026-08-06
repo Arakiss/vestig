@@ -158,14 +158,6 @@ export const docsMetadata: Record<string, DocPageMeta> = {
 		],
 	},
 
-	// Express.js
-	'/docs/express': {
-		title: 'Express.js Integration',
-		description:
-			'First-class Express.js support with middleware, route handlers, error handling, and automatic correlation ID propagation.',
-		keywords: ['express.js', 'express middleware', 'express logging', 'node.js logging'],
-	},
-
 	// Advanced
 	'/docs/advanced/error-handling': {
 		title: 'Error Handling',

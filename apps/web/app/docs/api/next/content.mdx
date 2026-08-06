@@ -354,10 +354,10 @@ Create Next.js middleware with automatic request logging.
 
 ```typescript
 function createVestigMiddleware(
-  config?: VestigMiddlewareConfig
+  config?: VestigNextMiddlewareConfig
 ): NextMiddleware
 
-interface VestigMiddlewareConfig {
+interface VestigNextMiddlewareConfig {
   // Paths to skip (static assets, health checks)
   skipPaths?: string[]
 
@@ -415,6 +415,6 @@ import type {
   ServerAction,
   VestigActionOptions,
   VestigProviderProps,
-  VestigMiddlewareConfig
+  VestigNextMiddlewareConfig
 } from '@vestig/next'
 ```

@@ -657,9 +657,9 @@ buffer.clear()
 
 ```typescript
 // app/api/route.ts
-import { withVestigRouteHandler } from '@vestig/next'
+import { withVestig } from '@vestig/next'
 
-export const GET = withVestigRouteHandler(async (request, { log, context }) => {
+export const GET = withVestig(async (request, { log, context }) => {
   log.info('API called', { path: request.url })
   return Response.json({ ok: true })
 })
@@ -670,9 +670,9 @@ export const GET = withVestigRouteHandler(async (request, { log, context }) => {
 ```typescript
 // app/actions.ts
 'use server'
-import { withVestigServerAction } from '@vestig/next'
+import { vestigAction } from '@vestig/next'
 
-export const myAction = withVestigServerAction(async (data, { log }) => {
+export const myAction = vestigAction(async (data, { log }) => {
   log.info('Action executed', { data })
   return { success: true }
 })
@@ -682,7 +682,7 @@ export const myAction = withVestigServerAction(async (data, { log }) => {
 
 ```typescript
 // middleware.ts
-import { createVestigMiddleware } from '@vestig/next'
+import { createVestigMiddleware } from '@vestig/next/middleware'
 
 export const middleware = createVestigMiddleware({
   enableWideEvents: true,
@@ -718,15 +718,49 @@ function MyComponent() {
 
 ### Wide Events in Next.js
 
-```typescript
-import { withVestigWideEvent } from '@vestig/next'
+The middleware opens one wide event per request; route handlers and server
+actions enrich the event that is already active.
 
-export const GET = withVestigWideEvent(
-  'api.users.list',
-  async (request, { event, log }) => {
-    event.setField('user', 'count', 100)
-    return Response.json({ users: [] })
-  }
+```typescript
+// middleware.ts
+import { createWideEventMiddleware } from '@vestig/next/wide-events'
+
+export const middleware = createWideEventMiddleware({
+  tailSampling: {
+    enabled: true,
+    alwaysKeepStatuses: ['error'],
+    slowThresholdMs: 2000,
+    successSampleRate: 0.1,
+  },
+})
+```
+
+```typescript
+// app/api/users/route.ts
+import { getWideEvent } from '@vestig/next/wide-events'
+
+export async function GET() {
+  const users = await db.users.findAll()
+
+  const event = getWideEvent()
+  event?.set('user', 'count', users.length)
+
+  return Response.json({ users })
+}
+```
+
+```typescript
+// app/actions/user.ts
+'use server'
+import { withWideEvent, setWideEventUser } from '@vestig/next/wide-events'
+
+export const createUser = withWideEvent(
+  async (data, { event }) => {
+    const user = await db.users.create({ data })
+    setWideEventUser({ id: user.id, email: user.email })
+    return user
+  },
+  { name: 'action.user.create' },
 )
 ```
 

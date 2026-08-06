@@ -155,6 +155,9 @@ export {
 	createNamespaceSampler,
 	createCompositeSampler,
 } from './sampling'
+// Tail sampling - decide after the request completes, when the outcome is known
+export { TailSampler, createTailSampler } from './sampling'
+export type { TailSamplingResult } from './sampling'
 
 // Wide Events - canonical log lines for comprehensive request context
 export {
@@ -173,6 +176,22 @@ export type {
 	WideEventFields,
 	WideEventStatus,
 	TailSamplingConfig,
+} from './wide-events'
+// Wide event schemas - field builders and the shapes they produce
+export { httpFields, HTTP_EVENT_TYPES, jobFields, JOB_EVENT_TYPES } from './wide-events'
+export type {
+	HttpFields,
+	UserFields,
+	PerformanceFields,
+	ErrorFields,
+	ServiceFields,
+	FeatureFlagFields,
+	HttpRequestEventFields,
+	JobFields,
+	JobDataFields,
+	JobPerformanceFields,
+	JobErrorFields,
+	BackgroundJobEventFields,
 } from './wide-events'
 
 // Metrics - Prometheus format export

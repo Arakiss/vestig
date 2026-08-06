@@ -31,7 +31,6 @@ export const navigationConfig: NavigationConfig = {
 			title: 'Integrations',
 			links: [
 				{ label: 'Next.js', href: '/docs/nextjs' },
-				{ label: 'Express', href: '/docs/api' },
 				{ label: 'Core API', href: '/docs/api' },
 				{ label: 'Cloudflare & Edge', href: '/docs/deployments/cloudflare' },
 			],

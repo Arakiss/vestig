@@ -353,15 +353,32 @@ const prisma = withVestigPrisma(
 Queries are automatically correlated with the current request context:
 
 ```typescript
-// In a Server Component or API Route
-import { withRequestContext } from '@vestig/next'
+// app/api/users/route.ts
+import { withVestig } from '@vestig/next'
 
-export async function GET(request: Request) {
-  return withRequestContext(request, async () => {
-    // This query will include requestId and traceId
-    const users = await prisma.user.findMany()
-    return Response.json(users)
-  })
+export const GET = withVestig(async (request, { log }) => {
+  // The handler runs inside the request context, so this query is logged
+  // with the same requestId and traceId as everything else in the request
+  const users = await prisma.user.findMany()
+  log.info('Users fetched', { count: users.length })
+  return Response.json(users)
+})
+```
+
+In a Server Component, read the context that the middleware already
+established instead of opening a new one:
+
+```typescript
+import { getLogger, getRequestContext } from '@vestig/next'
+
+export default async function Page() {
+  const log = await getLogger('users-page')
+  const { requestId, traceId } = await getRequestContext()
+
+  const users = await prisma.user.findMany()
+  log.info('Rendering users', { count: users.length, requestId, traceId })
+
+  return <UserList users={users} />
 }
 ```
 
