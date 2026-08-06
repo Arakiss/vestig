@@ -33,45 +33,6 @@ interface ChangelogEntry {
 
 const changelog: ChangelogEntry[] = [
 	{
-		version: '0.24.0',
-		date: '2026-08-06',
-		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.23.0...v0.24.0',
-		docs: ['make every documented import resolve', 'add v0.23.0 to web changelog'],
-		maintenance: [
-			'update dependencies and pin the toolchain',
-			'refresh project dependencies',
-			'harden package contents validation',
-			'update postcss toolchain',
-			'bump zod from 4.2.1 to 4.3.6 (#24)',
-			'bump tailwindcss from 4.1.18 to 4.2.4 (#23)',
-			'bump shiki from 3.20.0 to 4.0.2 in the docs-runtime group (#22)',
-			'reduce release and docs attack surface',
-			'keep managed hooks up to date',
-		],
-		fixes: ['keep trace context in a single store', 'keep docs and entrypoints edge safe'],
-		security: [
-			'force patched postcss resolution',
-			'harden disclosure workflow',
-			'reduce release and docs attack surface',
-			'harden release communication',
-		],
-		features: ['improve batch transport observability'],
-		cicd: [
-			'prevent partial github releases',
-			'use bun dependabot updates',
-			'validate commits with bun',
-			'update managed GitHub actions',
-		],
-		verification: [
-			'Release automation validates version sync, release-note quality, changelog sync, package builds, type checking, and tests before tagging',
-			'Security and LLM-context validators run in CI for every public release candidate',
-		],
-		publication: [
-			'GitHub Actions prepares the release commit locally, publishes vestig and @vestig/next to npm with provenance, then pushes the tag and GitHub Release only after package publication succeeds',
-			'Registry permission failures remain visible in the publish workflow and do not create another public GitHub release before npm accepts both packages',
-		],
-	},
-	{
 		version: '0.23.0',
 		date: '2026-04-21',
 		githubCompare: 'https://github.com/Arakiss/vestig/compare/v0.22.1...v0.23.0',
