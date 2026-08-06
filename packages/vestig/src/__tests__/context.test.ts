@@ -142,8 +142,10 @@ describe('withContextAsync', () => {
 		const result1 = results.find((r) => r.id === '1')
 		const result2 = results.find((r) => r.id === '2')
 
-		expect((result1?.context as Record<string, unknown>).requestId).toBe('req-1')
-		expect((result2?.context as Record<string, unknown>).requestId).toBe('req-2')
+		expect(result1?.context).toBeDefined()
+		expect(result2?.context).toBeDefined()
+		expect((result1?.context as Record<string, unknown>)?.requestId).toBe('req-1')
+		expect((result2?.context as Record<string, unknown>)?.requestId).toBe('req-2')
 	})
 })
 

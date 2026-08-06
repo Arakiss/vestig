@@ -3,25 +3,30 @@
 	"version": "0.23.0",
 	"private": true,
 	"workspaces": ["packages/*", "apps/*"],
+	"packageManager": "bun@1.3.14",
+	"engines": {
+		"bun": ">=1.3.14"
+	},
 	"overrides": {
-		"postcss": "8.5.14"
+		"postcss": "8.5.26"
 	},
 	"catalog": {
 		"// TypeScript": "",
-		"typescript": "^6.0.3",
-		"@types/node": "^22.19.19",
+		"typescript": "^7.0.2",
+		"// @types/node tracks the oldest supported runtime (engines: node >=18), not the newest release": "",
+		"@types/node": "^22.20.1",
 		"// React 19.2": "",
-		"react": "^19.2.6",
-		"react-dom": "^19.2.6",
-		"@types/react": "^19.2.14",
-		"@types/react-dom": "^19.0.0",
+		"react": "^19.2.8",
+		"react-dom": "^19.2.8",
+		"@types/react": "^19.2.18",
+		"@types/react-dom": "^19.2.4",
 		"// Next.js 16": "",
-		"next": "16.2.6",
+		"next": "16.3.0",
 		"// MDX": "",
-		"@next/mdx": "16.2.6",
+		"@next/mdx": "16.3.0",
 		"@mdx-js/loader": "^3.1.0",
 		"@mdx-js/react": "^3.1.1",
-		"@types/mdx": "^2.0.13"
+		"@types/mdx": "^2.0.14"
 	},
 	"scripts": {
 		"build": "bun run --filter 'vestig' build && bun run --filter '@vestig/next' build && bun run --filter '@vestig/web' build",
@@ -42,10 +47,10 @@
 		"prepare": "bun scripts/setup-hooks.ts"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.15",
+		"@biomejs/biome": "^2.5.7",
 		"mitata": "^1.0.34",
 		"pino": "^10.3.1",
-		"typescript": "^6.0.3",
+		"typescript": "^7.0.2",
 		"winston": "^3.19.0"
 	}
 }
