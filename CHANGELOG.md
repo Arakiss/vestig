@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.24.1](https://github.com/Arakiss/vestig/compare/v0.24.0...v0.24.1) (2026-08-06)
 
+### Summary
+
+Fixes a hang. If you enable `autoInstrument.console`, upgrade — this is not a
+noisy-logging bug, it is a request that never finishes.
+
+### Runtime impact
+
+`autoInstrument.console` replaces `console.error` with a wrapper that creates a
+span. Ending a span runs the span processors, and everything on that path
+reports its own failures through `console.error`. That closed a loop: a
+processor fails, vestig reports it, the report creates a span, the processor
+fails again. One application error became an unbounded loop that never yielded.
+
+It is worst exactly where it is hardest to read: with no reachable OTLP
+collector — a dev environment, a misconfigured endpoint — the exporter fails on
+every attempt, so the loop is continuous. On a serverless platform the symptom
+is a function that never returns and is killed at its timeout. Streaming
+responses (SSR pages) hang; handlers that close their response promptly often
+appear fine, which makes it look like a rendering problem rather than a logging
+one.
+
+The console transport had the same shape: it wrote log lines through whatever
+`console.error` currently is, so an error log passed through the instrumentation
+too.
+
+### Migration
+
+None. If you worked around this by disabling `autoInstrument.console`, you can
+turn it back on after upgrading.
+
+Integrations that wrap a console method themselves can now mark the wrapper with
+`markConsolePatch(wrapper, original)`, so vestig's own output steps around it
+instead of feeding it. Test spies and other tools that wrap the console are
+unaffected and still receive everything vestig writes.
+
+### Verification
+
+`bun run test` (1411 passing), `bun run typecheck`, `bun run build`. The loop was
+reproduced in a clean consumer install under Node — a single `console.error`
+produced 5001 calls before the probe cut it off — and the same probe now reports
+1. Trace correlation and the metrics endpoint were re-checked against the fixed
+build.
+
+### Thanks
+
+Reported from a production incident with an unusually precise observation: only
+streaming pages hung while every `/api` route answered. That detail is what
+located the mechanism.
+
 ### Bug Fixes
 
 - stop console instrumentation from feeding itself ([a4d585b](https://github.com/Arakiss/vestig/commit/a4d585b7e74cf50ed949f2aec74ed0601001e6a3))
