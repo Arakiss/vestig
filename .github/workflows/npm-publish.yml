@@ -103,19 +103,22 @@ jobs:
           npm publish --provenance --access public --dry-run
           echo "Would publish @vestig/next@${{ steps.versions.outputs.vestig_next_version }}"
 
-      - name: Publish @vestig/next
-        if: inputs.dry_run != true && (inputs.package == '@vestig/next' || inputs.package == 'all')
-        run: |
-          cd packages/vestig-next
-          npm publish --provenance --access public
-          echo "✅ Published @vestig/next@${{ steps.versions.outputs.vestig_next_version }}"
-
+      # Core first: @vestig/next declares vestig as a peer at the version they
+      # ship together, so publishing the integration first leaves a window where
+      # installing it resolves a peer that does not exist yet.
       - name: Publish vestig
         if: inputs.dry_run != true && (inputs.package == 'vestig' || inputs.package == 'all')
         run: |
           cd packages/vestig
           npm publish --provenance --access public
           echo "✅ Published vestig@${{ steps.versions.outputs.vestig_version }}"
+
+      - name: Publish @vestig/next
+        if: inputs.dry_run != true && (inputs.package == '@vestig/next' || inputs.package == 'all')
+        run: |
+          cd packages/vestig-next
+          npm publish --provenance --access public
+          echo "✅ Published @vestig/next@${{ steps.versions.outputs.vestig_next_version }}"
 
       - name: Summary
         run: |
