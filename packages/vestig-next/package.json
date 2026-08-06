@@ -38,6 +38,10 @@
 			"types": "./dist/metrics/index.d.ts",
 			"import": "./dist/metrics/index.js"
 		},
+		"./prometheus": {
+			"types": "./dist/prometheus/index.d.ts",
+			"import": "./dist/prometheus/index.js"
+		},
 		"./error": {
 			"types": "./dist/error/index.d.ts",
 			"import": "./dist/error/index.js"

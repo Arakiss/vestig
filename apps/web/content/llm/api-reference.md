@@ -613,18 +613,101 @@ dedupe.destroy()  // Cleanup
 
 ## Metrics API
 
-```typescript
-import { MetricsCollector, globalMetrics, createMetricsCollector } from 'vestig'
+There are two distinct surfaces. `MetricsCollector` measures **vestig itself**
+(is my logging healthy?). The registry measures **your application** (is my
+application healthy?). Both render Prometheus text format.
 
-// Use global metrics
-globalMetrics.increment('logs_total', { level: 'info' })
-globalMetrics.histogram('request_duration_ms', 150)
+### Application metrics
+
+```typescript
+import { counter, gauge, histogram, metricsText } from 'vestig/metrics'
+
+// Declare once, at module scope. Label names are declared up front; passing a
+// label that was not declared throws instead of creating a parallel series.
+const orders = counter('orders_total', 'Orders placed', ['status'])
+const depth = gauge('queue_depth', 'Jobs waiting', ['queue'])
+const duration = histogram('job_duration_seconds', 'Job duration', ['job'])
+
+orders.inc({ status: 'paid' })       // +1
+orders.inc({ status: 'paid' }, 5)    // +5
+orders.get({ status: 'paid' })       // 6
+
+depth.set(12, { queue: 'emails' })
+depth.inc({ queue: 'emails' })
+depth.dec({ queue: 'emails' })
+
+duration.observe(1.4, { job: 'export' })
+const stop = duration.startTimer({ job: 'export' })  // records SECONDS
+await runExport()
+stop()
+
+// Render the global registry
+const body = metricsText()
+```
+
+Histogram buckets default to a spread suited to request durations in seconds;
+pass your own as the fourth argument:
+
+```typescript
+const size = histogram('payload_bytes', 'Payload size', ['endpoint'], [1e3, 1e4, 1e5, 1e6])
+```
+
+### Isolated registry
+
+```typescript
+import { MetricsRegistry, collectRuntimeMetrics } from 'vestig/metrics'
+
+const registry = new MetricsRegistry({ defaultLabels: { service: 'worker' } })
+const jobs = registry.counter('jobs_total', 'Jobs run', ['queue'])
+
+collectRuntimeMetrics(registry)   // process memory, CPU, uptime
+registry.metricsText()            // render
+registry.resetMetrics()           // clear values, keep declarations (tests)
+```
+
+### Logger self-instrumentation
+
+```typescript
+import { globalMetrics, createMetricsCollector } from 'vestig'
+
+globalMetrics.incLogs('info')          // log emitted at a level
+globalMetrics.incDropped()             // entry dropped
+globalMetrics.incTransportErrors()     // transport failure
+globalMetrics.incSampledOut()          // entry removed by sampling
+globalMetrics.recordFlush(12.5)        // flush duration in ms
+
 const snapshot = globalMetrics.getMetrics()
 const prometheus = globalMetrics.toPrometheus()
 
-// Or create isolated collector
-const metrics = createMetricsCollector()
+const isolated = createMetricsCollector({ prefix: 'myapp', labels: { env: 'prod' } })
 ```
+
+### Next.js endpoint
+
+```typescript
+// app/metrics/route.ts
+import { createMetricsHandler } from '@vestig/next/prometheus'
+
+export const GET = createMetricsHandler({
+  token: process.env.METRICS_TOKEN,      // scrape with Authorization: Bearer
+  defaultLabels: { service: 'checkout' },
+  runtimeMetrics: true,                  // default
+})
+export const dynamic = 'force-dynamic'
+```
+
+```typescript
+// automatic rate, errors and duration for a route
+import { withMetrics } from '@vestig/next/prometheus'
+
+export const GET = withMetrics(handler, { route: '/api/orders/[id]' })
+```
+
+Metrics live in the memory of the instance that served the request. That matches
+Prometheus on a long-running server; across many short-lived serverless
+instances a scrape returns one arbitrary fragment, so push through OTLP instead.
+Middleware runs on the Edge runtime and its metrics are not visible to the
+Node-side endpoint.
 
 ## Utilities
 

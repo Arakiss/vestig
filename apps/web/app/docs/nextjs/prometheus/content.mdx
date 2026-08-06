@@ -1,0 +1,292 @@
+# Prometheus Metrics
+
+Counters, gauges and histograms for your application, exposed on a `/metrics`
+endpoint any Prometheus-compatible scraper can read.
+
+This is separate from [Web Vitals](/docs/nextjs/web-vitals), which measures the
+browser, and from the logger's own metrics, which measure vestig itself. This
+page is about your application: requests served, orders placed, queue depth,
+job durations.
+
+## Setup
+
+Two files. One exposes the endpoint, the other records something.
+
+```typescript
+// app/metrics/route.ts
+import { createMetricsHandler } from '@vestig/next/prometheus'
+
+export const GET = createMetricsHandler({ token: process.env.METRICS_TOKEN })
+
+// Metrics live in this instance's memory, so the route must never be cached
+export const dynamic = 'force-dynamic'
+```
+
+```typescript
+// lib/metrics.ts
+import { counter, histogram } from 'vestig/metrics'
+
+export const ordersPlaced = counter('orders_total', 'Orders placed', ['status'])
+export const orderValue = histogram(
+  'order_value_eur',
+  'Order value in euros',
+  [],
+  [10, 50, 100, 500, 1000],
+)
+```
+
+```typescript
+// anywhere in your server code
+import { ordersPlaced, orderValue } from '@/lib/metrics'
+
+ordersPlaced.inc({ status: 'paid' })
+orderValue.observe(129.9)
+```
+
+Scrape it:
+
+```bash
+curl -H "Authorization: Bearer $METRICS_TOKEN" http://localhost:3000/metrics
+```
+
+```
+# HELP orders_total Orders placed
+# TYPE orders_total counter
+orders_total{status="paid"} 1
+# HELP order_value_eur Order value in euros
+# TYPE order_value_eur histogram
+order_value_eur_bucket{le="10"} 0
+order_value_eur_bucket{le="50"} 0
+order_value_eur_bucket{le="100"} 0
+order_value_eur_bucket{le="500"} 1
+order_value_eur_bucket{le="1000"} 1
+order_value_eur_bucket{le="+Inf"} 1
+order_value_eur_sum 129.9
+order_value_eur_count 1
+```
+
+## Before you deploy this
+
+Two properties of Next.js decide whether these numbers mean anything. Neither is
+a vestig limitation, and both are easy to get wrong.
+
+**Metrics live in the memory of one instance.** A scrape reads whichever
+instance answered it. On a long-running server — `next start`, a container, a
+VM, a single always-on machine — that is exactly what Prometheus expects, and
+everything works. On serverless platforms that run many short-lived instances
+(Vercel's default, Lambda), each one holds its own counters, so a scrape returns
+an arbitrary fragment and counters appear to jump backwards. If that is your
+deployment, push to an OTLP collector with
+[`registerVestig`](/docs/nextjs/instrumentation) instead, or send metrics to a
+Prometheus pushgateway.
+
+**Middleware runs on a different runtime.** Next.js middleware executes on the
+Edge runtime, a separate module instance from your Node route handlers. Metrics
+recorded in middleware are invisible to the endpoint. Record from route
+handlers, server actions and server components.
+
+## Automatic HTTP metrics
+
+`withMetrics` records the three signals a request-serving system is judged on —
+rate, errors and duration:
+
+```typescript
+// app/api/orders/[id]/route.ts
+import { withMetrics } from '@vestig/next/prometheus'
+
+export const GET = withMetrics(
+  async (request) => Response.json(await getOrder()),
+  { route: '/api/orders/[id]' },
+)
+```
+
+It produces `http_requests_total`, `http_request_duration_seconds` and
+`http_requests_in_flight`. A handler that throws counts as `5xx`, because that
+is what the client received.
+
+**Pass `route`.** Without it the label falls back to the pathname, so
+`/api/orders/1` and `/api/orders/2` become two separate series. Unbounded label
+values are the most common way a Prometheus setup falls over — a label with a
+million values is a million time series.
+
+It composes with `withVestig`, in either order:
+
+```typescript
+import { withVestig } from '@vestig/next'
+import { withMetrics } from '@vestig/next/prometheus'
+
+export const POST = withMetrics(
+  withVestig(async (request, { log }) => {
+    log.info('Placing order')
+    return Response.json(await placeOrder())
+  }),
+  { route: '/api/orders' },
+)
+```
+
+## Metric types
+
+### Counter
+
+Only goes up. For things you count: requests, errors, orders, retries.
+
+```typescript
+const errors = counter('processing_errors_total', 'Processing failures', ['stage'])
+
+errors.inc({ stage: 'validation' })
+errors.inc({ stage: 'payment' }, 3)
+```
+
+Name counters with a `_total` suffix and query them with `rate()` — the raw
+value only tells you the count since this instance started.
+
+### Gauge
+
+Goes up and down. For things you measure right now: queue depth, connections,
+cache size.
+
+```typescript
+const depth = gauge('queue_depth', 'Jobs waiting', ['queue'])
+
+depth.set(12, { queue: 'emails' })
+depth.inc({ queue: 'emails' })
+depth.dec({ queue: 'emails' })
+```
+
+### Histogram
+
+A distribution. For durations and sizes, when the average hides what matters.
+
+```typescript
+const duration = histogram('job_duration_seconds', 'Job duration', ['job'])
+
+const stop = duration.startTimer({ job: 'export' })
+await runExport()
+stop()
+```
+
+`startTimer` records **seconds**, following the Prometheus convention of base
+units. A dashboard built for `_seconds` reading milliseconds is wrong by a
+factor of a thousand and looks plausible.
+
+Default buckets suit request durations
+(5ms to 10s). Pass your own when the metric measures something else:
+
+```typescript
+const payloadSize = histogram(
+  'payload_bytes',
+  'Request payload size',
+  ['endpoint'],
+  [1_000, 10_000, 100_000, 1_000_000],
+)
+```
+
+## Labels
+
+Declare label names up front. A label the metric was not declared with is an
+error rather than a silently parallel series:
+
+```typescript
+const orders = counter('orders_total', 'Orders', ['status'])
+
+orders.inc({ status: 'paid' })  // fine
+orders.inc({ staus: 'paid' })   // throws: not declared with label "staus"
+```
+
+Keep the number of distinct values small and bounded. Status, route pattern,
+region, queue name are good labels. User id, order id, URL with parameters, and
+error message are not — each distinct value is a new time series, kept in memory
+and in the scraper.
+
+Labels shared by everything belong on the registry instead:
+
+```typescript
+export const GET = createMetricsHandler({
+  defaultLabels: { service: 'checkout', region: process.env.VERCEL_REGION ?? 'local' },
+})
+```
+
+## Runtime metrics
+
+Memory, CPU and uptime are included by default where the runtime provides them,
+under the names existing dashboards already use:
+
+```
+process_resident_memory_bytes
+nodejs_heap_size_total_bytes
+nodejs_heap_size_used_bytes
+nodejs_external_memory_bytes
+process_cpu_seconds_total
+process_uptime_seconds
+```
+
+They are sampled at scrape time, not on a timer, so nothing keeps an idle
+instance awake. Turn them off with `runtimeMetrics: false`.
+
+On Edge runtimes these values do not exist, and vestig registers nothing rather
+than exporting zeroes that would read as a healthy process using no memory.
+
+## Protecting the endpoint
+
+A metrics endpoint reachable from the internet exposes your route names, traffic
+volume and error rates. Set a token:
+
+```typescript
+export const GET = createMetricsHandler({ token: process.env.METRICS_TOKEN })
+```
+
+The handler also reads `VESTIG_METRICS_TOKEN` when no token is passed. Scrapes
+must then send `Authorization: Bearer <token>`:
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: my-app
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials: ${METRICS_TOKEN}
+    static_configs:
+      - targets: ['my-app:3000']
+```
+
+Running in production without a token logs a warning once, rather than failing:
+an unreachable metrics endpoint is also a problem.
+
+## Correlating with traces
+
+Metrics tell you *that* something is slow; traces tell you *why*. Both come from
+the same request when the logger context is active:
+
+```typescript
+import { getContext } from 'vestig'
+import { withMetrics } from '@vestig/next/prometheus'
+
+export const GET = withMetrics(
+  async () => {
+    const { traceId } = getContext() ?? {}
+    // Log the trace id alongside a slow request so a spike in
+    // http_request_duration_seconds leads straight to an example trace
+    return Response.json({ traceId })
+  },
+  { route: '/api/slow' },
+)
+```
+
+## Using a separate registry
+
+The global registry is right for an application. For tests, or to isolate a
+subsystem, create your own:
+
+```typescript
+import { MetricsRegistry } from 'vestig/metrics'
+import { createMetricsHandler } from '@vestig/next/prometheus'
+
+const registry = new MetricsRegistry({ defaultLabels: { service: 'worker' } })
+const jobs = registry.counter('jobs_total', 'Jobs run', ['queue'])
+
+export const GET = createMetricsHandler({ registry })
+```
+
+In tests, `registry.resetMetrics()` clears values while keeping the
+declarations, so each case starts from zero.

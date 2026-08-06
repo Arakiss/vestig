@@ -21,6 +21,10 @@
 		"./instrumentation": {
 			"types": "./dist/instrumentation/index.d.ts",
 			"import": "./dist/instrumentation/index.js"
+		},
+		"./metrics": {
+			"types": "./dist/metrics/index.d.ts",
+			"import": "./dist/metrics/index.js"
 		}
 	},
 	"files": ["dist"],

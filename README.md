@@ -314,6 +314,39 @@ export function register() {
 }
 ```
 
+### Prometheus Metrics (New in v0.24)
+
+Counters, gauges and histograms for your application, on an endpoint any
+Prometheus-compatible scraper can read:
+
+```typescript
+// app/metrics/route.ts
+import { createMetricsHandler } from '@vestig/next/prometheus'
+
+export const GET = createMetricsHandler({ token: process.env.METRICS_TOKEN })
+export const dynamic = 'force-dynamic'
+```
+
+```typescript
+// anywhere in your server code
+import { counter, histogram } from 'vestig/metrics'
+
+const orders = counter('orders_total', 'Orders placed', ['status'])
+const value = histogram('order_value_eur', 'Order value', [], [10, 50, 100, 500])
+
+orders.inc({ status: 'paid' })
+value.observe(129.9)
+```
+
+`withMetrics` adds rate, errors and duration per route without any bookkeeping
+of your own, and process memory, CPU and uptime are included by default.
+
+Metrics are held in the memory of the instance that served the request, which is
+what Prometheus expects from a long-running server and *not* what happens across
+many short-lived serverless instances — see
+[the docs](https://vestig.dev/docs/nextjs/prometheus) for which deployments this
+suits and what to use instead when it does not.
+
 ### Sampling
 
 Control log volume in high-throughput applications:

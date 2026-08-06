@@ -71,6 +71,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		{ path: '/docs/nextjs/dev-overlay', priority: 0.8 },
 		{ path: '/docs/nextjs/error-boundary', priority: 0.8 },
 		{ path: '/docs/nextjs/web-vitals', priority: 0.8 },
+		{ path: '/docs/nextjs/prometheus', priority: 0.8 },
 
 		// Advanced
 		{ path: '/docs/advanced/error-handling', priority: 0.8 },

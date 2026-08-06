@@ -198,6 +198,33 @@ export type {
 export { MetricsCollector, globalMetrics, createMetricsCollector } from './metrics'
 export type { LoggerMetrics } from './metrics'
 
+// Application metrics - counters, gauges and histograms for your own code.
+// Also available from 'vestig/metrics' when you want only this surface.
+export {
+	Counter,
+	Gauge,
+	Histogram,
+	DEFAULT_BUCKETS,
+	MetricsRegistry,
+	globalRegistry,
+	counter,
+	gauge,
+	histogram,
+	metricsText,
+	collectRuntimeMetrics,
+	canCollectRuntimeMetrics,
+	PROMETHEUS_CONTENT_TYPE,
+} from './metrics'
+export type {
+	MetricLabels,
+	MetricOptions,
+	HistogramOptions,
+	MetricSample,
+	MetricType,
+	CollectedMetric,
+	RegistryOptions,
+} from './metrics'
+
 // Default logger instance (convenience)
 import { createLogger } from './logger'
 

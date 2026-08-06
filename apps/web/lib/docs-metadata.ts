@@ -128,6 +128,19 @@ export const docsMetadata: Record<string, DocPageMeta> = {
 			'Client-side logging with useLogger hook. Offline queue, batching, and error boundaries.',
 		keywords: ['client logging', 'browser logging', 'useLogger hook'],
 	},
+	'/docs/nextjs/prometheus': {
+		title: 'Prometheus Metrics',
+		description:
+			'Counters, gauges and histograms for your Next.js app, exposed on a /metrics endpoint Prometheus can scrape. Automatic HTTP metrics, runtime metrics, and token-protected scraping.',
+		keywords: [
+			'prometheus',
+			'metrics endpoint',
+			'nextjs metrics',
+			'counter gauge histogram',
+			'grafana',
+			'observability',
+		],
+	},
 
 	// Tracing - Context
 	'/docs/tracing/context': {
