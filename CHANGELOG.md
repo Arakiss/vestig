@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.24.0](https://github.com/Arakiss/vestig/compare/v0.23.0...v0.24.0) (2026-08-06)
 
+### Summary
+
+Trace context was being lost in two independent ways, both silent, and both
+producing the same symptom: spans with no shared trace id, which looks exactly
+like an application receiving no traffic. This release fixes both, adds
+Prometheus metrics for application code, and repairs every documented import
+that did not resolve.
+
+### Runtime impact
+
+Context propagation now works under Node. `AsyncLocalStorage` was reached
+through `require()`, which does not exist inside an ESM module, so under Node
+the call threw, the error was swallowed, and every context lookup returned
+undefined. Bun exposes `require()` inside ESM, which is why the test suite never
+saw it and production — Next.js on Node — lost every context. If your traces
+never correlated, this is why.
+
+`@vestig/next` no longer installs its own copy of `vestig`. It declared the
+package in `dependencies` and `peerDependencies` at once; the dependency entry
+wins, so package managers installed a nested copy alongside the one the consumer
+had already resolved. Two copies means two module-level context stores, and a
+`span()` imported from `vestig` never joined the trace `registerVestig()`
+started.
+
+### Migration
+
+Install `vestig` explicitly alongside `@vestig/next` — it is now a peer
+dependency only, and both packages must be on the same version:
+
+```bash
+bun add vestig@0.24.0 @vestig/next@0.24.0
+```
+
+If your lockfile still carries a nested copy from a previous install, remove
+`node_modules` and reinstall; package managers keep the old directory otherwise.
+Any `overrides` entry added to work around the duplicate can be dropped. Both
+packages now warn on startup if more than one copy is loaded.
+
+`web-vitals` moves to 6.x. The metric functions and the `Metric` type are
+unchanged; only the attribution build's `includeProcessedEventEntries` default
+changed, and only if you use it.
+
+### Verification
+
+`bun run test` (1407 passing), `bun run typecheck`, `bun run build`, `bun run
+lint`. Beyond the suite, the fixes were checked from a packed consumer install
+under Node: a single resolved copy with no nested entry in the lockfile, a
+`span()` created by the application sharing its trace id with the fetch span
+`registerVestig()` emits, and the metrics endpoint scraped over real HTTP.
+
+### Known issues
+
+Metrics are held in the memory of the instance that served the request. That is
+what Prometheus expects from a long-running server, and not what happens across
+many short-lived serverless instances — see the docs for which deployments the
+scrape endpoint suits. Metrics recorded in Next.js middleware run on the Edge
+runtime and are not visible to the Node-side endpoint.
+
 ### Features
 
 - add Prometheus metrics for applications ([c893723](https://github.com/Arakiss/vestig/commit/c893723ed034a671308075a5b2f0be6d49f6a77a))
