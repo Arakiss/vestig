@@ -7,8 +7,12 @@
 ```bash
 bun add vestig
 # Optional:
-bun add @vestig/next    # Next.js integration
+bun add vestig @vestig/next    # Next.js integration (vestig is a peer dependency)
 ```
+
+`@vestig/next` keeps `vestig` as a peer dependency on purpose: context lives in
+module state, so a second resolved copy would break trace correlation silently.
+Install both, on the same version.
 
 ## Core API
 

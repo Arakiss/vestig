@@ -35,6 +35,13 @@
  * @packageDocumentation
  */
 
+// Version
+export { VERSION } from './version'
+
+// Instance guard - diagnose duplicated copies that break trace correlation
+export { getLoadedInstances, registerNextInstance } from './instance'
+export type { VestigInstanceRecord } from './instance'
+
 // Server Components
 export {
 	getLogger,

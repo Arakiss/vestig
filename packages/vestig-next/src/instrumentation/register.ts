@@ -12,6 +12,7 @@ import {
 } from 'vestig'
 import { OTLPExporter } from 'vestig/otlp'
 import type { DatabaseInstrumentConfig } from '../db/types'
+import { registerNextInstance } from '../instance'
 import type {
 	AutoInstrumentConfig,
 	OTLPConfig,
@@ -310,6 +311,11 @@ function setupConsole(
  */
 export function registerVestig(options: RegisterVestigOptions): RegisterVestigResult {
 	const { serviceName, otlp, autoInstrument, debug = false } = options
+
+	// This is where instrumentation takes over the process, so it is the last
+	// useful moment to report a duplicated install: everything registered from
+	// here on would land in a context store the application cannot see.
+	registerNextInstance()
 
 	if (debug) {
 		console.log(`[vestig] Initializing for ${serviceName}...`)

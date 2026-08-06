@@ -1,3 +1,5 @@
+import { type AsyncStorage, createAsyncStorage } from '../async-storage'
+import { registerVestigInstance } from '../instance'
 import { CAPABILITIES, IS_SERVER } from '../runtime'
 import type { LogContext } from '../types'
 import { generateRequestId, generateSpanId, generateTraceId } from './correlation'
@@ -70,47 +72,40 @@ class GlobalContextManager implements ContextManager {
  * AsyncLocalStorage context manager for Node.js/Bun/Deno
  */
 class AsyncLocalStorageContextManager implements ContextManager {
-	private storage: {
-		getStore: () => LogContext | undefined
-		run: <T>(store: LogContext, fn: () => T) => T
-	} | null = null
+	private storage: AsyncStorage<LogContext> | null = null
 
 	constructor() {
-		// Dynamic import to avoid errors in non-Node environments
 		if (IS_SERVER && CAPABILITIES.hasAsyncLocalStorage) {
-			try {
-				// eslint-disable-next-line @typescript-eslint/no-require-imports
-				const asyncHooks = require('node:async_hooks') as {
-					AsyncLocalStorage: new <T>() => {
-						getStore: () => T | undefined
-						run: <R>(store: T, fn: () => R) => R
-					}
-				}
-				this.storage = new asyncHooks.AsyncLocalStorage<LogContext>()
-			} catch {
-				// Fallback handled by get()
-			}
+			this.storage = createAsyncStorage<LogContext>()
 		}
 	}
 
+	/**
+	 * Every method must agree on whether async tracking is available: reading
+	 * from AsyncLocalStorage while writing to the global manager loses the
+	 * context entirely, which is what used to happen under Node ESM.
+	 */
 	get(): LogContext | undefined {
-		return this.storage?.getStore()
+		const storage = this.storage
+		if (!storage) return GlobalContextManager.getInstance().get()
+
+		return storage.getStore()
 	}
 
 	run<T>(context: LogContext, fn: () => T): T {
-		if (!this.storage) {
-			return GlobalContextManager.getInstance().run(context, fn)
-		}
-		const current = this.storage.getStore()
-		return this.storage.run({ ...current, ...context }, fn)
+		const storage = this.storage
+		if (!storage) return GlobalContextManager.getInstance().run(context, fn)
+
+		const current = storage.getStore()
+		return storage.run({ ...current, ...context }, fn)
 	}
 
 	runAsync<T>(context: LogContext, fn: () => Promise<T>): Promise<T> {
-		if (!this.storage) {
-			return GlobalContextManager.getInstance().runAsync(context, fn)
-		}
-		const current = this.storage.getStore()
-		return this.storage.run({ ...current, ...context }, fn)
+		const storage = this.storage
+		if (!storage) return GlobalContextManager.getInstance().runAsync(context, fn)
+
+		const current = storage.getStore()
+		return storage.run({ ...current, ...context }, fn)
 	}
 }
 
@@ -126,8 +121,13 @@ function createContextManager(): ContextManager {
 
 /**
  * Global context manager instance
+ *
+ * Creating it is what makes this copy of vestig own context state, so this is
+ * also where the copy announces itself: a second one loaded in the same process
+ * would keep a separate store and silently break trace correlation.
  */
 const contextManager = createContextManager()
+registerVestigInstance()
 
 /**
  * Get the current context

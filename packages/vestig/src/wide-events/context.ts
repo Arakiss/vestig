@@ -1,3 +1,5 @@
+import { type AsyncStorage, createAsyncStorage } from '../async-storage'
+import { registerVestigInstance } from '../instance'
 import { CAPABILITIES, IS_SERVER } from '../runtime'
 import type { WideEventBuilder } from './types'
 
@@ -58,44 +60,38 @@ class GlobalWideEventContextManager implements WideEventContextManager {
  * AsyncLocalStorage context manager for Node.js/Bun/Deno
  */
 class AsyncLocalStorageWideEventContextManager implements WideEventContextManager {
-	private storage: {
-		getStore: () => WideEventBuilder | undefined
-		run: <T>(store: WideEventBuilder, fn: () => T) => T
-	} | null = null
+	private storage: AsyncStorage<WideEventBuilder> | null = null
 
 	constructor() {
 		if (IS_SERVER && CAPABILITIES.hasAsyncLocalStorage) {
-			try {
-				// eslint-disable-next-line @typescript-eslint/no-require-imports
-				const asyncHooks = require('node:async_hooks') as {
-					AsyncLocalStorage: new <T>() => {
-						getStore: () => T | undefined
-						run: <R>(store: T, fn: () => R) => R
-					}
-				}
-				this.storage = new asyncHooks.AsyncLocalStorage<WideEventBuilder>()
-			} catch {
-				// Fallback handled by get()
-			}
+			this.storage = createAsyncStorage<WideEventBuilder>()
 		}
 	}
 
+	/**
+	 * Reads must use the same store the writes went to. Falling back only in
+	 * run()/runAsync() left get() reading an AsyncLocalStorage that was never
+	 * created, so the active wide event was invisible under Node ESM.
+	 */
 	get(): WideEventBuilder | undefined {
-		return this.storage?.getStore()
+		const storage = this.storage
+		if (!storage) return GlobalWideEventContextManager.getInstance().get()
+
+		return storage.getStore()
 	}
 
 	run<T>(event: WideEventBuilder, fn: () => T): T {
-		if (!this.storage) {
-			return GlobalWideEventContextManager.getInstance().run(event, fn)
-		}
-		return this.storage.run(event, fn)
+		const storage = this.storage
+		if (!storage) return GlobalWideEventContextManager.getInstance().run(event, fn)
+
+		return storage.run(event, fn)
 	}
 
 	runAsync<T>(event: WideEventBuilder, fn: () => Promise<T>): Promise<T> {
-		if (!this.storage) {
-			return GlobalWideEventContextManager.getInstance().runAsync(event, fn)
-		}
-		return this.storage.run(event, fn)
+		const storage = this.storage
+		if (!storage) return GlobalWideEventContextManager.getInstance().runAsync(event, fn)
+
+		return storage.run(event, fn)
 	}
 }
 
@@ -111,8 +107,13 @@ function createWideEventContextManager(): WideEventContextManager {
 
 /**
  * Global wide event context manager instance
+ *
+ * Wide events carry their own module state, so this entry point registers the
+ * copy too — reaching wide events without touching the logging context is
+ * possible, and a duplicate must still be reported.
  */
 const wideEventContextManager = createWideEventContextManager()
+registerVestigInstance()
 
 /**
  * Get the active wide event builder from the current async context.

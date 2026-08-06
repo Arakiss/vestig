@@ -85,8 +85,15 @@ pnpm add vestig
 
 ```bash
 # Next.js 15+ (App Router, Server Components, Middleware)
-bun add @vestig/next
+bun add vestig @vestig/next
 ```
+
+`@vestig/next` declares `vestig` as a peer dependency, so install both. That is
+deliberate: context propagation lives in module state, and a second copy of
+`vestig` resolved under the integration would keep its own store — spans created
+in your application would silently stop sharing a trace id with the ones the
+integration emits. Both packages are released together, so keep them on the same
+version. If a duplicate ever ends up in your lockfile, vestig warns on startup.
 
 ## Quick Start
 

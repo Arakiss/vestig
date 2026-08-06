@@ -1,6 +1,10 @@
 // Version
 export { VERSION } from './version'
 
+// Instance guard - diagnose duplicated copies that break trace correlation
+export { getLoadedInstances, hasMultipleInstances } from './instance'
+export type { VestigInstanceRecord } from './instance'
+
 // Core exports
 export { createLogger, createLoggerAsync, initLogger, LoggerImpl } from './logger'
 export type {

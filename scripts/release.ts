@@ -60,6 +60,7 @@ const RELEASE_FILES = [
 	'packages/vestig/package.json',
 	'packages/vestig-next/package.json',
 	'packages/vestig/src/version.ts',
+	'packages/vestig-next/src/version.ts',
 ]
 
 function run(command: string): string {
@@ -332,20 +333,54 @@ function prependWebChangelog(entry: string): void {
 	writeFileSync(path, `${page.slice(0, insertAt)}\n${entry}${page.slice(insertAt)}`)
 }
 
+/**
+ * Bump @vestig/next and keep its peer range on the core in step.
+ *
+ * vestig must never appear in this package's dependencies: an exact entry there
+ * makes package managers install a nested copy even when the consumer already
+ * resolved one, and two copies mean two module-level AsyncLocalStorage stores
+ * with no shared trace id between them. The peer range moves with each release
+ * because the packages ship in lockstep and share that module state, so a
+ * consumer must not be allowed to pair a new integration with an older core.
+ */
+function updateNextPackage(version: string): void {
+	const path = 'packages/vestig-next/package.json'
+	const pkg = readJson(path)
+	pkg.version = version
+
+	const dependencies = pkg.dependencies as Record<string, string> | undefined
+	if (dependencies && 'vestig' in dependencies) {
+		throw new Error(
+			'@vestig/next must not declare vestig in dependencies: it forces a nested copy and breaks trace correlation. Keep it as a peer dependency only.',
+		)
+	}
+
+	const peers = pkg.peerDependencies as Record<string, string> | undefined
+	if (!peers?.vestig) {
+		throw new Error('@vestig/next must declare vestig as a peer dependency')
+	}
+	peers.vestig = `^${version}`
+
+	writeJson(path, pkg)
+}
+
 function updateVersions(version: string): void {
-	for (const path of [
-		'package.json',
-		'packages/vestig/package.json',
-		'packages/vestig-next/package.json',
-	]) {
+	for (const path of ['package.json', 'packages/vestig/package.json']) {
 		const pkg = readJson(path)
 		pkg.version = version
 		writeJson(path, pkg)
 	}
 
+	updateNextPackage(version)
+
 	writeFileSync(
 		resolve(ROOT, 'packages/vestig/src/version.ts'),
 		`/**\n * Vestig library version\n * This is automatically updated during the release process\n */\nexport const VERSION = '${version}'\n`,
+	)
+
+	writeFileSync(
+		resolve(ROOT, 'packages/vestig-next/src/version.ts'),
+		`/**\n * @vestig/next package version\n * This is automatically updated during the release process\n */\nexport const VERSION = '${version}'\n`,
 	)
 
 	const readmePath = resolve(ROOT, 'README.md')

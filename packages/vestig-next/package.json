@@ -101,11 +101,10 @@
 		"next": ">=15.0.0",
 		"react": ">=19.0.0",
 		"react-dom": ">=19.0.0",
-		"vestig": ">=0.2.0"
+		"vestig": "^0.23.0"
 	},
 	"dependencies": {
-		"vestig": "workspace:*",
-		"web-vitals": "^5.2.0"
+		"web-vitals": "^6.1.0"
 	},
 	"devDependencies": {
 		"typescript": "catalog:",
@@ -114,7 +113,8 @@
 		"@types/react-dom": "catalog:",
 		"next": "catalog:",
 		"react": "catalog:",
-		"react-dom": "catalog:"
+		"react-dom": "catalog:",
+		"vestig": "workspace:*"
 	},
 	"engines": {
 		"node": ">=18"
