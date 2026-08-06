@@ -13,6 +13,13 @@ on:
 permissions:
   contents: read
 
+# A new push to the same branch makes the previous run obsolete. Without this
+# every push queues another full matrix and the newest one waits behind runs
+# nobody will read. Never cancels on main, where each commit's result matters.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 env:
   # Pinned so CI runs the same toolchain as the lockfile and the release
   # workflows. Keep in step with packageManager in package.json.
@@ -23,6 +30,7 @@ jobs:
   quality-checks:
     name: Code Quality & Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -48,7 +56,12 @@ jobs:
 
       - name: Check for test.only() in tests
         run: |
-          if grep -r "test\.only\|it\.only\|describe\.only" --include="*.test.ts" --include="*.test.tsx" . ; then
+          # Scoped to our own sources: the previous form walked the whole tree
+          # including node_modules, which is slow and can fail on a dependency's
+          # own tests rather than ours.
+          if grep -rE "(test|it|describe)\.only\(" \
+               --include="*.test.ts" --include="*.test.tsx" \
+               packages/*/src apps/*/app apps/*/scripts scripts 2>/dev/null; then
             echo "Error: Found test.only() in tests. Remove them before committing."
             exit 1
           fi
@@ -86,6 +99,7 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
@@ -95,6 +109,14 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -114,12 +136,15 @@ jobs:
     name: Lint Commit Messages
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    timeout-minutes: 5
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          # Only the PR's own commits plus the base, instead of the whole
+          # history, which is all this job ever reads.
+          fetch-depth: ${{ github.event.pull_request.commits && github.event.pull_request.commits + 1 || 0 }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -127,9 +152,14 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Validate PR commits
+        env:
+          # Through the environment rather than interpolated into the script:
+          # workflow expressions are substituted before the shell sees them.
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          echo "Validating commits from ${{ github.event.pull_request.base.sha }} to ${{ github.event.pull_request.head.sha }}"
-          bun scripts/validate-commits.ts --from=${{ github.event.pull_request.base.sha }} --to=${{ github.event.pull_request.head.sha }}
+          echo "Validating commits from $BASE_SHA to $HEAD_SHA"
+          bun scripts/validate-commits.ts --from="$BASE_SHA" --to="$HEAD_SHA"
 
   # ===========================================================================
   # Authorship Protection Check
@@ -138,19 +168,23 @@ jobs:
     name: Check Commit Authorship
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    timeout-minutes: 5
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          fetch-depth: ${{ github.event.pull_request.commits && github.event.pull_request.commits + 1 || 0 }}
 
       - name: Check for forbidden authorship patterns
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           echo "Checking for forbidden authorship patterns in commits..."
 
           # Get all commit messages in this PR
-          COMMITS=$(git log --format="%B" ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+          COMMITS=$(git log --format="%B" "$BASE_SHA".."$HEAD_SHA")
 
           FORBIDDEN_PATTERNS=(
             "Co-Authored-By:"
